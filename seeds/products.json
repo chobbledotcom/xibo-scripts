@@ -7,7 +7,8 @@
         "price": 4.75,
         "calories": 260,
         "allergyInfo": "Contains dairy",
-        "code": "IC001"
+        "code": "IC001",
+        "availability": 1
       },
       {
         "name": "Chocolate Fudge",
@@ -15,7 +16,8 @@
         "price": 4.75,
         "calories": 280,
         "allergyInfo": "Contains dairy",
-        "code": "IC002"
+        "code": "IC002",
+        "availability": 1
       },
       {
         "name": "Strawberry Swirl",
@@ -23,7 +25,8 @@
         "price": 4.50,
         "calories": 230,
         "allergyInfo": "Contains dairy",
-        "code": "IC003"
+        "code": "IC003",
+        "availability": 1
       },
       {
         "name": "Mint Chocolate Chip",
@@ -31,7 +34,8 @@
         "price": 4.75,
         "calories": 260,
         "allergyInfo": "Contains dairy",
-        "code": "IC004"
+        "code": "IC004",
+        "availability": 1
       },
       {
         "name": "Cookies and Cream",
@@ -39,7 +43,8 @@
         "price": 4.75,
         "calories": 270,
         "allergyInfo": "Contains dairy, gluten",
-        "code": "IC005"
+        "code": "IC005",
+        "availability": 1
       },
       {
         "name": "Salted Caramel",
@@ -47,7 +52,8 @@
         "price": 5.00,
         "calories": 290,
         "allergyInfo": "Contains dairy",
-        "code": "IC006"
+        "code": "IC006",
+        "availability": 1
       },
       {
         "name": "Rocky Road",
@@ -55,7 +61,8 @@
         "price": 5.25,
         "calories": 320,
         "allergyInfo": "Contains dairy, nuts",
-        "code": "IC007"
+        "code": "IC007",
+        "availability": 1
       }
     ],
     "Sorbets": [
@@ -65,7 +72,8 @@
         "price": 4.00,
         "calories": 120,
         "allergyInfo": "Vegan friendly",
-        "code": "SB001"
+        "code": "SB001",
+        "availability": 1
       },
       {
         "name": "Raspberry Rush",
@@ -73,7 +81,8 @@
         "price": 4.00,
         "calories": 110,
         "allergyInfo": "Vegan friendly",
-        "code": "SB002"
+        "code": "SB002",
+        "availability": 1
       },
       {
         "name": "Mango Tango",
@@ -81,7 +90,8 @@
         "price": 4.25,
         "calories": 130,
         "allergyInfo": "Vegan friendly",
-        "code": "SB003"
+        "code": "SB003",
+        "availability": 1
       },
       {
         "name": "Passion Fruit",
@@ -89,7 +99,8 @@
         "price": 4.25,
         "calories": 115,
         "allergyInfo": "Vegan friendly",
-        "code": "SB004"
+        "code": "SB004",
+        "availability": 1
       },
       {
         "name": "Blood Orange",
@@ -97,7 +108,8 @@
         "price": 4.00,
         "calories": 125,
         "allergyInfo": "Vegan friendly",
-        "code": "SB005"
+        "code": "SB005",
+        "availability": 1
       }
     ]
   }

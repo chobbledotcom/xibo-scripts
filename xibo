@@ -87,6 +87,14 @@ def parse_options
       options[:size] = size.to_i
     end
 
+    opts.on("--category CATEGORY", "Category name (for layouts)") do |cat|
+      options[:category] = cat
+    end
+
+    opts.on("--show-grid", "Show grid visualization") do
+      options[:show_grid] = true
+    end
+
     opts.on("--force", "Skip confirmation prompts") do
       options[:force] = true
     end

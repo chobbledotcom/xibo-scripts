@@ -9,6 +9,10 @@ require_relative 'commands/menuboard/create_command'
 require_relative 'commands/category/add_command'
 require_relative 'commands/product/add_command'
 require_relative 'commands/product/list_command'
+require_relative 'commands/layout/create_command'
+require_relative 'commands/layout/show_grid_command'
+require_relative 'commands/layout/debug_command'
+require_relative 'commands/layout/status_command'
 
 module CommandRegistry
   COMMANDS = {
@@ -32,6 +36,12 @@ module CommandRegistry
     product: {
       add: Commands::Product::AddCommand,
       list: Commands::Product::ListCommand
+    },
+    layout: {
+      create: Commands::Layout::CreateCommand,
+      'show-grid': Commands::Layout::ShowGridCommand,
+      debug: Commands::Layout::DebugCommand,
+      status: Commands::Layout::StatusCommand
     }
   }.freeze
 
@@ -71,6 +81,12 @@ module CommandRegistry
       product: {
         add: "Add a product to a category",
         list: "List products in a category"
+      },
+      layout: {
+        create: "Create a menu layout for a category",
+        'show-grid': "Show layout grid visualization",
+        debug: "Debug layout system",
+        status: "Check layout status and validation"
       }
     }
     descriptions.dig(category, action)
