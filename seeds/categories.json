@@ -1,0 +1,14 @@
+{
+  "categories": [
+    {
+      "name": "Ice Cream",
+      "description": "Delicious ice cream flavors",
+      "code": "ICE"
+    },
+    {
+      "name": "Sorbets",
+      "description": "Refreshing fruit sorbets",
+      "code": "SORB"
+    }
+  ]
+}

@@ -75,6 +75,18 @@ def parse_options
       options[:json] = true
     end
 
+    opts.on("--url URL", "Image URL (for upload-image)") do |url|
+      options[:url] = url
+    end
+
+    opts.on("--random", "Use random image (for upload-image)") do
+      options[:random] = true
+    end
+
+    opts.on("--size SIZE", "Image size for random images (default: 800)") do |size|
+      options[:size] = size.to_i
+    end
+
     opts.on("--force", "Skip confirmation prompts") do
       options[:force] = true
     end
@@ -96,12 +108,11 @@ def parse_options
     opts.separator ""
     opts.separator "Examples:"
     opts.separator "  xibo media:list                    # List all media"
+    opts.separator "  xibo media:upload-image --random -n 'Logo'  # Upload random image"
+    opts.separator "  xibo media:upload-image --url 'http://...' -n 'Banner'"
     opts.separator "  xibo menuboard:list                # List all menu boards"
-    opts.separator "  xibo menuboard:show -i 1           # Show menu board details"
     opts.separator "  xibo menuboard:create -n 'Lunch'   # Create new menu board"
-    opts.separator "  xibo category:add --menu-id 1 -n 'Drinks'  # Add category"
     opts.separator "  xibo product:add --category-id 1 -n 'Coffee' --price 3.50"
-    opts.separator "  xibo product:list --category-id 1  # List products in category"
   end
 
   parser.parse!

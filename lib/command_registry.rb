@@ -1,5 +1,6 @@
 require_relative 'commands/media/list_command'
 require_relative 'commands/media/upload_command'
+require_relative 'commands/media/upload_image_command'
 require_relative 'commands/media/delete_command'
 require_relative 'commands/dataset/list_command'
 require_relative 'commands/menuboard/list_command'
@@ -14,6 +15,7 @@ module CommandRegistry
     media: {
       list: Commands::Media::ListCommand,
       upload: Commands::Media::UploadCommand,
+      'upload-image': Commands::Media::UploadImageCommand,
       delete: Commands::Media::DeleteCommand
     },
     dataset: {
@@ -52,6 +54,7 @@ module CommandRegistry
       media: {
         list: "List all media in library with folder structure",
         upload: "Upload a media file to the library",
+        'upload-image': "Upload images from URL, random, or local file",
         delete: "Delete a media file from the library"
       },
       dataset: {

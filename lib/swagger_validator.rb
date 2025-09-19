@@ -16,15 +16,19 @@ class SwaggerValidator
 
     errors = []
 
-    # Validate query parameters
+    # Validate query and form parameters (skip path parameters)
     if endpoint['parameters']
       endpoint['parameters'].each do |param|
-        if param['required'] && !params.key?(param['name'].to_sym)
-          errors << "Missing required parameter: #{param['name']}"
+        next if param['in'] == 'path' # Path parameters are handled in the URL
+
+        param_name = param['name']
+
+        if param['required'] && !params.key?(param_name)
+          errors << "Missing required parameter: #{param_name}"
         end
 
-        if params.key?(param['name'].to_sym)
-          validate_param_type(param, params[param['name'].to_sym], errors)
+        if params.key?(param_name)
+          validate_param_type(param, params[param_name], errors)
         end
       end
     end

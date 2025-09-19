@@ -78,19 +78,24 @@ class XiboClient
   def post(endpoint, body: {}, params: {}, headers: {})
     authenticate! unless authenticated?
 
+    # Most Xibo endpoints use formData, so default to that
+    all_params = params.merge(body)
+
     # Validate request
-    validation = @validator.validate_request(endpoint, 'post', params.merge(body))
+    validation = @validator.validate_request(endpoint, 'post', all_params)
     unless validation[:valid]
       raise "Invalid parameters: #{validation[:errors].join(', ')}"
     end
 
-    default_headers = { 'Authorization' => "Bearer #{@access_token}" }
+    default_headers = {
+      'Authorization' => "Bearer #{@access_token}",
+      'Content-Type' => 'application/x-www-form-urlencoded'
+    }
 
     response = self.class.post(
       "#{@base_url}/api#{endpoint}",
       headers: default_headers.merge(headers),
-      query: params,
-      body: body
+      body: all_params
     )
 
     result = handle_response(response)
@@ -98,6 +103,40 @@ class XiboClient
     # Validate response
     if response.code >= 200 && response.code < 300
       validation = @validator.validate_response(endpoint, 'post', result, response.code)
+      puts "Warning: Response validation failed: #{validation[:error]}" if !validation[:valid] && ENV['DEBUG']
+    end
+
+    result
+  end
+
+  def put(endpoint, body: {}, params: {}, headers: {})
+    authenticate! unless authenticated?
+
+    # Most Xibo endpoints use formData, so default to that
+    all_params = params.merge(body)
+
+    # Validate request
+    validation = @validator.validate_request(endpoint, 'put', all_params)
+    unless validation[:valid]
+      raise "Invalid parameters: #{validation[:errors].join(', ')}"
+    end
+
+    default_headers = {
+      'Authorization' => "Bearer #{@access_token}",
+      'Content-Type' => 'application/x-www-form-urlencoded'
+    }
+
+    response = self.class.put(
+      "#{@base_url}/api#{endpoint}",
+      headers: default_headers.merge(headers),
+      body: all_params
+    )
+
+    result = handle_response(response)
+
+    # Validate response
+    if response.code >= 200 && response.code < 300
+      validation = @validator.validate_response(endpoint, 'put', result, response.code)
       puts "Warning: Response validation failed: #{validation[:error]}" if !validation[:valid] && ENV['DEBUG']
     end
 
