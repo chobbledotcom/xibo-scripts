@@ -1,0 +1,5 @@
+.env
+.direnv
+Gemfile.lock
+.bundle/
+vendor/

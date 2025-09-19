@@ -1,0 +1,151 @@
+#!/usr/bin/env ruby
+
+require 'dotenv'
+require 'optparse'
+require_relative 'lib/xibo_client'
+require_relative 'lib/command_registry'
+
+Dotenv.load
+
+def parse_options
+  options = {}
+  parser = OptionParser.new do |opts|
+    opts.banner = "Usage: xibo COMMAND [options]"
+    opts.separator ""
+    opts.separator "Commands:"
+
+    CommandRegistry.available_commands.each do |cmd|
+      category, action = cmd.split(':')
+      description = CommandRegistry.command_description(category.to_sym, action.to_sym)
+      opts.separator "  #{cmd.ljust(20)} #{description}"
+    end
+
+    opts.separator ""
+    opts.separator "Options:"
+
+    opts.on("-f", "--file FILE", "File path (for upload)") do |f|
+      options[:file] = f
+    end
+
+    opts.on("-n", "--name NAME", "Name (for upload)") do |n|
+      options[:name] = n
+    end
+
+    opts.on("-i", "--id ID", "Resource ID (for delete/update/show)") do |id|
+      options[:id] = id
+    end
+
+    opts.on("--folder-id ID", "Folder ID") do |fid|
+      options[:folder_id] = fid
+    end
+
+    opts.on("--menu-id ID", "Menu board ID") do |mid|
+      options[:menu_id] = mid
+    end
+
+    opts.on("--category-id ID", "Category ID") do |cid|
+      options[:category_id] = cid
+    end
+
+    opts.on("--code CODE", "Code identifier") do |code|
+      options[:code] = code
+    end
+
+    opts.on("--description DESC", "Description") do |desc|
+      options[:description] = desc
+    end
+
+    opts.on("--price AMOUNT", "Price (for products)") do |price|
+      options[:price] = price
+    end
+
+    opts.on("--calories NUM", "Calorie count") do |cal|
+      options[:calories] = cal.to_i
+    end
+
+    opts.on("--allergy-info INFO", "Allergy information") do |info|
+      options[:allergy_info] = info
+    end
+
+    opts.on("--[no-]available", "Product availability (default: true)") do |avail|
+      options[:available] = avail
+    end
+
+    opts.on("--json", "Output in JSON format") do
+      options[:json] = true
+    end
+
+    opts.on("--force", "Skip confirmation prompts") do
+      options[:force] = true
+    end
+
+    opts.on("-v", "--verbose", "Verbose output") do
+      options[:verbose] = true
+    end
+
+    opts.on("-d", "--debug", "Debug output") do
+      options[:debug] = true
+      ENV['DEBUG'] = '1'
+    end
+
+    opts.on("-h", "--help", "Show this help") do
+      puts opts
+      exit
+    end
+
+    opts.separator ""
+    opts.separator "Examples:"
+    opts.separator "  xibo media:list                    # List all media"
+    opts.separator "  xibo menuboard:list                # List all menu boards"
+    opts.separator "  xibo menuboard:show -i 1           # Show menu board details"
+    opts.separator "  xibo menuboard:create -n 'Lunch'   # Create new menu board"
+    opts.separator "  xibo category:add --menu-id 1 -n 'Drinks'  # Add category"
+    opts.separator "  xibo product:add --category-id 1 -n 'Coffee' --price 3.50"
+    opts.separator "  xibo product:list --category-id 1  # List products in category"
+  end
+
+  parser.parse!
+
+  # Get the command from remaining args
+  if ARGV.empty?
+    puts parser
+    exit 1
+  end
+
+  command = ARGV.shift
+  options[:command] = command
+
+  options
+end
+
+def main
+  options = parse_options
+  command_parts = options[:command].split(':')
+
+  if command_parts.length != 2
+    puts "Invalid command format. Use 'category:action' (e.g., media:list)"
+    exit 1
+  end
+
+  category = command_parts[0].to_sym
+  action = command_parts[1].to_sym
+
+  command_class = CommandRegistry.get_command(category, action)
+
+  unless command_class
+    puts "Unknown command: #{options[:command]}"
+    puts "Run 'xibo --help' for available commands"
+    exit 1
+  end
+
+  begin
+    client = XiboClient.new
+    command = command_class.new(client, options)
+    command.execute
+  rescue => e
+    puts "Error: #{e.message}"
+    exit 1
+  end
+end
+
+main if __FILE__ == $0
