@@ -2,6 +2,11 @@ module Commands
   class BaseCommand
     attr_reader :client, :options
 
+    # Override this in subclasses to provide a description
+    def self.description
+      nil
+    end
+
     def initialize(client, options = {})
       @client = client
       @options = options

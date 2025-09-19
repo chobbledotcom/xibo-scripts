@@ -1,49 +1,53 @@
-require_relative 'commands/media/list_command'
-require_relative 'commands/media/upload_command'
-require_relative 'commands/media/upload_image_command'
-require_relative 'commands/media/delete_command'
-require_relative 'commands/dataset/list_command'
-require_relative 'commands/menuboard/list_command'
-require_relative 'commands/menuboard/show_command'
-require_relative 'commands/menuboard/create_command'
-require_relative 'commands/category/add_command'
-require_relative 'commands/product/add_command'
-require_relative 'commands/product/list_command'
-require_relative 'commands/layout/create_command'
-require_relative 'commands/layout/show_grid_command'
-require_relative 'commands/layout/debug_command'
-require_relative 'commands/layout/status_command'
-
 module CommandRegistry
-  COMMANDS = {
-    media: {
-      list: Commands::Media::ListCommand,
-      upload: Commands::Media::UploadCommand,
-      'upload-image': Commands::Media::UploadImageCommand,
-      delete: Commands::Media::DeleteCommand
-    },
-    dataset: {
-      list: Commands::Dataset::ListCommand
-    },
-    menuboard: {
-      list: Commands::Menuboard::ListCommand,
-      show: Commands::Menuboard::ShowCommand,
-      create: Commands::Menuboard::CreateCommand
-    },
-    category: {
-      add: Commands::Category::AddCommand
-    },
-    product: {
-      add: Commands::Product::AddCommand,
-      list: Commands::Product::ListCommand
-    },
-    layout: {
-      create: Commands::Layout::CreateCommand,
-      'show-grid': Commands::Layout::ShowGridCommand,
-      debug: Commands::Layout::DebugCommand,
-      status: Commands::Layout::StatusCommand
-    }
-  }.freeze
+  # Auto-discover all command files
+  def self.discover_commands
+    commands = {}
+
+    # Find all command files in the commands directory, excluding base_command
+    Dir.glob(File.join(__dir__, 'commands', '**', '*_command.rb')).each do |file|
+      # Skip base_command.rb
+      next if File.basename(file) == 'base_command.rb'
+      # Load the file
+      require file
+
+      # Extract category and action from path
+      # e.g., commands/media/list_command.rb -> media, list
+      path_parts = file.split('/')
+      category = path_parts[-2].to_sym
+
+      # Convert filename to action name
+      # list_command.rb -> list
+      # upload_image_command.rb -> upload-image
+      action_name = File.basename(file, '_command.rb')
+      action = action_name.gsub('_', '-').to_sym
+
+      # Build the class name
+      # media/list_command.rb -> Commands::Media::ListCommand
+      category_module = category.to_s.split('_').map(&:capitalize).join
+      action_class = action_name.split('_').map(&:capitalize).join + 'Command'
+
+      begin
+        # Get the actual class constant
+        klass = Commands.const_get(category_module).const_get(action_class)
+
+        # Add to commands hash
+        commands[category] ||= {}
+        commands[category][action] = klass
+      rescue NameError => e
+        # Skip if class doesn't exist or doesn't follow convention
+        puts "Warning: Could not load #{category_module}::#{action_class} from #{file}" if ENV['DEBUG']
+      end
+    end
+
+    commands
+  end
+
+  # Lazy load commands on first access
+  def self.commands
+    @commands ||= discover_commands
+  end
+
+  COMMANDS = commands.freeze
 
   def self.get_command(category, action)
     COMMANDS.dig(category, action)
@@ -60,35 +64,15 @@ module CommandRegistry
   end
 
   def self.command_description(category, action)
-    descriptions = {
-      media: {
-        list: "List all media in library with folder structure",
-        upload: "Upload a media file to the library",
-        'upload-image': "Upload images from URL, random, or local file",
-        delete: "Delete a media file from the library"
-      },
-      dataset: {
-        list: "List all datasets"
-      },
-      menuboard: {
-        list: "List all menu boards",
-        show: "Show details of a menu board with categories",
-        create: "Create a new menu board"
-      },
-      category: {
-        add: "Add a category to a menu board"
-      },
-      product: {
-        add: "Add a product to a category",
-        list: "List products in a category"
-      },
-      layout: {
-        create: "Create a menu layout for a category",
-        'show-grid': "Show layout grid visualization",
-        debug: "Debug layout system",
-        status: "Check layout status and validation"
-      }
-    }
-    descriptions.dig(category, action)
+    command_class = get_command(category, action)
+    return nil unless command_class
+
+    # Check if the command class has a description method
+    if command_class.respond_to?(:description)
+      command_class.description
+    else
+      # Fallback to generating description from class name
+      "Execute #{action.to_s.gsub('-', ' ')} for #{category}"
+    end
   end
 end

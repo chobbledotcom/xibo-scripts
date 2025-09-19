@@ -74,35 +74,42 @@ class LayoutBuilder
 
   def create_layout(name, resolution_id)
     puts "  Creating layout: #{name}"
+    timestamp = Time.now.strftime("%m%d_%H%M")
     @client.post('/layout', body: {
-      name: "Menu - #{name}",
-      description: "Auto-generated menu layout for #{name} products",
-      resolutionId: resolution_id,
-      code: "MENU_#{name.upcase.gsub(' ', '_')}",
-      returnDraft: true
+      'name' => "Menu - #{name}",
+      'description' => "Auto-generated menu layout for #{name} products",
+      'resolutionId' => resolution_id,
+      'code' => "MENU_#{name.upcase.gsub(' ', '_')}_#{timestamp}",
+      'returnDraft' => true
     })
   end
 
   def create_header_region(layout_id, category_name)
     puts "  Creating header region"
 
-    # First check if layout has regions and get the main region
-    layout_info = @client.get("/layout/#{layout_id}", params: { embed: 'regions' })
+    # Create a new playlist region for the header
+    region = @client.post("/region/#{layout_id}", body: {
+      'type' => 'playlist',
+      'width' => HEADER_WIDTH.to_i,
+      'height' => HEADER_HEIGHT.to_i,
+      'top' => HEADER_Y.to_i,
+      'left' => HEADER_X.to_i
+    })
 
-    if layout_info['regions'] && !layout_info['regions'].empty?
-      # Use the existing region for header (layouts usually come with one region)
-      region = layout_info['regions'].first
+    puts "    Header region created (ID: #{region['regionId']})"
+    puts "    Region response: #{region.inspect}" if ENV['DEBUG']
 
-      # Position and resize the region for header
-      position_region(region['regionId'], HEADER_X, HEADER_Y, HEADER_WIDTH, HEADER_HEIGHT)
+    # Extract playlist ID from region creation response
+    playlist_id = region.dig('regionPlaylist', 'playlistId')
 
-      # Add text widget to header region
-      add_text_widget(region['regionId'], category_name)
-
-      region
+    if playlist_id
+      # Add text widget directly to the region's playlist
+      add_text_widget_to_playlist_id(playlist_id, category_name)
     else
-      raise "No regions found in layout #{layout_id}"
+      puts "    Warning: Could not find playlist for region"
     end
+
+    region
   end
 
   def create_product_grid(layout_id, products)
@@ -110,7 +117,8 @@ class LayoutBuilder
 
     regions = []
 
-    products.each_with_index do |product, index|
+    # Create up to 12 product regions
+    12.times do |index|
       row = index / GRID_COLS
       col = index % GRID_COLS
 
@@ -118,9 +126,15 @@ class LayoutBuilder
       x = BOX_MARGIN + col * (BOX_WIDTH + BOX_MARGIN)
       y = GRID_START_Y + BOX_MARGIN + row * (BOX_HEIGHT + BOX_MARGIN)
 
-      puts "    Product #{index + 1}: #{product['name']} at (#{x.to_i}, #{y.to_i})"
+      product = products[index] if index < products.length
 
-      # Create region for this product
+      if product
+        puts "    Product #{index + 1}: #{product['name']} at (#{x.to_i}, #{y.to_i})"
+      else
+        puts "    Empty slot #{index + 1} at (#{x.to_i}, #{y.to_i})"
+      end
+
+      # Create region for this product slot
       region = create_product_region(layout_id, x, y, product, index)
       regions << region
     end
@@ -129,20 +143,29 @@ class LayoutBuilder
   end
 
   def create_product_region(layout_id, x, y, product, index)
-    # For now, we'll add regions manually through positioning
-    # This is a simplified approach - in a full implementation,
-    # we'd need to use the proper region creation API
+    # Create actual region via API
+    region = @client.post("/region/#{layout_id}", body: {
+      'type' => 'playlist',
+      'width' => BOX_WIDTH.to_i,
+      'height' => BOX_HEIGHT.to_i,
+      'top' => y.to_i,
+      'left' => x.to_i
+    })
 
-    # Create a placeholder region structure
-    {
-      regionId: "product_#{index}",
-      name: product['name'],
-      x: x.to_i,
-      y: y.to_i,
-      width: BOX_WIDTH.to_i,
-      height: BOX_HEIGHT.to_i,
-      product: product
-    }
+    puts "      Region created (ID: #{region['regionId']})"
+    puts "      Region response: #{region.inspect}" if ENV['DEBUG']
+
+    # Extract playlist ID from region creation response
+    playlist_id = region.dig('regionPlaylist', 'playlistId')
+
+    if playlist_id && product
+      # Add product widget directly to the region's playlist
+      add_product_widget_to_playlist_id(playlist_id, product)
+    elsif product && !playlist_id
+      puts "      Warning: Could not find playlist for product region"
+    end
+
+    region
   end
 
   def position_region(region_id, x, y, width, height)
@@ -162,27 +185,44 @@ class LayoutBuilder
     end
   end
 
-  def add_text_widget(region_id, text)
-    puts "    Adding text widget: '#{text}'"
+
+  def add_text_widget_to_playlist_id(playlist_id, text)
+    puts "    Adding text widget: '#{text}' to playlist #{playlist_id}"
 
     begin
-      # Find the playlist for this region
-      region_info = @client.get("/region/#{region_id}")
-
-      # Add text widget to region's playlist
-      @client.post("/playlist/widget/text/#{region_info['playlists'][0]['playlistId']}", body: {
-        text: text,
-        duration: 10,
-        fontSize: 48,
-        fontFamily: 'Arial',
-        fontColor: '#000000',
-        backgroundColor: '#FFFFFF',
-        templateId: 'text-left'
+      # Add text widget to playlist
+      @client.post("/playlist/widget/text/#{playlist_id}", body: {
+        'text' => text,
+        'duration' => 10,
+        'fontSize' => 48,
+        'fontFamily' => 'Arial',
+        'fontColor' => '#000000',
+        'backgroundColor' => '#FFFFFF'
       })
+
+      puts "      Text widget added to playlist #{playlist_id}"
     rescue => e
       puts "    Warning: Could not add text widget: #{e.message}"
     end
   end
+
+  def add_product_widget_to_playlist_id(playlist_id, product)
+    puts "      Adding product widget for '#{product['name']}' to playlist #{playlist_id}"
+
+    begin
+      # Add menu board widget to playlist
+      @client.post("/playlist/widget/menuboard/#{playlist_id}", body: {
+        'duration' => 30,
+        'menuId' => product['menuId'] || 1,  # Will need to be passed properly
+        'productId' => product['menuProductId']
+      })
+
+      puts "        Product widget added to playlist #{playlist_id}"
+    rescue => e
+      puts "      Warning: Could not add product widget: #{e.message}"
+    end
+  end
+
 
   def publish_layout(layout_id)
     puts "  Publishing layout"
