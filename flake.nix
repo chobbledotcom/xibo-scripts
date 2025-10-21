@@ -22,6 +22,12 @@
             export RUBYOPT="-W0"
             echo "Ruby development environment for Xibo scripts"
             echo "Ruby version: $(ruby --version)"
+            
+            # Auto-install gems if needed
+            if [ ! -d .bundle ] || [ ! -f Gemfile.lock ]; then
+              echo "Installing Ruby gems..."
+              bundle install
+            fi
           '';
         };
       });
