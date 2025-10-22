@@ -164,6 +164,57 @@ The primary interface supporting all operations:
 ./xibo menuboard:show -i 1 -v
 ```
 
+#### Edit Menu Board
+Interactively edit an existing menu board. Changes are saved to both Xibo and seed data:
+
+```bash
+# Interactive selection from all menu boards
+./xibo menuboard:edit
+
+# Edit specific menu board by ID
+./xibo menuboard:edit -i 1
+```
+
+**Interactive workflow**:
+1. Select a menu board from the list (or use `-i` option)
+2. View current values (name, code, description)
+3. Enter new values or press Enter to keep existing
+4. Confirm changes before saving
+5. Updates both Xibo environment and `seeds/menu_boards.json`
+
+**Example session**:
+```
+Fetching menu boards from Xibo...
+
+=== Available Menu Boards ===
+1. Vans [VANS001] - Ice cream and sorbet menu (ID: 1)
+2. Lunch Menu [LUNCH001] - Daily lunch specials (ID: 2)
+
+Select menu board number (1-2) or ID: 1
+
+Current menu board details:
+  ID:          1
+  Name:        Vans
+  Code:        VANS001
+  Description: Ice cream and sorbet menu
+
+New name (or press Enter to keep 'Vans'): Van's Ice Cream
+New code (or press Enter to keep 'VANS001'):
+New description (or press Enter to keep 'Ice cream and sorbet menu'): Premium ice cream and sorbet
+
+Changes to be saved:
+  name: Vans → Van's Ice Cream
+  description: Ice cream and sorbet menu → Premium ice cream and sorbet
+
+Save these changes? (y/n): y
+
+Updating menu board in Xibo...
+✓ Updated in Xibo (ID: 1)
+Updating seed data file...
+✓ Updated seed data file
+✓ Menu board updated successfully!
+```
+
 ### Category Management
 
 #### Add Category to Menu Board
