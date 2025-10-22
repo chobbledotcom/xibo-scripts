@@ -1,5 +1,8 @@
 # Xibo CMS Ruby Management Suite
 
+![Tests](https://github.com/chobbledotcom/xibo-scripts/workflows/Tests/badge.svg)
+[![Ruby](https://img.shields.io/badge/ruby-3.3-red.svg)](https://www.ruby-lang.org/)
+
 A comprehensive Ruby CLI toolkit for managing Xibo CMS v4 digital signage systems, with specialized support for menu board management, media operations, and automated layout generation.
 
 ## Overview
@@ -22,6 +25,9 @@ This toolkit provides a powerful command-line interface to interact with Xibo CM
 - **ImageManager** (`lib/image_manager.rb`): Handles image downloads (random or URL) and Xibo uploads
 - **SwaggerValidator** (`lib/swagger_validator.rb`): Validates API calls against `swagger.json` specification
 - **MenuSeeder** (`seed.rb`): Incremental data synchronization with force-rebuild option
+- **SeedDataManager** (`lib/seed_data_manager.rb`): Centralized seed file reading/writing with CRUD operations
+- **InteractiveEditor** (`lib/interactive_editor.rb`): Reusable module for interactive CLI workflows
+- **CrudOperations** (`lib/crud_operations.rb`): Cohesive interface for create/delete with dual Xibo+seed sync
 
 ### Command Structure
 
@@ -146,10 +152,30 @@ The primary interface supporting all operations:
 ```
 
 #### Create Menu Board
+Creates a menu board in both Xibo and seed data:
+
 ```bash
+# With CLI options
 ./xibo menuboard:create -n "Lunch Menu" \
   --description "Daily lunch specials" \
   --code "LUNCH001"
+
+# Interactive mode (prompts for all fields)
+./xibo menuboard:create
+```
+
+#### Delete Menu Board
+Deletes a menu board from both Xibo and seed data:
+
+```bash
+# Interactive selection
+./xibo menuboard:delete
+
+# Delete specific board by ID
+./xibo menuboard:delete -i 1
+
+# Force delete (skip confirmation)
+./xibo menuboard:delete -i 1 --force
 ```
 
 #### Show Menu Board Details
@@ -164,13 +190,136 @@ The primary interface supporting all operations:
 ./xibo menuboard:show -i 1 -v
 ```
 
+#### Edit Menu Board
+Comprehensive interactive editor for menu boards, categories, and products. Changes are saved to both Xibo and seed data:
+
+```bash
+# Interactive selection from all menu boards
+./xibo menuboard:edit
+
+# Edit specific menu board by ID
+./xibo menuboard:edit -i 1
+```
+
+**Features**:
+- **Menu-driven interface** - Navigate between board, category, and product editing
+- **Multi-level editing** - Edit board details, categories, and products in one session
+- **Dual sync** - Updates both Xibo environment and corresponding seed files
+- **Current value display** - See existing values before making changes
+- **Confirmation prompts** - Review changes before saving
+
+**What you can edit**:
+1. **Board Details**: name, code, description → saves to `seeds/menu_boards.json`
+2. **Categories**: name, code, description → saves to `seeds/categories.json`
+3. **Products**: name, description, price, calories, allergy info, code, availability → saves to `seeds/products.json`
+
+**Example session**:
+```
+Fetching menu boards from Xibo...
+
+=== Available Menu Boards ===
+1. Vans [VANS001] - Ice cream and sorbet menu (ID: 1)
+2. Lunch Menu [LUNCH001] - Daily lunch specials (ID: 2)
+
+Select menu board number (1-2) or ID: 1
+
+============================================================
+Editing: Vans (ID: 1)
+============================================================
+
+What would you like to edit?
+  1. Board details (name, code, description)
+  2. Categories
+  3. Products
+  4. Exit
+
+Select option (1-4): 3
+
+Fetching categories...
+
+--- Select Category ---
+1. Ice Cream
+2. Sorbets
+
+Select category number (or 0 to cancel): 1
+
+Fetching products...
+
+--- Products in Ice Cream ---
+1. Vanilla Bean - $4.75 (ID: 10)
+2. Chocolate Fudge - $4.75 (ID: 11)
+3. Strawberry - $4.50 [UNAVAILABLE] (ID: 12)
+
+Select product number to edit (or 0 to cancel): 3
+
+--- Edit Product ---
+  ID:           12
+  Name:         Strawberry
+  Description:  Fresh strawberry ice cream
+  Price:        $4.50
+  Calories:     240
+  Allergy Info: Contains dairy
+  Code:         IC003
+  Available:    No
+
+New name (or press Enter to keep 'Strawberry'):
+New description (or press Enter to keep 'Fresh strawberry ice cream'):
+New price (or press Enter to keep '$4.50'): 4.75
+New calories (or press Enter to keep '240'):
+New allergy info (or press Enter to keep 'Contains dairy'):
+New code (or press Enter to keep 'IC003'):
+Available? (y/n, or press Enter to keep 'No'): y
+
+Changes to be saved:
+  price: $4.50 → $4.75
+  availability: No → Yes
+
+Save these changes? (y/n): y
+
+Updating product in Xibo...
+✓ Updated in Xibo (ID: 12)
+Updating seed data file...
+✓ Updated products.json
+✓ Product updated successfully!
+
+============================================================
+Editing: Vans (ID: 1)
+============================================================
+
+What would you like to edit?
+  1. Board details (name, code, description)
+  2. Categories
+  3. Products
+  4. Exit
+
+Select option (1-4): 4
+ℹ Exiting editor
+```
+
 ### Category Management
 
 #### Add Category to Menu Board
+Creates a category in both Xibo and seed data:
+
 ```bash
+# With CLI options
 ./xibo category:add --menu-id 1 -n "Appetizers" \
   --description "Starter dishes" \
   --code "APP"
+
+# Interactive mode
+./xibo category:add --menu-id 1
+```
+
+#### Delete Category
+Deletes a category from both Xibo and seed data:
+
+```bash
+# Interactive selection
+./xibo category:delete --menu-id 1
+
+# Force delete (skip confirmation)
+./xibo category:delete --menu-id 1 --force
 ```
 
 ### Product Management
@@ -185,7 +334,10 @@ The primary interface supporting all operations:
 ```
 
 #### Add Product
+Creates a product in both Xibo and seed data:
+
 ```bash
+# With CLI options
 ./xibo product:add --category-id 5 \
   -n "Cheeseburger" \
   --description "Quarter pound burger with cheese" \
@@ -198,6 +350,20 @@ The primary interface supporting all operations:
 # Mark as unavailable
 ./xibo product:add --category-id 5 -n "Sold Out Item" \
   --price 5.99 --no-available
+
+# Interactive mode (prompts for all fields)
+./xibo product:add --category-id 5
+```
+
+#### Delete Product
+Deletes a product from both Xibo and seed data:
+
+```bash
+# Interactive selection
+./xibo product:delete --category-id 5
+
+# Force delete (skip confirmation)
+./xibo product:delete --category-id 5 --force
 ```
 
 ### Layout Operations
@@ -473,34 +639,170 @@ end
 2. Command is auto-discovered via `CommandRegistry`
 3. Accessible as: `./xibo category-name:action`
 
+### Testing
+
+The project includes comprehensive unit tests using RSpec.
+
+**Run all tests**:
+```bash
+bundle exec rake spec
+# or
+/opt/rbenv/versions/3.3.6/lib/ruby/gems/3.3.0/gems/rspec-core-3.13.6/exe/rspec
+```
+
+**Test coverage includes**:
+- **SeedDataManager**: CRUD operations on seed files (menu_boards.json, categories.json, products.json)
+- **InteractiveEditor**: User input handling, field prompts, confirmations, list selection
+
+**Writing tests**:
+```ruby
+# spec/lib/my_feature_spec.rb
+require 'spec_helper'
+require_relative '../../lib/my_feature'
+
+RSpec.describe MyFeature do
+  it 'does something useful' do
+    expect(MyFeature.new.process).to eq('expected result')
+  end
+end
+```
+
+**Test helpers**:
+- Uses `webmock` to stub HTTP requests
+- Uses `tmpdir` for isolated file system testing
+- Includes custom matchers for common assertions
+
+### Continuous Integration
+
+The project uses GitHub Actions for automated testing:
+
+**Triggers**:
+- Automatically runs on all pull requests
+- Runs on pushes to main/master branches
+- Can be triggered manually via workflow_dispatch
+
+**Workflow** (`.github/workflows/test.yml`):
+```yaml
+- Checks out code
+- Sets up Ruby 3.3
+- Installs dependencies with bundler cache
+- Runs full RSpec test suite
+- Reports results
+```
+
+**Status**: Check the badge at the top of this README for current test status.
+
+**Manual run**: Go to Actions tab → Tests workflow → Run workflow
+
+### Reusable Modules
+
+**SeedDataManager** - Centralized seed data management:
+```ruby
+manager = SeedDataManager.new
+manager.update_board('Menu Name', { 'name' => 'New Name' })
+manager.update_category('Category Name', { 'code' => 'CAT001' })
+manager.update_product('Category', 'Product', { 'price' => 4.99 })
+```
+
+**InteractiveEditor** - Interactive CLI workflows:
+```ruby
+class MyCommand < BaseCommand
+  include InteractiveEditor
+
+  def execute
+    # Prompt for field with type conversion
+    price = prompt_field('price', current_price, type: :float)
+
+    # Select from list
+    item = select_from_list(items, title: "Choose item")
+
+    # Collect multiple field changes
+    changes = collect_field_changes(entity, [
+      { name: 'name' },
+      { name: 'price', type: :float }
+    ])
+
+    # Confirm before saving
+    save if confirm_changes(changes, old_values)
+  end
+end
+```
+
+**CrudOperations** - Cohesive CRUD interface with dual-sync:
+```ruby
+class MyCommand < BaseCommand
+  include CrudOperations
+
+  def execute
+    # Create entity (updates both Xibo and seed data)
+    result = create_entity(:board, { name: 'New Board' }, update_seeds: true)
+
+    # Interactive create with prompts
+    result = interactive_create(:board)
+
+    # Delete entity (removes from both Xibo and seed data)
+    delete_entity(:board, board_id, 'Board Name', update_seeds: true)
+
+    # Interactive delete with selection
+    boards = client.get('/menuboards')
+    interactive_delete(:board, boards)
+  end
+end
+```
+
+**Supported entity types**:
+- `:board` - Menu boards (menu_boards.json)
+- `:category` - Categories (categories.json)
+- `:product` - Products (products.json)
+
+**Features**:
+- Automatic Xibo API and seed data synchronization
+- Interactive prompts with field validation
+- Type conversion (string, float, integer, boolean)
+- Confirmation dialogs
+- Configurable entity schemas
+
 ### Project Structure
 
 ```
 xibo-scripts/
-├── xibo                    # Main CLI entry point
-├── api.rb                  # Standalone API explorer
-├── seed.rb                 # Data seeding script
-├── swagger.json            # OpenAPI spec for validation
+├── xibo                     # Main CLI entry point
+├── api.rb                   # Standalone API explorer
+├── seed.rb                  # Data seeding script
+├── swagger.json             # OpenAPI spec for validation
+├── Rakefile                 # Task runner for tests
 ├── lib/
-│   ├── xibo_client.rb      # Authenticated HTTP client
-│   ├── command_registry.rb # Command auto-discovery
-│   ├── layout_builder.rb   # Layout generation engine
-│   ├── image_manager.rb    # Image handling utilities
+│   ├── xibo_client.rb       # Authenticated HTTP client
+│   ├── command_registry.rb  # Command auto-discovery
+│   ├── layout_builder.rb    # Layout generation engine
+│   ├── image_manager.rb     # Image handling utilities
 │   ├── swagger_validator.rb # API validation
-│   └── commands/           # Modular command definitions
-├── seeds/                  # JSON seed data files
-├── Gemfile                 # Ruby dependencies
-└── flake.nix              # Nix development environment
+│   ├── seed_data_manager.rb # Seed file CRUD operations
+│   ├── interactive_editor.rb# Reusable interactive UI helpers
+│   ├── crud_operations.rb   # Cohesive create/delete interface
+│   └── commands/            # Modular command definitions
+├── spec/                    # RSpec test suite
+│   ├── spec_helper.rb       # Test configuration
+│   └── lib/                 # Unit tests
+├── seeds/                   # JSON seed data files
+├── Gemfile                  # Ruby dependencies
+└── flake.nix               # Nix development environment
 ```
 
 ### Dependencies
 
+**Production**:
 - **httparty**: HTTP client with multipart support
 - **dotenv**: Environment variable management
 - **json-schema**: API validation
 - **terminal-table**: Formatted table output
 - **colorize**: Terminal color output
 - **optparse**: Command-line option parsing
+
+**Testing**:
+- **rspec**: BDD testing framework
+- **webmock**: HTTP request stubbing
+- **rake**: Task automation
 
 ## Troubleshooting
 
