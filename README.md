@@ -22,6 +22,8 @@ This toolkit provides a powerful command-line interface to interact with Xibo CM
 - **ImageManager** (`lib/image_manager.rb`): Handles image downloads (random or URL) and Xibo uploads
 - **SwaggerValidator** (`lib/swagger_validator.rb`): Validates API calls against `swagger.json` specification
 - **MenuSeeder** (`seed.rb`): Incremental data synchronization with force-rebuild option
+- **SeedDataManager** (`lib/seed_data_manager.rb`): Centralized seed file reading/writing with CRUD operations
+- **InteractiveEditor** (`lib/interactive_editor.rb`): Reusable module for interactive CLI workflows
 
 ### Command Structure
 
@@ -579,34 +581,113 @@ end
 2. Command is auto-discovered via `CommandRegistry`
 3. Accessible as: `./xibo category-name:action`
 
+### Testing
+
+The project includes comprehensive unit tests using RSpec.
+
+**Run all tests**:
+```bash
+bundle exec rake spec
+# or
+/opt/rbenv/versions/3.3.6/lib/ruby/gems/3.3.0/gems/rspec-core-3.13.6/exe/rspec
+```
+
+**Test coverage includes**:
+- **SeedDataManager**: CRUD operations on seed files (menu_boards.json, categories.json, products.json)
+- **InteractiveEditor**: User input handling, field prompts, confirmations, list selection
+
+**Writing tests**:
+```ruby
+# spec/lib/my_feature_spec.rb
+require 'spec_helper'
+require_relative '../../lib/my_feature'
+
+RSpec.describe MyFeature do
+  it 'does something useful' do
+    expect(MyFeature.new.process).to eq('expected result')
+  end
+end
+```
+
+**Test helpers**:
+- Uses `webmock` to stub HTTP requests
+- Uses `tmpdir` for isolated file system testing
+- Includes custom matchers for common assertions
+
+### Reusable Modules
+
+**SeedDataManager** - Centralized seed data management:
+```ruby
+manager = SeedDataManager.new
+manager.update_board('Menu Name', { 'name' => 'New Name' })
+manager.update_category('Category Name', { 'code' => 'CAT001' })
+manager.update_product('Category', 'Product', { 'price' => 4.99 })
+```
+
+**InteractiveEditor** - Interactive CLI workflows:
+```ruby
+class MyCommand < BaseCommand
+  include InteractiveEditor
+
+  def execute
+    # Prompt for field with type conversion
+    price = prompt_field('price', current_price, type: :float)
+
+    # Select from list
+    item = select_from_list(items, title: "Choose item")
+
+    # Collect multiple field changes
+    changes = collect_field_changes(entity, [
+      { name: 'name' },
+      { name: 'price', type: :float }
+    ])
+
+    # Confirm before saving
+    save if confirm_changes(changes, old_values)
+  end
+end
+```
+
 ### Project Structure
 
 ```
 xibo-scripts/
-├── xibo                    # Main CLI entry point
-├── api.rb                  # Standalone API explorer
-├── seed.rb                 # Data seeding script
-├── swagger.json            # OpenAPI spec for validation
+├── xibo                     # Main CLI entry point
+├── api.rb                   # Standalone API explorer
+├── seed.rb                  # Data seeding script
+├── swagger.json             # OpenAPI spec for validation
+├── Rakefile                 # Task runner for tests
 ├── lib/
-│   ├── xibo_client.rb      # Authenticated HTTP client
-│   ├── command_registry.rb # Command auto-discovery
-│   ├── layout_builder.rb   # Layout generation engine
-│   ├── image_manager.rb    # Image handling utilities
+│   ├── xibo_client.rb       # Authenticated HTTP client
+│   ├── command_registry.rb  # Command auto-discovery
+│   ├── layout_builder.rb    # Layout generation engine
+│   ├── image_manager.rb     # Image handling utilities
 │   ├── swagger_validator.rb # API validation
-│   └── commands/           # Modular command definitions
-├── seeds/                  # JSON seed data files
-├── Gemfile                 # Ruby dependencies
-└── flake.nix              # Nix development environment
+│   ├── seed_data_manager.rb # Seed file CRUD operations
+│   ├── interactive_editor.rb# Reusable interactive UI helpers
+│   └── commands/            # Modular command definitions
+├── spec/                    # RSpec test suite
+│   ├── spec_helper.rb       # Test configuration
+│   └── lib/                 # Unit tests
+├── seeds/                   # JSON seed data files
+├── Gemfile                  # Ruby dependencies
+└── flake.nix               # Nix development environment
 ```
 
 ### Dependencies
 
+**Production**:
 - **httparty**: HTTP client with multipart support
 - **dotenv**: Environment variable management
 - **json-schema**: API validation
 - **terminal-table**: Formatted table output
 - **colorize**: Terminal color output
 - **optparse**: Command-line option parsing
+
+**Testing**:
+- **rspec**: BDD testing framework
+- **webmock**: HTTP request stubbing
+- **rake**: Task automation
 
 ## Troubleshooting
 
