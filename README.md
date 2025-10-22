@@ -1,5 +1,8 @@
 # Xibo CMS Ruby Management Suite
 
+![Tests](https://github.com/chobbledotcom/xibo-scripts/workflows/Tests/badge.svg)
+[![Ruby](https://img.shields.io/badge/ruby-3.3-red.svg)](https://www.ruby-lang.org/)
+
 A comprehensive Ruby CLI toolkit for managing Xibo CMS v4 digital signage systems, with specialized support for menu board management, media operations, and automated layout generation.
 
 ## Overview
@@ -668,6 +671,28 @@ end
 - Uses `webmock` to stub HTTP requests
 - Uses `tmpdir` for isolated file system testing
 - Includes custom matchers for common assertions
+
+### Continuous Integration
+
+The project uses GitHub Actions for automated testing:
+
+**Triggers**:
+- Automatically runs on all pull requests
+- Runs on pushes to main/master branches
+- Can be triggered manually via workflow_dispatch
+
+**Workflow** (`.github/workflows/test.yml`):
+```yaml
+- Checks out code
+- Sets up Ruby 3.3
+- Installs dependencies with bundler cache
+- Runs full RSpec test suite
+- Reports results
+```
+
+**Status**: Check the badge at the top of this README for current test status.
+
+**Manual run**: Go to Actions tab → Tests workflow → Run workflow
 
 ### Reusable Modules
 
