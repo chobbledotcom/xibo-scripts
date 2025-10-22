@@ -79,7 +79,7 @@ module Commands
 
         # Update in Xibo
         print_info("\nUpdating menu board in Xibo...")
-        client.post("/menuboard/#{board['menuId']}", body: changes.transform_keys(&:to_sym))
+        client.put("/menuboard/#{board['menuId']}", body: changes.transform_keys(&:to_sym))
         print_success("Updated in Xibo (ID: #{board['menuId']})")
 
         # Update seed data
@@ -129,7 +129,7 @@ module Commands
 
         # Update in Xibo
         print_info("\nUpdating category in Xibo...")
-        client.post("/menuboard/#{category['menuCategoryId']}/category", body: changes.transform_keys(&:to_sym))
+        client.put("/menuboard/#{category['menuCategoryId']}/category", body: changes.transform_keys(&:to_sym))
         print_success("Updated in Xibo (ID: #{category['menuCategoryId']})")
 
         # Update seed data
