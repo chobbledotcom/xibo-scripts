@@ -75,4 +75,12 @@ module CommandRegistry
       "Execute #{action.to_s.gsub('-', ' ')} for #{category}"
     end
   end
+
+  def self.categories
+    COMMANDS.keys.sort
+  end
+
+  def self.actions_for_category(category)
+    COMMANDS[category]&.keys&.sort || []
+  end
 end

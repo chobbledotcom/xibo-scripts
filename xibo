@@ -4,6 +4,7 @@ require 'dotenv'
 require 'optparse'
 require_relative 'lib/xibo_client'
 require_relative 'lib/command_registry'
+require_relative 'lib/interactive_menu'
 
 Dotenv.load
 
@@ -192,12 +193,7 @@ def parse_options
 
   parser.parse!
 
-  # Get the command from remaining args
-  if ARGV.empty?
-    puts parser
-    exit 1
-  end
-
+  # Get the command from remaining args (if provided)
   command = ARGV.shift
   options[:command] = command
 
@@ -206,7 +202,46 @@ end
 
 def main
   options = parse_options
+
+  # Handle interactive mode
+  unless options[:command]
+    # No command provided - show category menu
+    categories = CommandRegistry.categories
+    selected_category = InteractiveMenu.select_from_list(
+      "Select a category:",
+      categories.map(&:to_s)
+    )
+    options[:command] = selected_category
+  end
+
   command_parts = options[:command].split(':')
+
+  # If only category provided (no action), show action menu
+  if command_parts.length == 1
+    category = command_parts[0].to_sym
+    actions = CommandRegistry.actions_for_category(category)
+
+    if actions.empty?
+      puts "Unknown category: #{category}"
+      puts "Run 'xibo --help' for available commands"
+      exit 1
+    end
+
+    # Build descriptions for each action
+    descriptions = {}
+    actions.each do |action|
+      descriptions[action.to_s] = CommandRegistry.command_description(category, action)
+    end
+
+    selected_action = InteractiveMenu.select_from_list(
+      "Select an action for #{category}:",
+      actions.map(&:to_s),
+      descriptions: descriptions
+    )
+
+    options[:command] = "#{category}:#{selected_action}"
+    command_parts = [category.to_s, selected_action]
+  end
 
   if command_parts.length != 2
     puts "Invalid command format. Use 'category:action' (e.g., media:list)"
