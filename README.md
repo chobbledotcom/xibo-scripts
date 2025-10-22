@@ -165,7 +165,7 @@ The primary interface supporting all operations:
 ```
 
 #### Edit Menu Board
-Interactively edit an existing menu board. Changes are saved to both Xibo and seed data:
+Comprehensive interactive editor for menu boards, categories, and products. Changes are saved to both Xibo and seed data:
 
 ```bash
 # Interactive selection from all menu boards
@@ -175,12 +175,17 @@ Interactively edit an existing menu board. Changes are saved to both Xibo and se
 ./xibo menuboard:edit -i 1
 ```
 
-**Interactive workflow**:
-1. Select a menu board from the list (or use `-i` option)
-2. View current values (name, code, description)
-3. Enter new values or press Enter to keep existing
-4. Confirm changes before saving
-5. Updates both Xibo environment and `seeds/menu_boards.json`
+**Features**:
+- **Menu-driven interface** - Navigate between board, category, and product editing
+- **Multi-level editing** - Edit board details, categories, and products in one session
+- **Dual sync** - Updates both Xibo environment and corresponding seed files
+- **Current value display** - See existing values before making changes
+- **Confirmation prompts** - Review changes before saving
+
+**What you can edit**:
+1. **Board Details**: name, code, description → saves to `seeds/menu_boards.json`
+2. **Categories**: name, code, description → saves to `seeds/categories.json`
+3. **Products**: name, description, price, calories, allergy info, code, availability → saves to `seeds/products.json`
 
 **Example session**:
 ```
@@ -192,27 +197,77 @@ Fetching menu boards from Xibo...
 
 Select menu board number (1-2) or ID: 1
 
-Current menu board details:
-  ID:          1
-  Name:        Vans
-  Code:        VANS001
-  Description: Ice cream and sorbet menu
+============================================================
+Editing: Vans (ID: 1)
+============================================================
 
-New name (or press Enter to keep 'Vans'): Van's Ice Cream
-New code (or press Enter to keep 'VANS001'):
-New description (or press Enter to keep 'Ice cream and sorbet menu'): Premium ice cream and sorbet
+What would you like to edit?
+  1. Board details (name, code, description)
+  2. Categories
+  3. Products
+  4. Exit
+
+Select option (1-4): 3
+
+Fetching categories...
+
+--- Select Category ---
+1. Ice Cream
+2. Sorbets
+
+Select category number (or 0 to cancel): 1
+
+Fetching products...
+
+--- Products in Ice Cream ---
+1. Vanilla Bean - $4.75 (ID: 10)
+2. Chocolate Fudge - $4.75 (ID: 11)
+3. Strawberry - $4.50 [UNAVAILABLE] (ID: 12)
+
+Select product number to edit (or 0 to cancel): 3
+
+--- Edit Product ---
+  ID:           12
+  Name:         Strawberry
+  Description:  Fresh strawberry ice cream
+  Price:        $4.50
+  Calories:     240
+  Allergy Info: Contains dairy
+  Code:         IC003
+  Available:    No
+
+New name (or press Enter to keep 'Strawberry'):
+New description (or press Enter to keep 'Fresh strawberry ice cream'):
+New price (or press Enter to keep '$4.50'): 4.75
+New calories (or press Enter to keep '240'):
+New allergy info (or press Enter to keep 'Contains dairy'):
+New code (or press Enter to keep 'IC003'):
+Available? (y/n, or press Enter to keep 'No'): y
 
 Changes to be saved:
-  name: Vans → Van's Ice Cream
-  description: Ice cream and sorbet menu → Premium ice cream and sorbet
+  price: $4.50 → $4.75
+  availability: No → Yes
 
 Save these changes? (y/n): y
 
-Updating menu board in Xibo...
-✓ Updated in Xibo (ID: 1)
+Updating product in Xibo...
+✓ Updated in Xibo (ID: 12)
 Updating seed data file...
-✓ Updated seed data file
-✓ Menu board updated successfully!
+✓ Updated products.json
+✓ Product updated successfully!
+
+============================================================
+Editing: Vans (ID: 1)
+============================================================
+
+What would you like to edit?
+  1. Board details (name, code, description)
+  2. Categories
+  3. Products
+  4. Exit
+
+Select option (1-4): 4
+ℹ Exiting editor
 ```
 
 ### Category Management
