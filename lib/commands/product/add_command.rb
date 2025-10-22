@@ -67,10 +67,10 @@ module Commands
 
       def find_category_name(category_id)
         # Fetch all boards and search for the category
-        boards = client.get('/menuboards')
+        boards = client.request('/menuboards')
 
         boards.each do |board|
-          categories = client.get("/menuboard/#{board['menuId']}/categories")
+          categories = client.request("/menuboard/#{board['menuId']}/categories")
           category = categories.find { |c| c['menuCategoryId'] == category_id.to_i }
           return category['name'] if category
         end

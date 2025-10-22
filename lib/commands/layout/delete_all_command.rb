@@ -18,7 +18,7 @@ module Commands
           end
         end
 
-        layouts = client.get('/layout')
+        layouts = client.request('/layout')
         
         # Filter out the default layout (ID 1) and any system layouts
         deletable = layouts.select { |l| 
@@ -40,7 +40,7 @@ module Commands
         deletable.each do |layout|
           begin
             print "  Deleting layout #{layout['layoutId']}: #{layout['layout']}... "
-            client.delete("/layout/#{layout['layoutId']}")
+            client.request("/layout/#{layout['layoutId']}")
             puts "✓"
             deleted += 1
           rescue => e

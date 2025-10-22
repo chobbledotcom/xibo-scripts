@@ -13,7 +13,7 @@ module Commands
       private
 
       def fetch_folders
-        client.get('/folders')
+        client.request('/folders')
       rescue => e
         print_error("Failed to fetch folders: #{e.message}")
         []
@@ -21,7 +21,7 @@ module Commands
 
       def fetch_media(folder_id = nil)
         params = folder_id ? { folderId: folder_id } : {}
-        client.get('/library', params: params)
+        client.request('/library', params: params)
       rescue => e
         print_error("Failed to fetch media: #{e.message}")
         []

@@ -7,7 +7,7 @@ module Commands
     class ListCommand < BaseCommand
       def execute
         params = build_params
-        boards = client.get('/menuboards', params: params)
+        boards = client.request('/menuboards', params: params)
 
         if boards.empty?
           print_info("No menu boards found")

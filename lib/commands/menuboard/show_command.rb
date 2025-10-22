@@ -10,10 +10,10 @@ module Commands
         raise "Menu board ID required (use -i ID)" unless menu_id
 
         # Fetch menu board details
-        board = client.get("/menuboard/#{menu_id}")
+        board = client.request("/menuboard/#{menu_id}")
 
         # Fetch categories for this board
-        categories = client.get("/menuboard/#{menu_id}/categories")
+        categories = client.request("/menuboard/#{menu_id}/categories")
 
         if options[:json]
           output = {

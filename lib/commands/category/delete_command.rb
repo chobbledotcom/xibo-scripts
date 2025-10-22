@@ -43,7 +43,7 @@ module Commands
 
       def interactive_delete_category(menu_id)
         print_info("Fetching categories for menu board #{menu_id}...")
-        categories = client.get("/menuboard/#{menu_id}/categories")
+        categories = client.request("/menuboard/#{menu_id}/categories")
 
         interactive_delete(:category, categories, force: options[:force])
       end

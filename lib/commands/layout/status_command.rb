@@ -8,7 +8,7 @@ module Commands
 
         if !layout_id
           # Show all layouts and their basic info
-          layouts = client.get('/layout')
+          layouts = client.request('/layout')
           puts "📄 All Layouts:"
           layouts.each do |layout|
             puts "  ID: #{layout['layoutId']}, Name: #{layout['layout']}, Status: #{layout['status'] || 'Unknown'}"
@@ -20,7 +20,7 @@ module Commands
         puts "🔍 Checking status for layout ID: #{layout_id}"
 
         # Get detailed layout status
-        status_info = client.get("/layout/status/#{layout_id}")
+        status_info = client.request("/layout/status/#{layout_id}")
 
         puts "\n📋 Layout Status Details:"
         puts "  Name: #{status_info['layout']}"

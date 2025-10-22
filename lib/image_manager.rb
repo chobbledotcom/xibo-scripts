@@ -19,7 +19,7 @@ class ImageManager
 
   # Try to find existing media by name, return nil if not found
   def find_existing_media(name)
-    media_list = @client.get('/library')
+    media_list = @client.request('/library')
     media_list.find { |media| media['name'] == name }
   rescue
     nil

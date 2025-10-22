@@ -91,6 +91,47 @@ class SwaggerValidator
     end
   end
 
+  # Get all available HTTP methods for a given path
+  def get_available_methods(path)
+    # Direct match
+    if @paths[path]
+      return @paths[path].keys.reject { |k| k == 'parameters' }
+    end
+
+    # Try to match parameterized paths
+    @paths.each do |spec_path, methods|
+      if path_matches?(spec_path, path)
+        return methods.keys.reject { |k| k == 'parameters' }
+      end
+    end
+
+    []
+  end
+
+  # Determine the best HTTP method for a request based on available methods and context
+  def determine_method(path, has_body: false)
+    available = get_available_methods(path)
+
+    raise "Endpoint not found in swagger spec: #{path}" if available.empty?
+
+    # If only one method available, use it
+    return available.first if available.length == 1
+
+    # Smart detection based on REST conventions
+    if has_body
+      # For requests with body, prefer PUT (update) over POST (create)
+      return 'put' if available.include?('put')
+      return 'post' if available.include?('post')
+    else
+      # For requests without body, prefer GET (read)
+      return 'get' if available.include?('get')
+      return 'delete' if available.include?('delete')
+    end
+
+    # If we can't determine, raise an error with available options
+    raise "Cannot auto-detect HTTP method for #{path}. Available methods: #{available.join(', ')}. Please specify method explicitly."
+  end
+
   private
 
   def find_endpoint(path, method)
