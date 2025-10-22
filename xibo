@@ -7,6 +7,135 @@ require_relative 'lib/command_registry'
 
 Dotenv.load
 
+# Option definitions for command-line parsing
+OPTION_DEFINITIONS = [
+  {
+    short: '-f',
+    long: '--file FILE',
+    description: 'File path (for upload)',
+    key: :file
+  },
+  {
+    short: '-n',
+    long: '--name NAME',
+    description: 'Name (for upload)',
+    key: :name
+  },
+  {
+    short: '-i',
+    long: '--id ID',
+    description: 'Resource ID (for delete/update/show)',
+    key: :id
+  },
+  {
+    long: '--folder-id ID',
+    description: 'Folder ID',
+    key: :folder_id
+  },
+  {
+    long: '--menu-id ID',
+    description: 'Menu board ID',
+    key: :menu_id
+  },
+  {
+    long: '--category-id ID',
+    description: 'Category ID',
+    key: :category_id
+  },
+  {
+    long: '--code CODE',
+    description: 'Code identifier',
+    key: :code
+  },
+  {
+    long: '--description DESC',
+    description: 'Description',
+    key: :description
+  },
+  {
+    long: '--price AMOUNT',
+    description: 'Price (for products)',
+    key: :price
+  },
+  {
+    long: '--calories NUM',
+    description: 'Calorie count',
+    key: :calories,
+    processor: ->(val) { val.to_i }
+  },
+  {
+    long: '--allergy-info INFO',
+    description: 'Allergy information',
+    key: :allergy_info
+  },
+  {
+    long: '--[no-]available',
+    description: 'Product availability (default: true)',
+    key: :available
+  },
+  {
+    long: '--json',
+    description: 'Output in JSON format',
+    key: :json,
+    flag: true
+  },
+  {
+    long: '--url URL',
+    description: 'Image URL (for upload-image)',
+    key: :url
+  },
+  {
+    long: '--random',
+    description: 'Use random image (for upload-image)',
+    key: :random,
+    flag: true
+  },
+  {
+    long: '--size SIZE',
+    description: 'Image size for random images (default: 800)',
+    key: :size,
+    processor: ->(val) { val.to_i }
+  },
+  {
+    long: '--category CATEGORY',
+    description: 'Category name (for layouts)',
+    key: :category
+  },
+  {
+    long: '--show-grid',
+    description: 'Show grid visualization',
+    key: :show_grid,
+    flag: true
+  },
+  {
+    long: '--force',
+    description: 'Skip confirmation prompts',
+    key: :force,
+    flag: true
+  },
+  {
+    short: '-v',
+    long: '--verbose',
+    description: 'Verbose output',
+    key: :verbose,
+    flag: true
+  },
+  {
+    short: '-d',
+    long: '--debug',
+    description: 'Debug output',
+    key: :debug,
+    flag: true,
+    callback: ->(_) { ENV['DEBUG'] = '1' }
+  },
+  {
+    short: '-h',
+    long: '--help',
+    description: 'Show this help',
+    action: ->(parser) { puts parser; exit }
+  }
+]
+
 def parse_options
   options = {}
   parser = OptionParser.new do |opts|
@@ -23,94 +152,32 @@ def parse_options
     opts.separator ""
     opts.separator "Options:"
 
-    opts.on("-f", "--file FILE", "File path (for upload)") do |f|
-      options[:file] = f
-    end
+    # Loop through option definitions to build the parser
+    OPTION_DEFINITIONS.each do |opt_def|
+      # Build the option flags
+      flags = [opt_def[:short], opt_def[:long]].compact
 
-    opts.on("-n", "--name NAME", "Name (for upload)") do |n|
-      options[:name] = n
-    end
+      # Add the description
+      flags << opt_def[:description]
 
-    opts.on("-i", "--id ID", "Resource ID (for delete/update/show)") do |id|
-      options[:id] = id
-    end
-
-    opts.on("--folder-id ID", "Folder ID") do |fid|
-      options[:folder_id] = fid
-    end
-
-    opts.on("--menu-id ID", "Menu board ID") do |mid|
-      options[:menu_id] = mid
-    end
-
-    opts.on("--category-id ID", "Category ID") do |cid|
-      options[:category_id] = cid
-    end
-
-    opts.on("--code CODE", "Code identifier") do |code|
-      options[:code] = code
-    end
-
-    opts.on("--description DESC", "Description") do |desc|
-      options[:description] = desc
-    end
-
-    opts.on("--price AMOUNT", "Price (for products)") do |price|
-      options[:price] = price
-    end
-
-    opts.on("--calories NUM", "Calorie count") do |cal|
-      options[:calories] = cal.to_i
-    end
-
-    opts.on("--allergy-info INFO", "Allergy information") do |info|
-      options[:allergy_info] = info
-    end
-
-    opts.on("--[no-]available", "Product availability (default: true)") do |avail|
-      options[:available] = avail
-    end
-
-    opts.on("--json", "Output in JSON format") do
-      options[:json] = true
-    end
-
-    opts.on("--url URL", "Image URL (for upload-image)") do |url|
-      options[:url] = url
-    end
-
-    opts.on("--random", "Use random image (for upload-image)") do
-      options[:random] = true
-    end
-
-    opts.on("--size SIZE", "Image size for random images (default: 800)") do |size|
-      options[:size] = size.to_i
-    end
-
-    opts.on("--category CATEGORY", "Category name (for layouts)") do |cat|
-      options[:category] = cat
-    end
-
-    opts.on("--show-grid", "Show grid visualization") do
-      options[:show_grid] = true
-    end
-
-    opts.on("--force", "Skip confirmation prompts") do
-      options[:force] = true
-    end
-
-    opts.on("-v", "--verbose", "Verbose output") do
-      options[:verbose] = true
-    end
-
-    opts.on("-d", "--debug", "Debug output") do
-      options[:debug] = true
-      ENV['DEBUG'] = '1'
-    end
-
-    opts.on("-h", "--help", "Show this help") do
-      puts opts
-      exit
+      # Handle different option types
+      if opt_def[:action]
+        # Special action (like help)
+        opts.on(*flags) { opt_def[:action].call(opts) }
+      elsif opt_def[:flag]
+        # Boolean flag option
+        opts.on(*flags) do |val|
+          options[opt_def[:key]] = val
+          opt_def[:callback].call(val) if opt_def[:callback]
+        end
+      else
+        # Regular option with value
+        opts.on(*flags) do |val|
+          processed_val = opt_def[:processor] ? opt_def[:processor].call(val) : val
+          options[opt_def[:key]] = processed_val
+          opt_def[:callback].call(processed_val) if opt_def[:callback]
+        end
+      end
     end
 
     opts.separator ""
