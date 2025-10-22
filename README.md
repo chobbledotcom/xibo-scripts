@@ -24,6 +24,7 @@ This toolkit provides a powerful command-line interface to interact with Xibo CM
 - **MenuSeeder** (`seed.rb`): Incremental data synchronization with force-rebuild option
 - **SeedDataManager** (`lib/seed_data_manager.rb`): Centralized seed file reading/writing with CRUD operations
 - **InteractiveEditor** (`lib/interactive_editor.rb`): Reusable module for interactive CLI workflows
+- **CrudOperations** (`lib/crud_operations.rb`): Cohesive interface for create/delete with dual Xibo+seed sync
 
 ### Command Structure
 
@@ -148,10 +149,30 @@ The primary interface supporting all operations:
 ```
 
 #### Create Menu Board
+Creates a menu board in both Xibo and seed data:
+
 ```bash
+# With CLI options
 ./xibo menuboard:create -n "Lunch Menu" \
   --description "Daily lunch specials" \
   --code "LUNCH001"
+
+# Interactive mode (prompts for all fields)
+./xibo menuboard:create
+```
+
+#### Delete Menu Board
+Deletes a menu board from both Xibo and seed data:
+
+```bash
+# Interactive selection
+./xibo menuboard:delete
+
+# Delete specific board by ID
+./xibo menuboard:delete -i 1
+
+# Force delete (skip confirmation)
+./xibo menuboard:delete -i 1 --force
 ```
 
 #### Show Menu Board Details
@@ -275,10 +296,27 @@ Select option (1-4): 4
 ### Category Management
 
 #### Add Category to Menu Board
+Creates a category in both Xibo and seed data:
+
 ```bash
+# With CLI options
 ./xibo category:add --menu-id 1 -n "Appetizers" \
   --description "Starter dishes" \
   --code "APP"
+
+# Interactive mode
+./xibo category:add --menu-id 1
+```
+
+#### Delete Category
+Deletes a category from both Xibo and seed data:
+
+```bash
+# Interactive selection
+./xibo category:delete --menu-id 1
+
+# Force delete (skip confirmation)
+./xibo category:delete --menu-id 1 --force
 ```
 
 ### Product Management
@@ -293,7 +331,10 @@ Select option (1-4): 4
 ```
 
 #### Add Product
+Creates a product in both Xibo and seed data:
+
 ```bash
+# With CLI options
 ./xibo product:add --category-id 5 \
   -n "Cheeseburger" \
   --description "Quarter pound burger with cheese" \
@@ -306,6 +347,20 @@ Select option (1-4): 4
 # Mark as unavailable
 ./xibo product:add --category-id 5 -n "Sold Out Item" \
   --price 5.99 --no-available
+
+# Interactive mode (prompts for all fields)
+./xibo product:add --category-id 5
+```
+
+#### Delete Product
+Deletes a product from both Xibo and seed data:
+
+```bash
+# Interactive selection
+./xibo product:delete --category-id 5
+
+# Force delete (skip confirmation)
+./xibo product:delete --category-id 5 --force
 ```
 
 ### Layout Operations
@@ -648,6 +703,40 @@ class MyCommand < BaseCommand
 end
 ```
 
+**CrudOperations** - Cohesive CRUD interface with dual-sync:
+```ruby
+class MyCommand < BaseCommand
+  include CrudOperations
+
+  def execute
+    # Create entity (updates both Xibo and seed data)
+    result = create_entity(:board, { name: 'New Board' }, update_seeds: true)
+
+    # Interactive create with prompts
+    result = interactive_create(:board)
+
+    # Delete entity (removes from both Xibo and seed data)
+    delete_entity(:board, board_id, 'Board Name', update_seeds: true)
+
+    # Interactive delete with selection
+    boards = client.get('/menuboards')
+    interactive_delete(:board, boards)
+  end
+end
+```
+
+**Supported entity types**:
+- `:board` - Menu boards (menu_boards.json)
+- `:category` - Categories (categories.json)
+- `:product` - Products (products.json)
+
+**Features**:
+- Automatic Xibo API and seed data synchronization
+- Interactive prompts with field validation
+- Type conversion (string, float, integer, boolean)
+- Confirmation dialogs
+- Configurable entity schemas
+
 ### Project Structure
 
 ```
@@ -665,6 +754,7 @@ xibo-scripts/
 │   ├── swagger_validator.rb # API validation
 │   ├── seed_data_manager.rb # Seed file CRUD operations
 │   ├── interactive_editor.rb# Reusable interactive UI helpers
+│   ├── crud_operations.rb   # Cohesive create/delete interface
 │   └── commands/            # Modular command definitions
 ├── spec/                    # RSpec test suite
 │   ├── spec_helper.rb       # Test configuration

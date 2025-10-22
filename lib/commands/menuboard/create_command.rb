@@ -1,23 +1,40 @@
 require_relative '../base_command'
+require_relative '../../crud_operations'
 require 'json'
 
 module Commands
   module Menuboard
     class CreateCommand < BaseCommand
+      include CrudOperations
+
+      def self.description
+        "Create a new menu board"
+      end
+
       def execute
-        # The client will automatically validate based on swagger.json
-        body = {
+        # If name is provided via CLI, use it
+        if options[:name]
+          create_from_options
+        else
+          # Interactive mode
+          interactive_create(:board)
+        end
+      rescue => e
+        print_error("Failed to create menu board: #{e.message}")
+        puts e.backtrace if debug?
+        raise if debug?
+      end
+
+      private
+
+      def create_from_options
+        attributes = {
           name: options[:name],
           description: options[:description],
           code: options[:code]
         }.compact
 
-        print_info("Creating menu board: #{options[:name]}") if options[:name]
-
-        result = client.post('/menuboard', body: body)
-
-        print_success("Menu board created successfully!")
-        print_info("Menu Board ID: #{result['menuId']}")
+        result = create_entity(:board, attributes, update_seeds: true)
 
         if options[:json]
           puts JSON.pretty_generate(result)
@@ -26,9 +43,6 @@ module Commands
         end
 
         result
-      rescue => e
-        print_error("Failed to create menu board: #{e.message}")
-        raise if debug?
       end
     end
   end
