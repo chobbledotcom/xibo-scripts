@@ -17,7 +17,7 @@ module CrudOperations
     # Create in Xibo
     print_info("Creating #{config[:display_name]}...")
     endpoint = build_endpoint(config[:create_endpoint], options)
-    result = client.post(endpoint, body: attributes.transform_keys(&:to_sym))
+    result = client.request(endpoint, body: attributes.transform_keys(&:to_sym))
 
     print_success("#{config[:display_name]} created successfully!")
     print_info("ID: #{result[config[:id_field]]}")
@@ -55,7 +55,7 @@ module CrudOperations
     # Delete from Xibo
     print_info("Deleting #{config[:display_name]}...")
     endpoint = build_endpoint(config[:delete_endpoint], { id: entity_id })
-    client.delete(endpoint)
+    client.request(endpoint)
 
     print_success("#{config[:display_name]} deleted from Xibo")
 

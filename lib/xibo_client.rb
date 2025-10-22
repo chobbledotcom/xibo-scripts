@@ -49,6 +49,32 @@ class XiboClient
     end
   end
 
+  # Smart request method that auto-detects HTTP method from swagger spec
+  def request(endpoint, body: {}, params: {}, headers: {}, method: nil)
+    authenticate! unless authenticated?
+
+    # Determine HTTP method from swagger spec if not provided
+    has_body = !body.empty?
+    http_method = method || @validator.determine_method(endpoint, has_body: has_body)
+    http_method = http_method.to_s.downcase
+
+    puts "Auto-detected method: #{http_method.upcase} for #{endpoint}" if ENV['DEBUG'] && !method
+
+    # Route to appropriate method
+    case http_method
+    when 'get'
+      get(endpoint, params: params)
+    when 'post'
+      post(endpoint, body: body, params: params, headers: headers)
+    when 'put'
+      put(endpoint, body: body, params: params, headers: headers)
+    when 'delete'
+      delete(endpoint, params: params)
+    else
+      raise "Unsupported HTTP method: #{http_method}"
+    end
+  end
+
   def get(endpoint, params: {})
     authenticate! unless authenticated?
 

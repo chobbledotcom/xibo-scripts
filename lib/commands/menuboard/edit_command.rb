@@ -19,7 +19,7 @@ module Commands
 
       def execute
         print_info("Fetching menu boards from Xibo...")
-        boards = client.get('/menuboards')
+        boards = client.request('/menuboards')
 
         if boards.empty?
           print_error("No menu boards found")
@@ -79,7 +79,7 @@ module Commands
 
         # Update in Xibo
         print_info("\nUpdating menu board in Xibo...")
-        client.post("/menuboard/#{board['menuId']}", body: changes.transform_keys(&:to_sym))
+        client.request("/menuboard/#{board['menuId']}", body: changes.transform_keys(&:to_sym))
         print_success("Updated in Xibo (ID: #{board['menuId']})")
 
         # Update seed data
@@ -94,7 +94,7 @@ module Commands
 
       def edit_categories(board)
         print_info("\nFetching categories...")
-        categories = client.get("/menuboard/#{board['menuId']}/categories")
+        categories = client.request("/menuboard/#{board['menuId']}/categories")
 
         if categories.empty?
           print_error("No categories found for this menu board")
@@ -129,7 +129,7 @@ module Commands
 
         # Update in Xibo
         print_info("\nUpdating category in Xibo...")
-        client.post("/menuboard/#{category['menuCategoryId']}/category", body: changes.transform_keys(&:to_sym))
+        client.request("/menuboard/#{category['menuCategoryId']}/category", body: changes.transform_keys(&:to_sym))
         print_success("Updated in Xibo (ID: #{category['menuCategoryId']})")
 
         # Update seed data
@@ -142,7 +142,7 @@ module Commands
 
       def edit_products(board)
         print_info("\nFetching categories...")
-        categories = client.get("/menuboard/#{board['menuId']}/categories")
+        categories = client.request("/menuboard/#{board['menuId']}/categories")
 
         if categories.empty?
           print_error("No categories found for this menu board")
@@ -159,7 +159,7 @@ module Commands
 
         # Fetch products
         print_info("\nFetching products...")
-        products = client.get("/menuboard/#{selected_category['menuCategoryId']}/products")
+        products = client.request("/menuboard/#{selected_category['menuCategoryId']}/products")
 
         if products.empty?
           print_error("No products found in this category")
@@ -201,7 +201,7 @@ module Commands
 
         # Update in Xibo
         print_info("\nUpdating product in Xibo...")
-        client.put("/menuboard/#{product['menuProductId']}/product", body: changes.transform_keys(&:to_sym))
+        client.request("/menuboard/#{product['menuProductId']}/product", body: changes.transform_keys(&:to_sym))
         print_success("Updated in Xibo (ID: #{product['menuProductId']})")
 
         # Update seed data

@@ -20,7 +20,7 @@ module Commands
 
         print_info("Deleting media ID: #{media_id}")
 
-        client.delete("/library/#{media_id}")
+        client.request("/library/#{media_id}")
 
         print_success("Media deleted successfully!")
       rescue => e

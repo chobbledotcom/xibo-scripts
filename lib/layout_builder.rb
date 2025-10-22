@@ -56,7 +56,7 @@ class LayoutBuilder
 
   def get_or_create_resolution
     # Check if 1080p portrait resolution exists
-    resolutions = @client.get('/resolution')
+    resolutions = @client.request('/resolution')
     existing = resolutions.find { |r| r['width'] == SCREEN_WIDTH && r['height'] == SCREEN_HEIGHT }
 
     if existing
@@ -64,7 +64,7 @@ class LayoutBuilder
       existing
     else
       puts "  Creating 1080p portrait resolution"
-      @client.post('/resolution', body: {
+      @client.request('/resolution', body: {
         resolution: '1080p Portrait',
         width: SCREEN_WIDTH,
         height: SCREEN_HEIGHT
@@ -75,7 +75,7 @@ class LayoutBuilder
   def create_layout(name, resolution_id)
     puts "  Creating layout: #{name}"
     timestamp = Time.now.strftime("%m%d_%H%M")
-    @client.post('/layout', body: {
+    @client.request('/layout', body: {
       'name' => "Menu - #{name}",
       'description' => "Auto-generated menu layout for #{name} products",
       'resolutionId' => resolution_id,
@@ -88,7 +88,7 @@ class LayoutBuilder
     puts "  Creating header region"
 
     # Create a new playlist region for the header
-    region = @client.post("/region/#{layout_id}", body: {
+    region = @client.request("/region/#{layout_id}", body: {
       'type' => 'playlist',
       'width' => HEADER_WIDTH.to_i,
       'height' => HEADER_HEIGHT.to_i,
@@ -144,7 +144,7 @@ class LayoutBuilder
 
   def create_product_region(layout_id, x, y, product, index)
     # Create actual region via API
-    region = @client.post("/region/#{layout_id}", body: {
+    region = @client.request("/region/#{layout_id}", body: {
       'type' => 'playlist',
       'width' => BOX_WIDTH.to_i,
       'height' => BOX_HEIGHT.to_i,
@@ -174,7 +174,7 @@ class LayoutBuilder
     puts "    Positioning region #{region_id} at (#{x.to_i}, #{y.to_i}) #{width.to_i}x#{height.to_i}"
 
     begin
-      @client.put("/region/#{region_id}", body: {
+      @client.request("/region/#{region_id}", body: {
         top: y.to_i,
         left: x.to_i,
         width: width.to_i,
@@ -191,7 +191,7 @@ class LayoutBuilder
 
     begin
       # Add text widget to playlist
-      @client.post("/playlist/widget/text/#{playlist_id}", body: {
+      @client.request("/playlist/widget/text/#{playlist_id}", body: {
         'text' => text,
         'duration' => 10,
         'fontSize' => 48,
@@ -211,7 +211,7 @@ class LayoutBuilder
 
     begin
       # Add menu board widget to playlist
-      @client.post("/playlist/widget/menuboard/#{playlist_id}", body: {
+      @client.request("/playlist/widget/menuboard/#{playlist_id}", body: {
         'duration' => 30,
         'menuId' => product['menuId'] || 1,  # Will need to be passed properly
         'productId' => product['menuProductId']
@@ -228,7 +228,7 @@ class LayoutBuilder
     puts "  Publishing layout"
 
     begin
-      @client.post("/layout/publish/#{layout_id}")
+      @client.request("/layout/publish/#{layout_id}")
     rescue => e
       puts "  Warning: Could not publish layout: #{e.message}"
     end

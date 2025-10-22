@@ -4,7 +4,7 @@ module Commands
   module Dataset
     class ListCommand < BaseCommand
       def execute
-        datasets = client.get('/dataset')
+        datasets = client.request('/dataset')
 
         if datasets.empty?
           print_info("No datasets found")

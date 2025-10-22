@@ -31,7 +31,7 @@ module Commands
 
         # Fetch board details to get the name
         print_info("Fetching menu board details...")
-        board = client.get("/menuboard/#{board_id}")
+        board = client.request("/menuboard/#{board_id}")
 
         delete_entity(
           :board,
@@ -44,7 +44,7 @@ module Commands
 
       def interactive_delete_board
         print_info("Fetching menu boards...")
-        boards = client.get('/menuboards')
+        boards = client.request('/menuboards')
 
         interactive_delete(:board, boards, force: options[:force])
       end

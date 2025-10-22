@@ -9,7 +9,7 @@ module Commands
         category_id = options[:category_id]
 
         # Swagger validation will ensure category_id is provided and valid
-        products = client.get("/menuboard/#{category_id}/products")
+        products = client.request("/menuboard/#{category_id}/products")
 
         if products.empty?
           print_info("No products found in category #{category_id}")

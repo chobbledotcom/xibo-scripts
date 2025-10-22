@@ -43,11 +43,11 @@ module Commands
 
       def get_category_products(category_name)
         # First find the category ID
-        boards = client.get('/menuboards')
+        boards = client.request('/menuboards')
         category_id = nil
 
         boards.each do |board|
-          categories = client.get("/menuboard/#{board['menuId']}/categories")
+          categories = client.request("/menuboard/#{board['menuId']}/categories")
           category = categories.find { |c| c['name'].downcase == category_name.downcase }
           if category
             category_id = category['menuCategoryId']
@@ -56,7 +56,7 @@ module Commands
         end
 
         if category_id
-          client.get("/menuboard/#{category_id}/products")
+          client.request("/menuboard/#{category_id}/products")
         else
           print_error("Category '#{category_name}' not found")
           []

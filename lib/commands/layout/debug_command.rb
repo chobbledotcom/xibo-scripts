@@ -8,14 +8,14 @@ module Commands
 
         # Check resolutions
         puts "\n📐 Available resolutions:"
-        resolutions = client.get('/resolution')
+        resolutions = client.request('/resolution')
         resolutions.each do |res|
           puts "  ID: #{res['resolutionId']}, #{res['resolution']}, #{res['width']}x#{res['height']}"
         end
 
         # Check layouts
         puts "\n📄 Existing layouts:"
-        layouts = client.get('/layout')
+        layouts = client.request('/layout')
         layouts.each do |layout|
           puts "  ID: #{layout['layoutId']}, #{layout['layout']}"
         end
@@ -24,7 +24,7 @@ module Commands
         if !layouts.empty?
           layout_id = layouts.first['layoutId']
           puts "\n🔍 Layout #{layout_id} details:"
-          layout_detail = client.get("/layout/#{layout_id}", params: { embed: 'regions,playlists' })
+          layout_detail = client.request("/layout/#{layout_id}", params: { embed: 'regions,playlists' })
           puts "  Name: #{layout_detail['layout']}"
           puts "  Resolution: #{layout_detail['width']}x#{layout_detail['height']}"
           if layout_detail['regions']
