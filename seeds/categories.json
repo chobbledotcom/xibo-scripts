@@ -9,6 +9,11 @@
       "name": "Sorbets",
       "description": "Refreshing fruit sorbets",
       "code": "SORB"
+    },
+    {
+      "name": "Beverages",
+      "description": "Hot and cold drinks",
+      "code": "BEV001"
     }
   ]
 }

@@ -34,7 +34,7 @@ module Commands
           code: options[:code]
         }.compact
 
-        result = create_entity(:board, attributes, update_seeds: true)
+        result = create_entity(:board, attributes)
 
         if options[:json]
           puts JSON.pretty_generate(result)

@@ -37,8 +37,7 @@ module Commands
           :board,
           board['menuId'],
           board['name'],
-          force: options[:force],
-          update_seeds: true
+          force: options[:force]
         )
       end
 

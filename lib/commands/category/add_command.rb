@@ -40,7 +40,7 @@ module Commands
           code: options[:code]
         }.compact
 
-        result = create_entity(:category, attributes, parent_id: menu_id, update_seeds: true)
+        result = create_entity(:category, attributes, parent_id: menu_id)
 
         print_info("Category ID: #{result['menuCategoryId']}")
         result

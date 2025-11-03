@@ -3,6 +3,7 @@ Rails.application.routes.draw do
 
   get "xibo/index"
   post "xibo/run"
+  post "xibo/refresh_cache", to: "xibo#refresh_cache", as: :xibo_refresh_cache
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.

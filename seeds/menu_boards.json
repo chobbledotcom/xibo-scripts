@@ -4,6 +4,21 @@
       "name": "Vans",
       "description": "Ice cream and sorbet menu",
       "code": "VANS001"
+    },
+    {
+      "name": "Test Menu Board",
+      "description": "A test menu board for MCP testing",
+      "code": "TEST001"
+    },
+    {
+      "name": "Test Menu Board 2",
+      "description": "Testing unified parameter parsing",
+      "code": "TEST002"
+    },
+    {
+      "name": "Final Test Board",
+      "description": "Testing complete unified system",
+      "code": "FINAL001"
     }
   ]
 }

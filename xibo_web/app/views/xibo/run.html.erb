@@ -29,15 +29,41 @@
       border-left: 4px solid #f44336;
     }
     .output {
-      background: #f5f5f5;
+      background: #1e1e1e;
+      color: #d4d4d4;
       padding: 15px;
       border-radius: 4px;
-      font-family: monospace;
-      white-space: pre-wrap;
+      font-family: 'Courier New', monospace;
       margin: 10px 0;
-      max-height: 500px;
+      max-height: 600px;
       overflow-y: auto;
+      font-size: 14px;
+      line-height: 1.4;
     }
+    .output pre {
+      margin: 0;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    /* ANSI color mappings */
+    .ansi-black { color: #000000; }
+    .ansi-red { color: #cd3131; }
+    .ansi-green { color: #0dbc79; }
+    .ansi-yellow { color: #e5e510; }
+    .ansi-blue { color: #2472c8; }
+    .ansi-magenta { color: #bc3fbc; }
+    .ansi-cyan { color: #11a8cd; }
+    .ansi-white { color: #e5e5e5; }
+    .ansi-bright-black { color: #666666; }
+    .ansi-bright-red { color: #f14c4c; }
+    .ansi-bright-green { color: #23d18b; }
+    .ansi-bright-yellow { color: #f5f543; }
+    .ansi-bright-blue { color: #3b8eea; }
+    .ansi-bright-magenta { color: #d670d6; }
+    .ansi-bright-cyan { color: #29b8db; }
+    .ansi-bright-white { color: #ffffff; }
+    .ansi-bold { font-weight: bold; }
+    .ansi-underline { text-decoration: underline; }
     .back-link {
       display: inline-block;
       background-color: #4CAF50;
@@ -60,26 +86,51 @@
 </head>
 <body>
   <h1>Command Result</h1>
+  
+  <% if Rails.env.development? %>
+    <!-- Debug info -->
+    <details style="margin-bottom: 20px;">
+      <summary style="cursor: pointer; color: #666;">Debug Info</summary>
+      <pre style="background: #f5f5f5; padding: 10px; font-size: 12px;">
+@result: <%= @result.inspect %>
+@command: <%= @command.inspect %>
+stdout length: <%= @result&.[](:stdout)&.length %>
+stderr length: <%= @result&.[](:stderr)&.length %>
+      </pre>
+    </details>
+  <% end %>
 
-  <div class="result <%= @result[:success] ? 'success' : 'error' %>">
-    <h2>Command: <%= @command %></h2>
+  <% if @result.nil? %>
+    <div class="result error">
+      <h2>Error</h2>
+      <p class="status error">Failed to execute command</p>
+      <div class="output"><pre>No result returned from command execution</pre></div>
+    </div>
+  <% else %>
+    <div class="result <%= @result[:success] ? 'success' : 'error' %>">
+      <h2>Command: <%= @command %></h2>
 
-    <p class="status <%= @result[:success] ? 'success' : 'error' %>">
-      Status: <%= @result[:success] ? '✓ Success' : '✗ Failed' %>
-      (Exit code: <%= @result[:exit_code] %>)
-    </p>
+      <p class="status <%= @result[:success] ? 'success' : 'error' %>">
+        Status: <%= @result[:success] ? '✓ Success' : '✗ Failed' %>
+        (Exit code: <%= @result[:exit_code] %>)
+      </p>
 
-    <% if @result[:stdout].present? %>
-      <h3>Output:</h3>
-      <div class="output"><%= @result[:stdout] %></div>
-    <% end %>
+      <% if @result[:stdout].present? %>
+        <h3>Output:</h3>
+        <div class="output"><pre><%= ansi_to_html(@result[:stdout]).html_safe %></pre></div>
+      <% end %>
 
-    <% if @result[:stderr].present? %>
-      <h3>Error Output:</h3>
-      <div class="output"><%= @result[:stderr] %></div>
-    <% end %>
-  </div>
+      <% if @result[:stderr].present? %>
+        <h3>Error Output:</h3>
+        <div class="output"><pre><%= ansi_to_html(@result[:stderr]).html_safe %></pre></div>
+      <% end %>
+      
+      <% if !@result[:stdout].present? && !@result[:stderr].present? %>
+        <p><em>No output generated</em></p>
+      <% end %>
+    </div>
+  <% end %>
 
-  <%= link_to '← Back to Commands', xibo_index_path, class: 'back-link' %>
+  <%= link_to '← Back to Commands', xibo_index_path + (params[:tab].present? ? "##{params[:tab]}" : ''), class: 'back-link' %>
 </body>
 </html>

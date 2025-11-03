@@ -38,12 +38,13 @@ module Commands
       private
 
       def create_from_options(category_id, category_name)
+        # Build attributes from options - use internal names
         attributes = {
           name: options[:name],
           description: options[:description],
-          price: options[:price]&.to_f,
-          availability: options[:available] == false ? 0 : 1,
-          allergyInfo: options[:allergy_info],
+          price: options[:price],
+          available: options[:available],
+          allergy_info: options[:allergy_info],
           code: options[:code],
           calories: options[:calories]
         }.compact
@@ -52,8 +53,7 @@ module Commands
           :product,
           attributes,
           parent_id: category_id,
-          category_name: category_name,
-          update_seeds: true
+          category_name: category_name
         )
 
         print_info("Product ID: #{result['menuProductId']}")

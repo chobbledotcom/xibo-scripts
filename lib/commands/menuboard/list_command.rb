@@ -10,7 +10,11 @@ module Commands
         boards = client.request('/menuboards', params: params)
 
         if boards.empty?
-          print_info("No menu boards found")
+          if options[:json]
+            puts JSON.pretty_generate([])
+          else
+            print_info("No menu boards found")
+          end
           return
         end
 
