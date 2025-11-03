@@ -1,5 +1,5 @@
 require 'open3'
-require_relative '../../../../lib/command_metadata'
+require_relative '../../../lib/command_metadata'
 
 class XiboCommandRunner
   XIBO_SCRIPT_PATH = File.expand_path('../../..', __dir__)
