@@ -1,4 +1,6 @@
 require 'open3'
+require 'json'
+require 'shellwords'
 require_relative '../../../lib/command_metadata'
 
 class XiboCommandRunner
@@ -46,6 +48,39 @@ class XiboCommandRunner
       stderr: e.message,
       success: false,
       exit_code: 1
+    }
+  end
+  
+  def self.run_api_request(method:, path:, body: {})
+    # Use the existing XiboClient from the CLI
+    require_relative '../../../lib/xibo_client'
+    
+    # Save current directory and swagger.json path
+    xibo_root = File.expand_path('../../..', __dir__)
+    original_dir = Dir.pwd
+    
+    begin
+      # Change to the CLI directory where swagger.json lives
+      Dir.chdir(xibo_root)
+      
+      client = XiboClient.new
+      client.authenticate!
+      
+      # Make the API request using the client
+      result = client.request(path, method: method, body: body)
+      
+      {
+        success: true,
+        response: result
+      }
+    ensure
+      # Always restore original directory
+      Dir.chdir(original_dir) if original_dir
+    end
+  rescue => e
+    {
+      success: false,
+      error: e.message
     }
   end
 end

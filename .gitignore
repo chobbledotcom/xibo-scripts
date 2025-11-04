@@ -7,3 +7,4 @@ vendor/
 temp/*.jpg
 spec/examples.txt
 opencode.json
+tmp/*

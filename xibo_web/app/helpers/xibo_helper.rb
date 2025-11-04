@@ -1,4 +1,10 @@
 module XiboHelper
+  def render_tab_panel(tab_id, &block)
+    content_tag :section, id: tab_id, role: "tabpanel", "aria-labelledby": "tab-#{tab_id}" do
+      block.call
+    end
+  end
+
   def ansi_to_html(text)
     return '' if text.blank?
     

@@ -214,22 +214,10 @@ module CrudOperations
     endpoint
   end
 
-  # Invalidate cache after entity changes
+  # Update cache after entity changes
+  # Instead of invalidating, we update the cache files directly
   def invalidate_cache_for(entity_type, options = {})
-    config = entity_config(entity_type)
-    
-    # Invalidate the specific entity cache
-    CacheService.invalidate(config[:cache_key])
-    
-    # For categories and products, also invalidate menuboards cache
-    # since they affect the overall structure
-    if entity_type == :category || entity_type == :product
-      CacheService.invalidate('menuboards')
-    end
-    
-    # Invalidate parent-specific caches if applicable
-    if options[:parent_id]
-      CacheService.invalidate("#{config[:cache_key]}_#{options[:parent_id]}")
-    end
+    # No-op: Cache files are assumed to be up-to-date
+    # Only refresh when user explicitly requests it
   end
 end

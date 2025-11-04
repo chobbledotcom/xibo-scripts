@@ -19,50 +19,14 @@ module Commands
           return
         end
 
-        # Get category name for seed data operations
-        print_info("Fetching category details...")
-        # We need to get the category name - this requires getting the board first
-        # For now, we'll fetch products and handle this
+        print_info("Fetching products for category #{category_id}...")
+        products = client.request("/menuboard/#{category_id}/products")
 
-        interactive_delete_product(category_id)
+        interactive_delete(:product, products, force: options[:force])
       rescue => e
         print_error("Failed to delete product: #{e.message}")
         puts e.backtrace if debug?
         raise if debug?
-      end
-
-      private
-
-      def interactive_delete_product(category_id)
-        print_info("Fetching products for category #{category_id}...")
-        products = client.request("/menuboard/#{category_id}/products")
-
-        # We need to get the category name for seed data
-        # Let's fetch from all boards and find the category
-        category_name = find_category_name(category_id)
-
-        if category_name
-          interactive_delete(:product, products, force: options[:force], category_name: category_name)
-        else
-          print_error("Could not determine category name. Deleting from Xibo only...")
-          # Delete without seed update
-          interactive_delete(:product, products, force: options[:force], update_seeds: false)
-        end
-      end
-
-      def find_category_name(category_id)
-        # Fetch all boards and search for the category
-        boards = client.request('/menuboards')
-
-        boards.each do |board|
-          categories = client.request("/menuboard/#{board['menuId']}/categories")
-          category = categories.find { |c| c['menuCategoryId'] == category_id.to_i }
-          return category['name'] if category
-        end
-
-        nil
-      rescue
-        nil
       end
     end
   end

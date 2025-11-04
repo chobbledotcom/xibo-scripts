@@ -1,0 +1,18 @@
+%aside
+  %strong Environment Status:
+  %br/
+  XIBO_API_URL: #{ENV['XIBO_API_URL'].present? ? '✓ Set' : '✗ Not set'}
+  %br/
+  XIBO_CLIENT_ID: #{ENV['XIBO_CLIENT_ID'].present? ? '✓ Set' : '✗ Not set'}
+  %br/
+  XIBO_CLIENT_SECRET: #{ENV['XIBO_CLIENT_SECRET'].present? ? '✓ Set' : '✗ Not set'}
+  %br/
+  %strong Cached Menuboards:
+  = @menuboards.length
+  = link_to '(Refresh)', xibo_refresh_cache_path, method: :post, data: { turbo_method: :post }
+  %br/
+  %strong Cached Categories:
+  = @total_categories
+  %br/
+  %strong Cached Products:
+  = @total_products

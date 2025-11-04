@@ -10,17 +10,21 @@ module Commands
 
         # Swagger validation will ensure category_id is provided and valid
         products = client.request("/menuboard/#{category_id}/products")
+        
+        # Handle nil response
+        products = [] if products.nil?
+
+        if options[:json]
+          puts JSON.pretty_generate(products)
+          return
+        end
 
         if products.empty?
           print_info("No products found in category #{category_id}")
           return
         end
 
-        if options[:json]
-          puts JSON.pretty_generate(products)
-        else
-          display_products_table(products)
-        end
+        display_products_table(products)
       rescue => e
         print_error("Failed to fetch products: #{e.message}")
         raise if debug?

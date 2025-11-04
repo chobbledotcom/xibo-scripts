@@ -42,6 +42,12 @@ module CommandMetadata
         params: [:name, :code, :description]
       },
       {
+        name: 'menuboard:edit',
+        description: 'Edit a menu board',
+        params: [:id, :name, :code, :description],
+        hidden: true
+      },
+      {
         name: 'menuboard:delete',
         description: 'Delete a menu board',
         params: [:id]
@@ -59,6 +65,12 @@ module CommandMetadata
         params: [:menu_id, :name, :code, :description]
       },
       {
+        name: 'category:edit',
+        description: 'Edit a category',
+        params: [:id, :menu_id, :name, :code, :description],
+        hidden: true
+      },
+      {
         name: 'category:delete',
         description: 'Delete a category',
         params: [:menu_id]
@@ -74,6 +86,12 @@ module CommandMetadata
         name: 'product:add',
         description: 'Add product to category',
         params: [:category_id, :name, :description, :price, :calories, :allergy_info, :code, :available]
+      },
+      {
+        name: 'product:edit',
+        description: 'Edit a product',
+        params: [:id, :category_id, :name, :description, :price, :calories, :allergy_info, :code, :available],
+        hidden: true
       },
       {
         name: 'product:delete',

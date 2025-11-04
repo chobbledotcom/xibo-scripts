@@ -1,10 +1,456 @@
-/*
- * This is a manifest file that'll be compiled into application.css.
- *
- * With Propshaft, assets are served efficiently without preprocessing steps. You can still include
- * application-wide styles in this file, but keep in mind that CSS precedence will follow the standard
- * cascading order, meaning styles declared later in the document or manifest will override earlier ones,
- * depending on specificity.
- *
- * Consider organizing styles into separate files for maintainability.
- */
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #f5f5f5;
+}
+
+a {
+  color: #2196F3;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Layout */
+#nav {
+  text-align: right;
+  padding: 10px 20px;
+  background: white;
+}
+
+#header {
+  padding: 20px;
+  background: white;
+  border-bottom: 3px solid #4CAF50;
+}
+
+#header h1 {
+  margin: 0;
+  color: #333;
+}
+
+#main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+/* Navigation */
+nav[role="tablist"] a {
+  display: inline-block;
+  background: #e0e0e0;
+  color: #666;
+  padding: 12px 24px;
+  margin-right: 5px;
+  text-decoration: none;
+}
+
+nav[role="tablist"] a:hover {
+  background: #d0d0d0;
+  text-decoration: none;
+}
+
+nav[role="tablist"] a[aria-selected="true"] {
+  background: #4CAF50;
+  color: white;
+}
+
+/* Tab content visibility - use :target for CSS-only tab switching */
+section[role="tabpanel"] {
+  display: none;
+}
+
+section[role="tabpanel"]:target {
+  display: block;
+}
+
+/* Show first tabpanel by default when no hash is present */
+section[role="tabpanel"]:first-of-type {
+  display: block;
+}
+
+/* Hide first tabpanel when any other is targeted */
+section[role="tabpanel"]:target ~ section[role="tabpanel"]:first-of-type {
+  display: none;
+}
+
+/* Sections */
+section {
+  background: white;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+article {
+  background: #f9f9f9;
+  padding: 15px;
+  margin: 10px 0;
+  border-left: 4px solid #4CAF50;
+}
+
+article h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+article p {
+  margin: 0 0 15px 0;
+  color: #666;
+}
+
+aside {
+  background: #e3f2fd;
+  padding: 15px;
+  margin: 20px 0;
+  border-left: 4px solid #2196F3;
+}
+
+/* Login page - flash error messages */
+section aside {
+  background: #f44336;
+  color: white;
+  border: none;
+}
+
+/* Flash messages */
+#flash {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  max-width: 400px;
+}
+
+.flash-notice,
+.flash-error {
+  padding: 15px 20px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease-out, fadeOut 0.5s ease-out 2.5s forwards;
+}
+
+.flash-notice {
+  background: #4CAF50;
+  color: white;
+}
+
+.flash-error {
+  background: #f44336;
+  color: white;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(400px);
+  }
+}
+
+/* Update Queue */
+#update-queue {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  max-width: 400px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+#update-queue h3 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#queue-processor-status {
+  font-size: 12px;
+  font-weight: normal;
+}
+
+#update-queue ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#update-queue li {
+  padding: 8px;
+  margin: 5px 0;
+  border-radius: 4px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: help;
+}
+
+#update-queue li[title] {
+  position: relative;
+}
+
+#update-queue li.failed:hover {
+  background: #ffcdd2;
+}
+
+#update-queue li.pending {
+  background: #e3f2fd;
+  border-left: 3px solid #2196F3;
+}
+
+#update-queue li.completed {
+  background: #e8f5e9;
+  border-left: 3px solid #4CAF50;
+}
+
+#update-queue li.failed {
+  background: #ffebee;
+  border-left: 3px solid #f44336;
+}
+
+#update-queue .timestamp {
+  color: #666;
+  font-size: 11px;
+}
+
+#update-queue .status {
+  margin-left: auto;
+  font-weight: bold;
+  font-size: 11px;
+}
+
+#update-queue li.pending .status {
+  color: #2196F3;
+}
+
+#update-queue li.completed .status {
+  color: #4CAF50;
+}
+
+#update-queue li.failed .status {
+  color: #f44336;
+}
+
+#update-queue button {
+  padding: 3px 8px;
+  font-size: 11px;
+}
+
+/* Edit container - side by side layout on wide screens */
+.edit-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 1024px) {
+  .edit-container {
+    grid-template-columns: 1fr 2fr;
+  }
+}
+
+/* Forms */
+form {
+  max-width: 500px;
+}
+
+fieldset {
+  margin: 15px 0;
+  border: none;
+  padding: 0;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #555;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+select,
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+input[type="checkbox"] {
+  width: auto;
+}
+
+button,
+input[type="submit"] {
+  background: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button:hover,
+input[type="submit"]:hover {
+  background: #45a049;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+thead {
+  background: #f5f5f5;
+}
+
+th {
+  text-align: left;
+  padding: 12px;
+  font-weight: bold;
+  border-bottom: 2px solid #ddd;
+}
+
+td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+tr:hover {
+  background: #fafafa;
+}
+
+/* Inline forms in tables */
+table form {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  max-width: none;
+}
+
+table input[type="number"] {
+  width: 100px;
+  padding: 5px;
+}
+
+table input[type="checkbox"] {
+  width: auto;
+  height: 20px;
+}
+
+table button,
+table input[type="submit"] {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+/* Tree */
+#tree ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+#tree ul ul {
+  padding-left: 30px;
+  margin: 10px 0;
+}
+
+#tree li {
+  margin: 8px 0;
+}
+
+#tree > ul > li::before {
+  content: "📋 ";
+}
+
+#tree ul ul > li::before {
+  content: "├─ 📁 ";
+  color: #999;
+}
+
+#tree ul ul > li:last-child::before {
+  content: "└─ 📁 ";
+}
+
+#tree ul ul ul > li::before {
+  content: "├─ 🍽️ ";
+}
+
+#tree ul ul ul > li:last-child::before {
+  content: "└─ 🍽️ ";
+}
+
+/* Output */
+output {
+  display: block;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 15px;
+  font-family: 'Courier New', monospace;
+  margin: 10px 0;
+  max-height: 600px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+output pre {
+  margin: 0;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* ANSI colors */
+.ansi-black { color: #000; }
+.ansi-red { color: #cd3131; }
+.ansi-green { color: #0dbc79; }
+.ansi-yellow { color: #e5e510; }
+.ansi-blue { color: #2472c8; }
+.ansi-magenta { color: #bc3fbc; }
+.ansi-cyan { color: #11a8cd; }
+.ansi-white { color: #e5e5e5; }
+.ansi-bright-black { color: #666; }
+.ansi-bright-red { color: #f14c4c; }
+.ansi-bright-green { color: #23d18b; }
+.ansi-bright-yellow { color: #f5f543; }
+.ansi-bright-blue { color: #3b8eea; }
+.ansi-bright-magenta { color: #d670d6; }
+.ansi-bright-cyan { color: #29b8db; }
+.ansi-bright-white { color: #fff; }
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }

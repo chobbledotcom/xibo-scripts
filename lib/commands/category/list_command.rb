@@ -17,18 +17,22 @@ module Commands
           return
         end
 
-        categories = client.request("/menuboard/#{menu_id}")
+        categories = client.request("/menuboard/#{menu_id}/categories")
+        
+        # Handle nil response
+        categories = [] if categories.nil?
+
+        if options[:json]
+          puts JSON.pretty_generate(categories)
+          return
+        end
 
         if categories.empty?
           print_info("No categories found in menu board #{menu_id}")
           return
         end
 
-        if options[:json]
-          puts JSON.pretty_generate(categories)
-        else
-          display_table(categories, menu_id)
-        end
+        display_table(categories, menu_id)
       rescue => e
         print_error("Failed to fetch categories: #{e.message}")
         raise if debug?

@@ -1,0 +1,49 @@
+- content_for :title, "Edit Category"
+- content_for :page_header, "Edit Category: #{@category['name']}"
+
+%nav
+  = link_to "← Back to Tree", root_path(anchor: 'tree')
+
+.edit-container
+  %section
+    %h2 Category Details
+    = form_with url: update_category_path(@category_id), method: :patch, data: { turbo_frame: "_top" } do |f|
+      %fieldset
+        = f.label :name, "Name:"
+        = f.text_field :name, value: @category['name']
+      
+      %fieldset
+        = f.label :code, "Code:"
+        = f.text_field :code, value: @category['code']
+      
+      %fieldset
+        = f.label :description, "Description:"
+        = f.text_area :description, value: @category['description'], rows: 3
+      
+      = f.submit "Update Category"
+
+  %section
+    %h2 Products
+    - if @category['products']&.any?
+      %table
+        %thead
+          %tr
+            %th Name
+            %th Price
+            %th Available
+        %tbody
+          - @category['products'].each do |product|
+            %tr
+              %td
+                = link_to product['name'], edit_product_path(product['menuProductId'])
+              %td
+                = form_with url: update_product_path(product['menuProductId']), method: :patch, data: { turbo_frame: "_top" } do |f|
+                  = hidden_field_tag :return_to, edit_category_path(@category_id)
+                  = f.number_field :price, value: product['price'], step: 0.01
+                  = f.submit "Save"
+              %td
+                = form_with url: update_product_path(product['menuProductId']), method: :patch, data: { turbo_frame: "_top" } do |f|
+                  = hidden_field_tag :return_to, edit_category_path(@category_id)
+                  = f.check_box :available, checked: product['availability'] == 1, onchange: "this.form.requestSubmit()"
+    - else
+      %p No products in this category yet.

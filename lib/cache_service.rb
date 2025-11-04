@@ -25,7 +25,7 @@ class CacheService
         cached_data
       else
         data = block.call
-        write_cache(cache_key, data)
+        write_cache(cache_key, data) if data
         data
       end
     end
@@ -34,7 +34,10 @@ class CacheService
     # @param cache_key [String] Cache identifier
     def invalidate(cache_key)
       cache_file = cache_path(cache_key)
-      File.delete(cache_file) if File.exist?(cache_file)
+      if File.exist?(cache_file)
+        File.delete(cache_file)
+        puts "🗑️  Invalidated cache: #{cache_key}" if ENV['DEBUG'] || ENV['VERBOSE']
+      end
     end
     
     # Invalidate all cache entries

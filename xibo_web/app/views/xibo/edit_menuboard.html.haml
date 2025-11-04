@@ -1,0 +1,21 @@
+- content_for :title, "Edit Menu Board"
+- content_for :page_header, "Edit Menu Board: #{@menuboard['name']}"
+
+%nav
+  = link_to "← Back to Tree", root_path(anchor: 'tree')
+
+%section
+  = form_with url: update_menuboard_path(@menuboard_id), method: :patch do |f|
+    %fieldset
+      = f.label :name, "Name:"
+      = f.text_field :name, value: @menuboard['name']
+    
+    %fieldset
+      = f.label :code, "Code:"
+      = f.text_field :code, value: @menuboard['code']
+    
+    %fieldset
+      = f.label :description, "Description:"
+      = f.text_area :description, value: @menuboard['description'], rows: 3
+    
+    = f.submit "Update Menu Board"

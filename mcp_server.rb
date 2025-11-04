@@ -23,6 +23,9 @@ def list_tools
   
   CommandMetadata.all_commands.each do |category, commands|
     commands.each do |cmd|
+      # Skip hidden commands (like edit commands meant for web interface)
+      next if cmd[:hidden]
+      
       tool = {
         name: cmd[:name].gsub(':', '_'),
         description: "#{cmd[:description]} (Category: #{category})",

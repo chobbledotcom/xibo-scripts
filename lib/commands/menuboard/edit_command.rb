@@ -1,5 +1,4 @@
 require_relative '../base_command'
-require_relative '../../seed_data_manager'
 require_relative '../../interactive_editor'
 require 'json'
 
@@ -10,11 +9,6 @@ module Commands
 
       def self.description
         "Interactively edit a menu board and its contents"
-      end
-
-      def initialize(client, options = {})
-        super
-        @seed_manager = SeedDataManager.new
       end
 
       def execute
@@ -82,11 +76,6 @@ module Commands
         client.request("/menuboard/#{board['menuId']}", body: changes.transform_keys(&:to_sym))
         print_success("Updated in Xibo (ID: #{board['menuId']})")
 
-        # Update seed data
-        print_info("Updating seed data file...")
-        filename = @seed_manager.update_board(board['name'], changes)
-        print_success("Updated #{filename}")
-
         # Update local board object
         board.merge!(changes)
         print_success("Menu board updated successfully!")
@@ -131,11 +120,6 @@ module Commands
         print_info("\nUpdating category in Xibo...")
         client.request("/menuboard/#{category['menuCategoryId']}/category", body: changes.transform_keys(&:to_sym))
         print_success("Updated in Xibo (ID: #{category['menuCategoryId']})")
-
-        # Update seed data
-        print_info("Updating seed data file...")
-        filename = @seed_manager.update_category(category['name'], changes)
-        print_success("Updated #{filename}")
 
         print_success("Category updated successfully!")
       end
@@ -203,11 +187,6 @@ module Commands
         print_info("\nUpdating product in Xibo...")
         client.request("/menuboard/#{product['menuProductId']}/product", body: changes.transform_keys(&:to_sym))
         print_success("Updated in Xibo (ID: #{product['menuProductId']})")
-
-        # Update seed data
-        print_info("Updating seed data file...")
-        filename = @seed_manager.update_product(category_name, product['name'], changes)
-        print_success("Updated #{filename}")
 
         print_success("Product updated successfully!")
       end

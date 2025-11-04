@@ -19,15 +19,12 @@ module Commands
           return
         end
 
-        # Get category name for seed data
-        category_name = find_category_name(category_id)
-
         # If name is provided via CLI, use it
         if options[:name]
-          create_from_options(category_id, category_name)
+          create_from_options(category_id)
         else
           # Interactive mode
-          interactive_create(:product, parent_id: category_id, category_name: category_name)
+          interactive_create(:product, parent_id: category_id)
         end
       rescue => e
         print_error("Failed to add product: #{e.message}")
@@ -37,7 +34,7 @@ module Commands
 
       private
 
-      def create_from_options(category_id, category_name)
+      def create_from_options(category_id)
         # Build attributes from options - use internal names
         attributes = {
           name: options[:name],
@@ -52,8 +49,7 @@ module Commands
         result = create_entity(
           :product,
           attributes,
-          parent_id: category_id,
-          category_name: category_name
+          parent_id: category_id
         )
 
         print_info("Product ID: #{result['menuProductId']}")
@@ -63,22 +59,6 @@ module Commands
         end
 
         result
-      end
-
-      def find_category_name(category_id)
-        # Fetch all boards and search for the category
-        boards = client.request('/menuboards')
-
-        boards.each do |board|
-          categories = client.request("/menuboard/#{board['menuId']}/categories")
-          category = categories.find { |c| c['menuCategoryId'] == category_id.to_i }
-          return category['name'] if category
-        end
-
-        nil
-      rescue => e
-        print_error("Could not determine category name: #{e.message}") if debug?
-        nil
       end
     end
   end

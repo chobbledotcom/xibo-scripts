@@ -1,0 +1,5 @@
+- flash_messages = local_assigns[:flash] || flash
+- if flash_messages[:notice]
+  %aside.flash-notice= flash_messages[:notice]
+- if flash_messages[:error]
+  %aside.flash-error= flash_messages[:error]
