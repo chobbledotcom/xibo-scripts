@@ -18,10 +18,6 @@ require "action_view/railtie"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
-# Load .env from parent directory (where the CLI lives)
-require 'dotenv'
-Dotenv.load(File.expand_path('../../.env', __dir__))
-
 module XiboWeb
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.

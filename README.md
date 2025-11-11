@@ -86,6 +86,114 @@ echo "use flake" > .envrc
 direnv allow
 ```
 
+### Docker Deployment
+
+The project includes a production-ready Dockerfile for deploying the xibo_web Rails application.
+
+**Environment Variables:**
+
+The application can be configured via environment variables. A `.env` file is optional and will override environment variables if present:
+
+- **Required:**
+  - `XIBO_API_URL` - Your Xibo CMS instance URL
+  - `XIBO_CLIENT_ID` - OAuth client ID
+  - `XIBO_CLIENT_SECRET` - OAuth client secret
+  - `RAILS_MASTER_KEY` - Rails encrypted credentials key (from `xibo_web/config/master.key`)
+
+**Building without Docker daemon:**
+
+The development environment uses `buildah` and `podman` from Nix, which don't require a Docker daemon:
+
+```bash
+# Build with buildah (no daemon needed)
+buildah bud -t xibo-web .
+
+# Run with podman
+podman run -d \
+  -p 3000:3000 \
+  --name xibo-web \
+  -e RAILS_MASTER_KEY=$(cat xibo_web/config/master.key) \
+  -e XIBO_API_URL=https://your-xibo-instance.com \
+  -e XIBO_CLIENT_ID=your_client_id \
+  -e XIBO_CLIENT_SECRET=your_client_secret \
+  xibo-web
+```
+
+**Running with Docker:**
+
+```bash
+# Build with Docker
+docker build -t xibo-web .
+
+# Run with environment variables
+docker run -d \
+  -p 3000:3000 \
+  --name xibo-web \
+  -e RAILS_MASTER_KEY=$(cat xibo_web/config/master.key) \
+  -e XIBO_API_URL=https://your-xibo-instance.com \
+  -e XIBO_CLIENT_ID=your_client_id \
+  -e XIBO_CLIENT_SECRET=your_client_secret \
+  xibo-web
+
+# Persist database with volume mount
+docker run -d \
+  -p 3000:3000 \
+  --name xibo-web \
+  -v xibo-data:/rails/storage \
+  --env-file .env \
+  xibo-web
+```
+
+**Key features**:
+- Multi-stage build for minimal image size
+- Ruby 3.3.6 (matches xibo_web/.ruby-version)
+- Production-optimized with jemalloc
+- SQLite database with persistent storage support
+- Automatic database setup via docker-entrypoint
+- Non-root user for security
+- Asset precompilation included
+- Builds without Docker daemon using buildah
+
+#### Publishing to GitHub Container Registry
+
+Use the included `bin/docker-push` script to build and push to GitHub Container Registry with automatic version bumping:
+
+```bash
+# One-time setup: Ensure gh CLI has write:packages scope
+gh auth refresh -h github.com -s write:packages
+
+# Build and push (automatically increments version)
+docker-push
+
+# The script will:
+# 1. Authenticate with GitHub using gh CLI token
+# 2. Auto-increment version (stored in .docker-version)
+# 3. Build the image using buildah (no Docker daemon required)
+# 4. Tag as ghcr.io/chobbledotcom/xibo-scripts:vX and :latest
+# 5. Push both tags to GitHub Container Registry using podman
+```
+
+**Note:** The script will check if your gh token has the required `write:packages` scope and guide you to refresh it if needed.
+
+The `docker-push` command is available automatically when direnv loads (adds `bin/` to PATH).
+
+**Benefits of buildah/podman:**
+- No Docker daemon required
+- Works in rootless mode
+- Compatible with Docker images
+- Available via Nix flake
+
+Pull the published image:
+```bash
+docker pull ghcr.io/chobbledotcom/xibo-scripts:latest
+docker pull ghcr.io/chobbledotcom/xibo-scripts:v5  # specific version
+
+# Or with podman
+podman pull ghcr.io/chobbledotcom/xibo-scripts:latest
+```
+
+Version tracking is automatic - each push increments the version number stored in `.docker-version`.
+
 ## Usage
 
 ### Main CLI: `xibo`

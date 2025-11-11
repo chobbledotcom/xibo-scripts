@@ -8,3 +8,6 @@ temp/*.jpg
 spec/examples.txt
 opencode.json
 tmp/*
+
+# Docker version tracking
+.docker-version

@@ -1,0 +1,55 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+ARCHITECTURE.md
+MCP_SETUP.md
+
+# Ruby/Rails development files
+xibo_web/.bundle
+xibo_web/vendor/bundle
+xibo_web/log/*
+xibo_web/tmp/*
+xibo_web/storage/*
+xibo_web/.byebug_history
+
+# Test files
+xibo_web/spec
+spec/
+.rspec
+
+# Environment files
+.env
+.env.*
+.envrc
+
+# Non-Rails app files (CLI and scripts)
+lib/
+api.rb
+mcp_server.rb
+test_mcp.rb
+swagger.json
+xibo
+Rakefile
+Gemfile
+background.jpg
+background.krz
+
+# Docker
+Dockerfile
+.dockerignore
+bin/docker-push
+
+# Nix
+flake.nix
+flake.lock
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
