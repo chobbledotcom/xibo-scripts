@@ -1,5 +1,4 @@
 require_relative '../base_command'
-require_relative '../../layout_builder'
 
 module Commands
   module Layout
@@ -22,7 +21,7 @@ module Commands
         end
 
         # Create the layout
-        layout_builder = LayoutBuilder.new(client)
+        layout_builder = Xibo::LayoutBuilder.new(client)
         result = layout_builder.create_menu_layout(category_name, menu_board_id, products)
 
         print_success("Layout created successfully!")
@@ -30,7 +29,7 @@ module Commands
         print_info("Layout Name: #{result[:layout]['layout']}")
 
         if options[:show_grid]
-          LayoutBuilder.show_grid_layout
+          Xibo::LayoutBuilder.show_grid_layout
         end
 
         result

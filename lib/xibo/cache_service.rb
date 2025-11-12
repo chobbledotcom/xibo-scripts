@@ -1,9 +1,10 @@
 require 'json'
 require 'fileutils'
 
-# Cache service for storing and retrieving Xibo API data
-# Assumes cache is always accurate since this is the only client making changes
-class CacheService
+module Xibo
+  # Cache service for storing and retrieving Xibo API data
+  # Assumes cache is always accurate since this is the only client making changes
+  class CacheService
   CACHE_DIR = File.join(__dir__, '..', 'tmp', 'cache')
   
   class << self
@@ -86,5 +87,6 @@ class CacheService
     def cache_path(cache_key)
       File.join(CACHE_DIR, "#{cache_key}.json")
     end
+  end
   end
 end

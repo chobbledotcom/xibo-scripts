@@ -1,12 +1,12 @@
 #!/usr/bin/env ruby
 
-require 'dotenv'
-require 'optparse'
-require_relative 'lib/xibo_client'
-require_relative 'lib/command_registry'
-require_relative 'lib/interactive_menu'
+# Add lib and cli directories to load path
+$LOAD_PATH.unshift File.expand_path('lib', __dir__)
+$LOAD_PATH.unshift File.expand_path('cli', __dir__)
 
-Dotenv.load
+require 'xibo'  # Load shared library
+require 'command_registry'
+require 'interactive_menu'
 
 # Option definitions for command-line parsing
 OPTION_DEFINITIONS = [
@@ -260,7 +260,7 @@ def main
   end
 
   begin
-    client = XiboClient.new
+    client = Xibo::Client.new
     command = command_class.new(client, options)
     command.execute
   rescue => e

@@ -4,7 +4,7 @@ require "rails"
 # Pick the frameworks you want:
 require "active_model/railtie"
 # require "active_job/railtie"
-require "active_record/railtie"
+# require "active_record/railtie"  # Disabled - app doesn't use a database
 # require "active_storage/engine"
 require "action_controller/railtie"
 # require "action_mailer/railtie"
@@ -22,6 +22,10 @@ module XiboWeb
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.1
+
+    # Add parent lib directory (shared Xibo library) to autoload paths
+    config.autoload_paths << Rails.root.join('../lib')
+    config.eager_load_paths << Rails.root.join('../lib')
 
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.

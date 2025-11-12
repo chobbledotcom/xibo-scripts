@@ -3,8 +3,8 @@ module CommandRegistry
   def self.discover_commands
     commands = {}
 
-    # Find all command files in the commands directory, excluding base_command
-    Dir.glob(File.join(__dir__, 'commands', '**', '*_command.rb')).each do |file|
+    # Find all command files in the commands2 directory, excluding base_command
+    Dir.glob(File.join(__dir__, 'commands2', '**', '*_command.rb')).each do |file|
       # Skip base_command.rb
       next if File.basename(file) == 'base_command.rb'
       # Load the file

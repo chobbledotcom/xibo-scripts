@@ -1,11 +1,10 @@
 require_relative '../base_command'
-require_relative '../../image_manager'
 
 module Commands
   module Media
     class UploadImageCommand < BaseCommand
       def execute
-        image_manager = ImageManager.new(client)
+        image_manager = Xibo::ImageManager.new(client)
 
         if options[:url]
           upload_from_url(image_manager)

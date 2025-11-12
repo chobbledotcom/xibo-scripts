@@ -98,7 +98,8 @@ The application can be configured via environment variables. A `.env` file is op
   - `XIBO_API_URL` - Your Xibo CMS instance URL
   - `XIBO_CLIENT_ID` - OAuth client ID
   - `XIBO_CLIENT_SECRET` - OAuth client secret
-  - `RAILS_MASTER_KEY` - Rails encrypted credentials key (from `xibo_web/config/master.key`)
+
+**Note:** The Docker image removes encrypted credentials files and generates a fresh `SECRET_KEY_BASE` on each container startup. This makes each container instance fully self-contained and stateless, with all configuration provided via environment variables.
 
 **Building without Docker daemon:**
 
@@ -112,7 +113,6 @@ buildah bud -t xibo-web .
 podman run -d \
   -p 3000:3000 \
   --name xibo-web \
-  -e RAILS_MASTER_KEY=$(cat xibo_web/config/master.key) \
   -e XIBO_API_URL=https://your-xibo-instance.com \
   -e XIBO_CLIENT_ID=your_client_id \
   -e XIBO_CLIENT_SECRET=your_client_secret \
@@ -129,7 +129,6 @@ docker build -t xibo-web .
 docker run -d \
   -p 3000:3000 \
   --name xibo-web \
-  -e RAILS_MASTER_KEY=$(cat xibo_web/config/master.key) \
   -e XIBO_API_URL=https://your-xibo-instance.com \
   -e XIBO_CLIENT_ID=your_client_id \
   -e XIBO_CLIENT_SECRET=your_client_secret \
@@ -154,26 +153,23 @@ docker run -d \
 - Asset precompilation included
 - Builds without Docker daemon using buildah
 
-#### Publishing to GitHub Container Registry
+#### Publishing to Docker Hub
 
-Use the included `bin/docker-push` script to build and push to GitHub Container Registry with automatic version bumping:
+Use the included `bin/docker-push` script to build and push to Docker Hub with automatic version bumping:
 
 ```bash
-# One-time setup: Ensure gh CLI has write:packages scope
-gh auth refresh -h github.com -s write:packages
+# One-time setup: Login to Docker Hub
+podman login docker.io
 
 # Build and push (automatically increments version)
 docker-push
 
 # The script will:
-# 1. Authenticate with GitHub using gh CLI token
-# 2. Auto-increment version (stored in .docker-version)
-# 3. Build the image using buildah (no Docker daemon required)
-# 4. Tag as ghcr.io/chobbledotcom/xibo-scripts:vX and :latest
-# 5. Push both tags to GitHub Container Registry using podman
+# 1. Auto-increment version (stored in .docker-version)
+# 2. Build the image using buildah (no Docker daemon required)
+# 3. Tag as dockerstefn/xibo:vX and :latest
+# 4. Push both tags to Docker Hub using podman
 ```
-
-**Note:** The script will check if your gh token has the required `write:packages` scope and guide you to refresh it if needed.
 
 The `docker-push` command is available automatically when direnv loads (adds `bin/` to PATH).
 
@@ -185,14 +181,43 @@ The `docker-push` command is available automatically when direnv loads (adds `bi
 
 Pull the published image:
 ```bash
-docker pull ghcr.io/chobbledotcom/xibo-scripts:latest
-docker pull ghcr.io/chobbledotcom/xibo-scripts:v5  # specific version
-
-# Or with podman
-podman pull ghcr.io/chobbledotcom/xibo-scripts:latest
+docker pull dockerstefn/xibo:latest
+docker pull dockerstefn/xibo:v5  # specific version
 ```
 
 Version tracking is automatic - each push increments the version number stored in `.docker-version`.
+
+#### Testing the Docker Image
+
+Use the included `bin/test-docker` script to test the Docker image build and basic functionality:
+
+```bash
+# Basic test with dummy credentials
+./bin/test-docker
+
+# Test with real Xibo credentials
+XIBO_API_URL=https://your-xibo.com \
+XIBO_CLIENT_ID=your_id \
+XIBO_CLIENT_SECRET=your_secret \
+./bin/test-docker
+```
+
+The test script will:
+1. Build the image using buildah (no Docker daemon required)
+2. Verify the image was created successfully
+3. Start a test container on port 3001
+4. Wait for Rails to boot and respond
+5. Show container logs and diagnostics
+6. Automatically clean up test containers and images on exit
+
+**Features:**
+- Pure Nix script with automatic dependency management
+- Uses dummy credentials if real ones aren't provided
+- Automatic cleanup on success or failure
+- Color-coded logging (INFO/WARN/ERROR)
+- Health checking with 30-second timeout
+
+The `test-docker` command is available automatically when direnv loads (adds `bin/` to PATH).
 
 ## Usage
 

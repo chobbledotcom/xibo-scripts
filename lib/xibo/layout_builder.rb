@@ -1,5 +1,6 @@
-class LayoutBuilder
-  # 1080p Portrait constants
+module Xibo
+  class LayoutBuilder
+    # 1080p Portrait constants
   SCREEN_WIDTH = 1080
   SCREEN_HEIGHT = 1920
 
@@ -250,5 +251,6 @@ class LayoutBuilder
       y = GRID_START_Y + BOX_MARGIN + row * (BOX_HEIGHT + BOX_MARGIN)
       puts "  Product #{index + 1}: (#{x.to_i}, #{y.to_i}) #{BOX_WIDTH.to_i}x#{BOX_HEIGHT.to_i}"
     end
+  end
   end
 end

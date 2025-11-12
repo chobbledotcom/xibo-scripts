@@ -1,7 +1,8 @@
 require 'json'
 require 'json-schema'
 
-class SwaggerValidator
+module Xibo
+  class SwaggerValidator
   attr_reader :spec
 
   def initialize(swagger_file = 'swagger.json')
@@ -183,5 +184,6 @@ class SwaggerValidator
     result = @spec
     parts.each { |part| result = result[part] }
     result
+  end
   end
 end

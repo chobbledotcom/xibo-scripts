@@ -1,7 +1,11 @@
 require 'open3'
 require 'json'
 require 'shellwords'
-require_relative '../../../lib/command_metadata'
+
+# Rails autoload will handle loading these from ../lib and ../cli
+# Just need to add cli to load path for command_metadata
+$LOAD_PATH.unshift File.expand_path('../../../cli', __dir__)
+require 'command_metadata'
 
 class XiboCommandRunner
   XIBO_SCRIPT_PATH = File.expand_path('../../..', __dir__)
@@ -52,8 +56,7 @@ class XiboCommandRunner
   end
   
   def self.run_api_request(method:, path:, body: {})
-    # Use the existing XiboClient from the CLI
-    require_relative '../../../lib/xibo_client'
+    # Use the existing Xibo::Client from the shared library
     
     # Save current directory and swagger.json path
     xibo_root = File.expand_path('../../..', __dir__)
@@ -63,7 +66,7 @@ class XiboCommandRunner
       # Change to the CLI directory where swagger.json lives
       Dir.chdir(xibo_root)
       
-      client = XiboClient.new
+      client = Xibo::Client.new
       client.authenticate!
       
       # Make the API request using the client

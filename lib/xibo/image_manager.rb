@@ -1,7 +1,8 @@
 require 'net/http'
 require 'fileutils'
 
-class ImageManager
+module Xibo
+  class ImageManager
   def initialize(client, temp_dir = 'temp')
     @client = client
     @temp_dir = temp_dir
@@ -97,5 +98,6 @@ class ImageManager
     else
       raise "Unexpected upload response format"
     end
+  end
   end
 end

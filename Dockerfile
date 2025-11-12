@@ -8,8 +8,8 @@
 ARG RUBY_VERSION=3.3.6
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
-# Rails app lives here
-WORKDIR /rails
+# Project root
+WORKDIR /app
 
 # Install base packages
 RUN apt-get update -qq && \
@@ -59,32 +59,35 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install application gems
-COPY xibo_web/Gemfile xibo_web/Gemfile.lock ./
-RUN MAKE="make --jobs 4" bundle install && \
+COPY xibo_web/Gemfile xibo_web/Gemfile.lock ./xibo_web/
+RUN cd xibo_web && MAKE="make --jobs 4" bundle install && \
     rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git
 
-# Copy application code
-COPY xibo_web/ .
+# Copy entire application code (includes lib/, xibo, swagger.json, etc.)
+COPY . .
 
-# Precompile assets for production without requiring secret RAILS_MASTER_KEY
-RUN SECRET_KEY_BASE_DUMMY=1 bundle exec rails assets:precompile
+# Precompile assets for production without requiring secret key
+RUN cd xibo_web && SECRET_KEY_BASE_DUMMY=1 bundle exec rails assets:precompile
 
 # Final stage for app image
 FROM base
 
 # Copy built artifacts: gems, application
 COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
-COPY --from=build /rails /rails
+COPY --from=build /app /app
 
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
-    mkdir -p db log storage tmp && \
-    chown -R rails:rails db log storage tmp
+    mkdir -p xibo_web/db xibo_web/log xibo_web/storage xibo_web/tmp && \
+    chown -R rails:rails xibo_web/db xibo_web/log xibo_web/storage xibo_web/tmp
 USER 1000:1000
 
+# Set working directory to Rails app
+WORKDIR /app/xibo_web
+
 # Entrypoint prepares the database.
-ENTRYPOINT ["/rails/bin/docker-entrypoint"]
+ENTRYPOINT ["/app/xibo_web/bin/docker-entrypoint"]
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000

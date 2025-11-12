@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Push to GitHub Container Registry
+# Push to Docker Hub
 # 
-# Uses 'gh' CLI for authentication (must be logged in with 'gh auth login')
+# Make sure you're logged in: podman login docker.io
 
 # Configuration
 IMAGE_NAME="xibo-web"
-GHCR_REPO="ghcr.io/chobbledotcom/xibo-scripts"
+DOCKERHUB_REPO="dockerstefn/xibo"
 VERSION_FILE=".docker-version"
 
 # Read current version or initialize
@@ -20,45 +20,29 @@ fi
 # Bump version
 NEW_VERSION=$((CURRENT_VERSION + 1))
 
-echo "=== Xibo GitHub Container Registry Push ==="
+echo "=== Xibo Docker Hub Push ==="
 echo "Image: ${IMAGE_NAME}"
-echo "Repository: ${GHCR_REPO}"
+echo "Repository: ${DOCKERHUB_REPO}"
 echo "Version: v${NEW_VERSION} (previous: v${CURRENT_VERSION})"
-echo ""
-
-# Authenticate with GitHub Container Registry using gh CLI
-echo "Authenticating with GitHub Container Registry..."
-
-# Check if gh token has required scopes
-if ! gh auth status 2>&1 | grep -q "write:packages"; then
-    echo "⚠️  Your gh token needs 'write:packages' scope for pushing images."
-    echo ""
-    echo "Please refresh your authentication with the required scopes:"
-    echo "  gh auth refresh -h github.com -s write:packages"
-    echo ""
-    exit 1
-fi
-
-gh auth token | podman login ghcr.io -u "$(gh api user --jq .login)" --password-stdin
-echo "✅ Authenticated"
 echo ""
 
 # Build the image using buildah (no daemon required)
 echo "Building image with buildah..."
 buildah bud \
   -t "${IMAGE_NAME}:latest" \
-  -t "${GHCR_REPO}:v${NEW_VERSION}" \
-  -t "${GHCR_REPO}:latest" \
+  -t "${DOCKERHUB_REPO}:v${NEW_VERSION}" \
+  -t "${DOCKERHUB_REPO}:latest" \
   .
 
 echo ""
 echo "✅ Build complete!"
 
-# Push to GitHub Container Registry using podman
+# Push to Docker Hub using podman
 echo ""
-echo "Pushing to GitHub Container Registry..."
-podman push "${GHCR_REPO}:v${NEW_VERSION}"
-podman push "${GHCR_REPO}:latest"
+echo "Pushing to Docker Hub..."
+echo "Note: Make sure you're logged in with: podman login docker.io"
+podman push "${DOCKERHUB_REPO}:v${NEW_VERSION}"
+podman push "${DOCKERHUB_REPO}:latest"
 
 # Save new version
 echo "$NEW_VERSION" > "$VERSION_FILE"
@@ -67,8 +51,8 @@ echo ""
 echo "✅ Push complete! Version v${NEW_VERSION} is now live."
 echo ""
 echo "Pull with:"
-echo "  docker pull ${GHCR_REPO}:latest"
-echo "  docker pull ${GHCR_REPO}:v${NEW_VERSION}"
+echo "  docker pull ${DOCKERHUB_REPO}:latest"
+echo "  docker pull ${DOCKERHUB_REPO}:v${NEW_VERSION}"
 echo ""
 echo "Or with podman:"
-echo "  podman pull ${GHCR_REPO}:latest"
+echo "  podman pull ${DOCKERHUB_REPO}:latest"
