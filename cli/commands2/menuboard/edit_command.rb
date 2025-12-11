@@ -73,7 +73,7 @@ module Commands
 
         # Update in Xibo
         print_info("\nUpdating menu board in Xibo...")
-        client.request("/menuboard/#{board['menuId']}", body: changes.transform_keys(&:to_sym))
+        client.request("/menuboard/#{board['menuId']}", body: changes)
         print_success("Updated in Xibo (ID: #{board['menuId']})")
 
         # Update local board object

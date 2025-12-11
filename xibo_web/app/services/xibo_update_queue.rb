@@ -2,8 +2,7 @@ require 'json'
 require 'fileutils'
 
 class XiboUpdateQueue
-  XIBO_ROOT = File.expand_path('../../..', __dir__)
-  QUEUE_DIR = File.join(XIBO_ROOT, 'tmp', 'xibo-updates')
+  QUEUE_DIR = File.expand_path('../../../tmp/xibo-updates', __dir__)
   
   class << self
     def enqueue(method:, path:, body: {}, entity_type:, entity_id:)
@@ -70,8 +69,10 @@ class XiboUpdateQueue
           
           { success: true, update: pending, result: result }
         else
-          # Mark as failed and store reason
-          mark_as_failed(pending[:filepath], result[:error] || result[:response]&.to_s || 'Unknown error')
+          # Mark as failed and store reason (only if file still exists)
+          if File.exist?(pending[:filepath])
+            mark_as_failed(pending[:filepath], result[:error] || result[:response]&.to_s || 'Unknown error')
+          end
           { success: false, update: pending, result: result }
         end
       rescue => e

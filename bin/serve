@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+puts "Installing dependencies..."
+system("cd xibo_web && bundle install")
+
+require_relative '../xibo_web/config/environment'
+
+puts "Starting Rails server on port 3000..."
+system("cd xibo_web && rails server -p 3000 -b 0.0.0.0")

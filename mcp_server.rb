@@ -48,6 +48,16 @@ def list_tools
     end
   end
   
+  # Add tool for parsing update queue failures
+  tools << {
+    name: "parse_update_queue_failures",
+    description: "Parse and analyze failed updates from the Xibo update queue",
+    inputSchema: {
+      type: "object",
+      properties: {}
+    }
+  }
+  
   tools
 end
 
@@ -116,33 +126,76 @@ def handle_request(request)
     tool_name = request.dig('params', 'name')
     arguments = request.dig('params', 'arguments') || {}
     
-    # Convert tool name back to command format (e.g., menuboard_list -> menuboard:list)
-    command = tool_name.gsub('_', ':')
-    
-    result = run_xibo_command(command, arguments)
-    
-    output_text = ""
-    output_text += "Command: #{command}\n"
-    output_text += "Exit Code: #{result[:exit_code]}\n"
-    output_text += "Success: #{result[:success]}\n\n"
-    
-    if result[:stdout] && !result[:stdout].to_s.empty?
-      output_text += "=== OUTPUT ===\n#{result[:stdout]}\n\n"
+    if tool_name == 'parse_update_queue_failures'
+      # Handle the special case for parsing update queue failures
+      require_relative 'xibo_web/app/services/xibo_update_queue'
+      
+      failed_updates = XiboUpdateQueue.failed_updates
+      
+      output_text = "=== FAILED UPDATES ANALYSIS ===\n\n"
+      
+      if failed_updates.empty?
+        output_text += "No failed updates found in queue.\n"
+      else
+        failed_updates.each_with_index do |update, index|
+          output_text += "## Failed Update #{index + 1}\n"
+          output_text += "File: #{update[:filename]}\n"
+          output_text += "Entity: #{update[:entity_type]} (ID: #{update[:entity_id]})\n"
+          output_text += "Method: #{update[:method]} #{update[:path]}\n"
+          output_text += "Failed At: #{update[:failed_at]}\n"
+          output_text += "Failure Reason: #{update[:failure_reason]}\n"
+          output_text += "Retry Count: #{update[:retry_count] || 0}\n"
+          output_text += "Enqueued At: #{update[:enqueued_at]}\n\n"
+          
+          # Parse the body for more context
+          if update[:body] && !update[:body].empty?
+            output_text += "Request Body:\n"
+            update[:body].each do |key, value|
+              output_text += "  #{key}: #{value}\n"
+            end
+            output_text += "\n"
+          end
+        end
+      end
+      
+      {
+        content: [
+          {
+            type: "text",
+            text: output_text
+          }
+        ],
+        isError: false
+      }
+    else
+      # Convert tool name back to command format (e.g., menuboard_list -> menuboard:list)
+      command = tool_name.gsub('_', ':')
+      
+      result = run_xibo_command(command, arguments)
+      
+      output_text = ""
+      output_text += "Command: #{command}\n"
+      output_text += "Exit Code: #{result[:exit_code]}\n"
+      output_text += "Success: #{result[:success]}\n\n"
+      
+      if result[:stdout] && !result[:stdout].to_s.empty?
+        output_text += "=== OUTPUT ===\n#{result[:stdout]}\n\n"
+      end
+      
+      if result[:stderr] && !result[:stderr].to_s.empty?
+        output_text += "=== ERRORS ===\n#{result[:stderr]}\n"
+      end
+      
+      {
+        content: [
+          {
+            type: "text",
+            text: output_text
+          }
+        ],
+        isError: !result[:success]
+      }
     end
-    
-    if result[:stderr] && !result[:stderr].to_s.empty?
-      output_text += "=== ERRORS ===\n#{result[:stderr]}\n"
-    end
-    
-    {
-      content: [
-        {
-          type: "text",
-          text: output_text
-        }
-      ],
-      isError: !result[:success]
-    }
     
   else
     {
