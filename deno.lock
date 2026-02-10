@@ -1,9 +1,22 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@std/internal@^1.0.12": "1.0.12",
+    "jsr:@std/path@1": "1.1.4",
     "npm:@bunny.net/edgescript-sdk@0.12": "0.12.1_hono@4.11.9",
     "npm:@libsql/client@0.17": "0.17.0",
     "npm:esbuild@0.20": "0.20.2"
+  },
+  "jsr": {
+    "@std/internal@1.0.12": {
+      "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
+    },
+    "@std/path@1.1.4": {
+      "integrity": "1d2d43f39efb1b42f0b1882a25486647cb851481862dc7313390b2bb044314b5",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    }
   },
   "npm": {
     "@bunny.net/edgescript-sdk@0.12.1_hono@4.11.9": {
@@ -353,6 +366,7 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@std/path@1",
       "npm:@bunny.net/edgescript-sdk@0.12",
       "npm:@libsql/client@0.17",
       "npm:esbuild@0.20"

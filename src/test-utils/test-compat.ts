@@ -77,10 +77,9 @@ const assertFalse = (value: unknown, message?: string): void => {
   assert(!value, message);
 };
 
-// deno-lint-ignore no-explicit-any
 const assertInstanceOf = (
   actual: unknown,
-  expectedType: new (...args: any[]) => any,
+  expectedType: new (...args: unknown[]) => unknown,
 ): void => {
   assert(
     actual instanceof expectedType,
