@@ -47,6 +47,31 @@ export type XiboCredentialsFormValues = {
   xibo_client_secret: string;
 };
 
+/** Typed values from menu board form */
+export type MenuBoardFormValues = {
+  name: string;
+  code: string | null;
+  description: string | null;
+};
+
+/** Typed values from menu board category form */
+export type CategoryFormValues = {
+  name: string;
+  code: string | null;
+  media_id: number | null;
+};
+
+/** Typed values from menu board product form */
+export type ProductFormValues = {
+  name: string;
+  description: string | null;
+  price: string;
+  calories: string | null;
+  allergy_info: string | null;
+  availability: number | null;
+  media_id: number | null;
+};
+
 /** Validate username format: alphanumeric, hyphens, underscores, 2-32 chars */
 export const validateUsername = (value: string): string | null => {
   if (value.length < 2) return "Username must be at least 2 characters";
@@ -206,4 +231,46 @@ export const joinFields: Field[] = [
     type: "password",
     required: true,
   },
+];
+
+/**
+ * Menu board form field definitions
+ */
+export const menuBoardFields: Field[] = [
+  { name: "name", label: "Name", type: "text", required: true },
+  { name: "code", label: "Code", type: "text" },
+  { name: "description", label: "Description", type: "textarea" },
+];
+
+/**
+ * Menu board category form field definitions
+ */
+export const categoryFields: Field[] = [
+  { name: "name", label: "Name", type: "text", required: true },
+  { name: "code", label: "Code", type: "text" },
+  { name: "media_id", label: "Media", type: "number", hint: "Media library ID" },
+];
+
+/**
+ * Menu board product form field definitions
+ */
+export const productFields: Field[] = [
+  { name: "name", label: "Name", type: "text", required: true },
+  { name: "description", label: "Description", type: "textarea" },
+  {
+    name: "price",
+    label: "Price",
+    type: "text",
+    required: true,
+    hint: "e.g. 9.99",
+  },
+  { name: "calories", label: "Calories", type: "text" },
+  { name: "allergy_info", label: "Allergy Info", type: "text" },
+  {
+    name: "availability",
+    label: "Available",
+    type: "number",
+    hint: "1 = available, 0 = unavailable",
+  },
+  { name: "media_id", label: "Media", type: "number", hint: "Media library ID" },
 ];
