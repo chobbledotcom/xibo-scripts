@@ -2,18 +2,16 @@
  * Setup routes - initial system configuration
  */
 
+import { generateSecureToken } from "#lib/crypto.ts";
 import { settingsApi } from "#lib/db/settings.ts";
 import { validateForm } from "#lib/forms.tsx";
 import { ErrorCode, logDebug, logError } from "#lib/logger.ts";
 import { createRouter, defineRoutes } from "#routes/router.ts";
 import {
-  generateSecureToken,
   htmlResponse,
   htmlResponseWithCookie,
-  parseCookies,
-  parseFormData,
   redirect,
-  validateCsrfToken,
+  requireCsrfForm,
 } from "#routes/utils.ts";
 import { setupFields, type SetupFormValues } from "#templates/fields.ts";
 import { setupCompletePage, setupPage } from "#templates/setup.tsx";
@@ -105,20 +103,21 @@ const handleSetupPost = async (
   }
 
   // Validate CSRF token (double-submit cookie pattern)
-  const cookies = parseCookies(request);
-  const cookieCsrf = cookies.get("setup_csrf") || "";
+  const csrfResult = await requireCsrfForm(
+    request,
+    (newToken) => {
+      logError({ code: ErrorCode.AUTH_CSRF_MISMATCH, detail: "setup form" });
+      return setupResponse(newToken)(
+        "Invalid or expired form. Please try again.",
+        403,
+      );
+    },
+    "setup_csrf",
+  );
+  if (!csrfResult.ok) return csrfResult.response;
 
-  const form = await parseFormData(request);
+  const form = csrfResult.form;
   const formCsrf = form.get("csrf_token") || "";
-
-  if (!cookieCsrf || !formCsrf || !validateCsrfToken(cookieCsrf, formCsrf)) {
-    logError({ code: ErrorCode.AUTH_CSRF_MISMATCH, detail: "setup form" });
-    const newCsrfToken = generateSecureToken();
-    return setupResponse(newCsrfToken)(
-      "Invalid or expired form. Please try again.",
-      403,
-    );
-  }
 
   const validation = validateSetupForm(form);
 

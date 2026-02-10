@@ -87,6 +87,23 @@ const assertInstanceOf = (
   );
 };
 
+/** Validate caught error from assertThrows/assertRejects */
+const validateCaughtError = (
+  e: unknown,
+  sentinel: string,
+  msgIncludes?: string,
+): void => {
+  if ((e as Error).message === sentinel) throw e;
+  if (msgIncludes) {
+    assert(
+      (e as Error).message.includes(msgIncludes),
+      `Expected error message "${
+        (e as Error).message
+      }" to include "${msgIncludes}"`,
+    );
+  }
+};
+
 const assertThrows = (
   fn: () => void,
   // deno-lint-ignore no-explicit-any
@@ -97,15 +114,7 @@ const assertThrows = (
     fn();
     throw new Error("Expected function to throw");
   } catch (e) {
-    if ((e as Error).message === "Expected function to throw") throw e;
-    if (msgIncludes) {
-      assert(
-        (e as Error).message.includes(msgIncludes),
-        `Expected error message "${
-          (e as Error).message
-        }" to include "${msgIncludes}"`,
-      );
-    }
+    validateCaughtError(e, "Expected function to throw", msgIncludes);
   }
 };
 
@@ -119,15 +128,7 @@ const assertRejects = async (
     await fn();
     throw new Error("Expected function to reject");
   } catch (e) {
-    if ((e as Error).message === "Expected function to reject") throw e;
-    if (msgIncludes) {
-      assert(
-        (e as Error).message.includes(msgIncludes),
-        `Expected error message "${
-          (e as Error).message
-        }" to include "${msgIncludes}"`,
-      );
-    }
+    validateCaughtError(e, "Expected function to reject", msgIncludes);
   }
 };
 

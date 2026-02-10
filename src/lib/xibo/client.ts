@@ -52,34 +52,20 @@ export const authenticate = async (config: XiboConfig): Promise<void> => {
     client_secret: config.clientSecret,
   });
 
-  let response: globalThis.Response;
-  try {
-    response = await fetch(url, {
+  const response = await safeFetch(() =>
+    fetch(url, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body,
-    });
-  } catch (e) {
-    logError({ code: ErrorCode.XIBO_API_CONNECTION, detail: String(e) });
-    throw new XiboClientError("Failed to connect to Xibo CMS", 0);
-  }
+    })
+  );
 
-  if (!response.ok) {
-    let text = "";
-    try {
-      text = await response.text();
-    } catch {
-      // ignore body read errors
-    }
-    logError({
-      code: ErrorCode.XIBO_API_AUTH,
-      detail: `status=${response.status}`,
-    });
-    throw new XiboClientError(
-      `Authentication failed: ${response.status} ${text}`.trim(),
-      response.status,
-    );
-  }
+  await throwOnError(
+    response,
+    ErrorCode.XIBO_API_AUTH,
+    `status=${response.status}`,
+    `Authentication failed: ${response.status}`,
+  );
 
   const data = (await response.json()) as XiboAuthToken;
   currentToken = data.access_token;
@@ -115,6 +101,46 @@ export class XiboClientError extends Error {
   }
 }
 
+/** Execute a fetch, throwing XiboClientError on network failure */
+const safeFetch = async (
+  fn: () => Promise<globalThis.Response>,
+): Promise<globalThis.Response> => {
+  try {
+    return await fn();
+  } catch (e) {
+    logError({ code: ErrorCode.XIBO_API_CONNECTION, detail: String(e) });
+    throw new XiboClientError("Failed to connect to Xibo CMS", 0);
+  }
+};
+
+/** Read error body text from a failed response, suppressing read errors */
+const readErrorText = async (
+  response: globalThis.Response,
+): Promise<string> => {
+  try {
+    return await response.text();
+  } catch {
+    return "";
+  }
+};
+
+/** Throw XiboClientError for non-ok responses with error text and logging */
+const throwOnError = async (
+  response: globalThis.Response,
+  code: ErrorCode,
+  detail: string,
+  messagePrefix: string,
+): Promise<void> => {
+  if (!response.ok) {
+    const text = await readErrorText(response);
+    logError({ code, detail });
+    throw new XiboClientError(
+      `${messagePrefix} ${text}`.trim(),
+      response.status,
+    );
+  }
+};
+
 /**
  * Execute an authenticated fetch with auto-refresh on 401.
  * Shared by apiRequest and getRaw.
@@ -124,25 +150,13 @@ const fetchWithAuth = async (
   makeRequest: (token: string) => Promise<globalThis.Response>,
 ): Promise<globalThis.Response> => {
   let token = await ensureToken(config);
-  let response: globalThis.Response;
-
-  try {
-    response = await makeRequest(token);
-  } catch (e) {
-    logError({ code: ErrorCode.XIBO_API_CONNECTION, detail: String(e) });
-    throw new XiboClientError("Failed to connect to Xibo CMS", 0);
-  }
+  let response = await safeFetch(() => makeRequest(token));
 
   // Auto-refresh on 401
   if (response.status === 401) {
     clearToken();
     token = await ensureToken(config);
-    try {
-      response = await makeRequest(token);
-    } catch (e) {
-      logError({ code: ErrorCode.XIBO_API_CONNECTION, detail: String(e) });
-      throw new XiboClientError("Failed to connect to Xibo CMS", 0);
-    }
+    response = await safeFetch(() => makeRequest(token));
   }
 
   return response;
@@ -190,23 +204,12 @@ const apiRequest = async (
   const duration = timer();
   logDebug("Xibo", `${method} ${endpoint} ${response.status} ${duration}ms`);
 
-  if (!response.ok) {
-    let text = "";
-    try {
-      text = await response.text();
-    } catch {
-      // ignore body read errors
-    }
-    logError({
-      code: ErrorCode.XIBO_API_REQUEST,
-      detail: `${method} ${endpoint} ${response.status}`,
-    });
-    throw new XiboClientError(
-      `API request failed: ${method} ${endpoint} ${response.status} ${text}`
-        .trim(),
-      response.status,
-    );
-  }
+  await throwOnError(
+    response,
+    ErrorCode.XIBO_API_REQUEST,
+    `${method} ${endpoint} ${response.status}`,
+    `API request failed: ${method} ${endpoint} ${response.status}`,
+  );
 
   // Some DELETE endpoints return 204 No Content
   if (response.status === 204) return null;
@@ -248,31 +251,33 @@ export const get = async <T>(
   return result as T;
 };
 
-/**
- * POST (JSON body).  Invalidates related caches.
- */
-export const post = async <T>(
+/** Shared mutation handler for POST and PUT methods */
+const mutate = async <T>(
   config: XiboConfig,
+  method: "POST" | "PUT",
   endpoint: string,
   body?: Record<string, unknown>,
 ): Promise<T> => {
-  const result = await apiRequest(config, "POST", endpoint, { body });
+  const result = await apiRequest(config, method, endpoint, { body });
   await invalidateCacheForEndpoint(endpoint);
   return result as T;
 };
 
-/**
- * PUT (JSON body).  Invalidates related caches.
- */
-export const put = async <T>(
+type MutateMethod = <T>(
   config: XiboConfig,
   endpoint: string,
   body?: Record<string, unknown>,
-): Promise<T> => {
-  const result = await apiRequest(config, "PUT", endpoint, { body });
-  await invalidateCacheForEndpoint(endpoint);
-  return result as T;
-};
+) => Promise<T>;
+
+/** Create a typed mutation method for the given HTTP verb */
+const createMutator = (method: "POST" | "PUT"): MutateMethod =>
+  (config, endpoint, body) => mutate(config, method, endpoint, body);
+
+/** POST (JSON body).  Invalidates related caches. */
+export const post: MutateMethod = createMutator("POST");
+
+/** PUT (JSON body).  Invalidates related caches. */
+export const put: MutateMethod = createMutator("PUT");
 
 /**
  * DELETE.  Invalidates related caches.
