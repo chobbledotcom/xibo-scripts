@@ -15,7 +15,7 @@ interface LoginAttempt {
 }
 
 /** Fetch login attempt record for an IP */
-const getAttempt = (ip: string): Promise<LoginAttempt | undefined> =>
+const getAttempt = (ip: string): Promise<LoginAttempt | null> =>
   queryOne<LoginAttempt>(
     "SELECT ip, attempts, locked_until FROM login_attempts WHERE ip = ?",
     [ip],

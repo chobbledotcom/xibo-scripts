@@ -1027,26 +1027,26 @@ describe("menuboard field definitions", () => {
   it("exports menuBoardFields with correct structure", async () => {
     const { menuBoardFields } = await import("#templates/fields.ts");
     expect(menuBoardFields.length).toBe(3);
-    expect(menuBoardFields[0].name).toBe("name");
-    expect(menuBoardFields[0].required).toBe(true);
-    expect(menuBoardFields[1].name).toBe("code");
-    expect(menuBoardFields[2].name).toBe("description");
-    expect(menuBoardFields[2].type).toBe("textarea");
+    expect(menuBoardFields[0]!.name).toBe("name");
+    expect(menuBoardFields[0]!.required).toBe(true);
+    expect(menuBoardFields[1]!.name).toBe("code");
+    expect(menuBoardFields[2]!.name).toBe("description");
+    expect(menuBoardFields[2]!.type).toBe("textarea");
   });
 
   it("exports categoryFields with correct structure", async () => {
     const { categoryFields } = await import("#templates/fields.ts");
     expect(categoryFields.length).toBe(3);
-    expect(categoryFields[0].name).toBe("name");
-    expect(categoryFields[0].required).toBe(true);
+    expect(categoryFields[0]!.name).toBe("name");
+    expect(categoryFields[0]!.required).toBe(true);
   });
 
   it("exports productFields with correct structure", async () => {
     const { productFields } = await import("#templates/fields.ts");
     expect(productFields.length).toBe(7);
-    expect(productFields[0].name).toBe("name");
-    expect(productFields[0].required).toBe(true);
-    expect(productFields[2].name).toBe("price");
-    expect(productFields[2].required).toBe(true);
+    expect(productFields[0]!.name).toBe("name");
+    expect(productFields[0]!.required).toBe(true);
+    expect(productFields[2]!.name).toBe("price");
+    expect(productFields[2]!.required).toBe(true);
   });
 });
