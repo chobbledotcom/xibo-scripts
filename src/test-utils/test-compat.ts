@@ -9,24 +9,43 @@ const assert = (value: unknown, message?: string): void => {
   nodeAssert.ok(value, message);
 };
 
-const assertEquals = (actual: unknown, expected: unknown, message?: string): void => {
+const assertEquals = (
+  actual: unknown,
+  expected: unknown,
+  message?: string,
+): void => {
   nodeAssert.deepStrictEqual(actual, expected, message);
 };
 
-const assertStrictEquals = (actual: unknown, expected: unknown, message?: string): void => {
+const assertStrictEquals = (
+  actual: unknown,
+  expected: unknown,
+  message?: string,
+): void => {
   nodeAssert.strictEqual(actual, expected, message);
 };
 
-const assertNotEquals = (actual: unknown, expected: unknown, _message?: string): void => {
+const assertNotEquals = (
+  actual: unknown,
+  expected: unknown,
+  _message?: string,
+): void => {
   nodeAssert.notDeepStrictEqual(actual, expected);
 };
 
-const assertNotStrictEquals = (actual: unknown, expected: unknown, _message?: string): void => {
+const assertNotStrictEquals = (
+  actual: unknown,
+  expected: unknown,
+  _message?: string,
+): void => {
   nodeAssert.notStrictEqual(actual, expected);
 };
 
 const assertStringIncludes = (actual: string, expected: string): void => {
-  assert(actual.includes(expected), `Expected "${actual}" to include "${expected}"`);
+  assert(
+    actual.includes(expected),
+    `Expected "${actual}" to include "${expected}"`,
+  );
 };
 
 const assertMatch = (actual: string, expected: RegExp): void => {
@@ -48,7 +67,10 @@ const assertArrayIncludes = (actual: unknown[], expected: unknown[]): void => {
 };
 
 const assertExists = (value: unknown, message?: string): void => {
-  assert(value !== null && value !== undefined, message ?? "Expected value to exist");
+  assert(
+    value !== null && value !== undefined,
+    message ?? "Expected value to exist",
+  );
 };
 
 const assertFalse = (value: unknown, message?: string): void => {
@@ -56,8 +78,14 @@ const assertFalse = (value: unknown, message?: string): void => {
 };
 
 // deno-lint-ignore no-explicit-any
-const assertInstanceOf = (actual: unknown, expectedType: new (...args: any[]) => any): void => {
-  assert(actual instanceof expectedType, `Expected value to be instance of ${expectedType.name}`);
+const assertInstanceOf = (
+  actual: unknown,
+  expectedType: new (...args: any[]) => any,
+): void => {
+  assert(
+    actual instanceof expectedType,
+    `Expected value to be instance of ${expectedType.name}`,
+  );
 };
 
 const assertThrows = (
@@ -74,7 +102,9 @@ const assertThrows = (
     if (msgIncludes) {
       assert(
         (e as Error).message.includes(msgIncludes),
-        `Expected error message "${(e as Error).message}" to include "${msgIncludes}"`,
+        `Expected error message "${
+          (e as Error).message
+        }" to include "${msgIncludes}"`,
       );
     }
   }
@@ -94,7 +124,9 @@ const assertRejects = async (
     if (msgIncludes) {
       assert(
         (e as Error).message.includes(msgIncludes),
-        `Expected error message "${(e as Error).message}" to include "${msgIncludes}"`,
+        `Expected error message "${
+          (e as Error).message
+        }" to include "${msgIncludes}"`,
       );
     }
   }
@@ -381,7 +413,9 @@ class ExpectChain<T> {
         for (const item of this.actual) {
           try {
             assertEquals(item, expected);
-            throw new Error(`Expected array not to contain ${JSON.stringify(expected)}`);
+            throw new Error(
+              `Expected array not to contain ${JSON.stringify(expected)}`,
+            );
           } catch {
             // Expected - item doesn't match
           }
@@ -402,7 +436,9 @@ class ExpectChain<T> {
   }
 
   toMatch(expected: RegExp | string): void {
-    const regex = typeof expected === "string" ? new RegExp(expected) : expected;
+    const regex = typeof expected === "string"
+      ? new RegExp(expected)
+      : expected;
     if (this.isNot) {
       assertFalse(regex.test(this.actual as string));
     } else {
@@ -482,7 +518,10 @@ class ExpectChain<T> {
     if (this.isNot) {
       assertEquals(mock.mock.calls.length, 0);
     } else {
-      assert(mock.mock.calls.length > 0, "Expected function to have been called");
+      assert(
+        mock.mock.calls.length > 0,
+        "Expected function to have been called",
+      );
     }
   }
 
@@ -493,7 +532,7 @@ class ExpectChain<T> {
 
   toHaveBeenCalledWith(...args: unknown[]): void {
     const mock = this.actual as MockFn;
-    const found = mock.mock.calls.some(call => {
+    const found = mock.mock.calls.some((call) => {
       try {
         assertEquals(call, args);
         return true;
@@ -504,7 +543,10 @@ class ExpectChain<T> {
     if (this.isNot) {
       assertFalse(found);
     } else {
-      assert(found, `Expected function to have been called with ${JSON.stringify(args)}`);
+      assert(
+        found,
+        `Expected function to have been called with ${JSON.stringify(args)}`,
+      );
     }
   }
 }

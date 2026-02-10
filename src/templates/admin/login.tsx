@@ -18,5 +18,5 @@ export const adminLoginPage = (error?: string): string =>
         <Raw html={renderFields(loginFields)} />
         <button type="submit">Login</button>
       </form>
-    </Layout>
+    </Layout>,
   );

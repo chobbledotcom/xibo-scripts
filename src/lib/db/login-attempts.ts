@@ -50,17 +50,21 @@ export const recordFailedLogin = async (ip: string): Promise<void> => {
 
   if (!attempt) {
     await getDb().execute({
-      sql: "INSERT INTO login_attempts (ip, attempts, locked_until) VALUES (?, 1, NULL)",
+      sql:
+        "INSERT INTO login_attempts (ip, attempts, locked_until) VALUES (?, 1, NULL)",
       args: [ip],
     });
     return;
   }
 
   const newAttempts = attempt.attempts + 1;
-  const lockedUntil = newAttempts >= MAX_ATTEMPTS ? nowMs() + LOCKOUT_DURATION_MS : null;
+  const lockedUntil = newAttempts >= MAX_ATTEMPTS
+    ? nowMs() + LOCKOUT_DURATION_MS
+    : null;
 
   await getDb().execute({
-    sql: "UPDATE login_attempts SET attempts = ?, locked_until = ? WHERE ip = ?",
+    sql:
+      "UPDATE login_attempts SET attempts = ?, locked_until = ? WHERE ip = ?",
     args: [newAttempts, lockedUntil, ip],
   });
 };

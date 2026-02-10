@@ -75,7 +75,10 @@ const compileRoutes = (
   routes: Record<string, RouteHandlerFn>,
 ): Map<string, CompiledRoute[]> =>
   reduce(
-    (compiled: Map<string, CompiledRoute[]>, [pattern, handler]: [string, RouteHandlerFn]) => {
+    (
+      compiled: Map<string, CompiledRoute[]>,
+      [pattern, handler]: [string, RouteHandlerFn],
+    ) => {
       const { method, path } = parseRoutePattern(pattern);
       const regex = compilePattern(path);
       const methodRoutes = compiled.get(method) ?? [];
@@ -147,12 +150,12 @@ const matchRequest = (
  */
 export const createRouter = (
   routes: Record<string, RouteHandlerFn>,
-): ((
+): (
   request: Request,
   path: string,
   method: string,
   server?: ServerContext,
-) => Promise<Response | null>) => {
+) => Promise<Response | null> => {
   const compiled = compileRoutes(routes);
 
   return (request, path, method, server) => {

@@ -1,10 +1,10 @@
 import { describe, expect, test } from "#test-compat";
 import {
+  type Field,
+  renderError,
   renderField,
   renderFields,
-  renderError,
   validateForm,
-  type Field,
 } from "#lib/forms.tsx";
 
 describe("forms", () => {
@@ -126,7 +126,12 @@ describe("forms", () => {
     test("renders multiple fields", () => {
       const fields: Field[] = [
         { name: "username", label: "Username", type: "text", required: true },
-        { name: "password", label: "Password", type: "password", required: true },
+        {
+          name: "password",
+          label: "Password",
+          type: "password",
+          required: true,
+        },
       ];
       const html = renderFields(fields);
       expect(html).toContain("Username");

@@ -13,15 +13,17 @@ import { Layout } from "#templates/layout.tsx";
 export const setupPage = (error?: string, csrfToken?: string): string =>
   String(
     <Layout title="Setup">
-        <h1>Initial Setup</h1>
-        <p>Welcome! Please configure your Xibo CMS management tool.</p>
-        <Raw html={renderError(error)} />
-        <form method="POST" action="/setup/">
-          {csrfToken && <input type="hidden" name="csrf_token" value={csrfToken} />}
-          <Raw html={renderFields(setupFields)} />
-          <button type="submit">Complete Setup</button>
-        </form>
-    </Layout>
+      <h1>Initial Setup</h1>
+      <p>Welcome! Please configure your Xibo CMS management tool.</p>
+      <Raw html={renderError(error)} />
+      <form method="POST" action="/setup/">
+        {csrfToken && (
+          <input type="hidden" name="csrf_token" value={csrfToken} />
+        )}
+        <Raw html={renderFields(setupFields)} />
+        <button type="submit">Complete Setup</button>
+      </form>
+    </Layout>,
   );
 
 /**
@@ -30,12 +32,14 @@ export const setupPage = (error?: string, csrfToken?: string): string =>
 export const setupCompletePage = (): string =>
   String(
     <Layout title="Setup Complete">
-        <h1>Setup Complete!</h1>
-        <div class="success">
-          <p>Your Xibo CMS management tool has been configured successfully.</p>
-        </div>
-        <p>
-          <a href="/admin/"><b>Go to Admin Dashboard</b></a>
-        </p>
-    </Layout>
+      <h1>Setup Complete!</h1>
+      <div class="success">
+        <p>Your Xibo CMS management tool has been configured successfully.</p>
+      </div>
+      <p>
+        <a href="/admin/">
+          <b>Go to Admin Dashboard</b>
+        </a>
+      </p>
+    </Layout>,
   );

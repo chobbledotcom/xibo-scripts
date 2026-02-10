@@ -64,7 +64,7 @@ const routeAdminPath = createLazyRoute("/admin", loadAdminRoutes);
  */
 const routeMainApp: RouterFn = async (request, path, method, server) =>
   (await routeAdminPath(request, path, method, server)) ??
-  notFoundResponse();
+    notFoundResponse();
 
 /**
  * Handle incoming requests (internal, without security headers)
@@ -106,7 +106,12 @@ const logAndReturn = (
   path: string,
   getElapsed: () => number,
 ): Response => {
-  logRequest({ method, path, status: response.status, durationMs: getElapsed() });
+  logRequest({
+    method,
+    path,
+    status: response.status,
+    durationMs: getElapsed(),
+  });
   return response;
 };
 
@@ -127,7 +132,12 @@ export const handleRequest = async (
 
   // Content-Type validation for POST requests
   if (!isValidContentType(request)) {
-    return logAndReturn(contentTypeRejectionResponse(), method, path, getElapsed);
+    return logAndReturn(
+      contentTypeRejectionResponse(),
+      method,
+      path,
+      getElapsed,
+    );
   }
 
   const response = await handleRequestInternal(request, path, method, server);

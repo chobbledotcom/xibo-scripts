@@ -46,7 +46,9 @@ type SettingsCacheState = {
   time: number;
 };
 
-const [getSettingsCacheState, setSettingsCacheState] = lazyRef<SettingsCacheState>(
+const [getSettingsCacheState, setSettingsCacheState] = lazyRef<
+  SettingsCacheState
+>(
   () => ({ entries: null, time: 0 }),
 );
 
@@ -192,7 +194,10 @@ export const completeSetup = async (
     await setSetting(CONFIG_KEYS.XIBO_CLIENT_ID, await encrypt(xiboClientId));
   }
   if (xiboClientSecret) {
-    await setSetting(CONFIG_KEYS.XIBO_CLIENT_SECRET, await encrypt(xiboClientSecret));
+    await setSetting(
+      CONFIG_KEYS.XIBO_CLIENT_SECRET,
+      await encrypt(xiboClientSecret),
+    );
   }
 
   await setSetting(CONFIG_KEYS.SETUP_COMPLETE, "true");
@@ -283,7 +288,8 @@ export const updateUserPassword = async (
 
   // Update user row
   await getDb().execute({
-    sql: "UPDATE users SET password_hash = ?, wrapped_data_key = ? WHERE id = ?",
+    sql:
+      "UPDATE users SET password_hash = ?, wrapped_data_key = ? WHERE id = ?",
     args: [encryptedNewHash, newWrappedDataKey, userId],
   });
 

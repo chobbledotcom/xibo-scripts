@@ -60,7 +60,9 @@ const renderSelectOptions = (
   options
     .map(
       (opt) =>
-        `<option value="${escapeHtml(opt.value)}"${opt.value === selectedValue ? " selected" : ""}>${escapeHtml(opt.label)}</option>`,
+        `<option value="${escapeHtml(opt.value)}"${
+          opt.value === selectedValue ? " selected" : ""
+        }>${escapeHtml(opt.label)}</option>`,
     )
     .join("");
 
@@ -70,12 +72,18 @@ const renderCheckboxGroup = (
   options: { value: string; label: string }[],
   selectedValues: Set<string>,
 ): string =>
-  `<fieldset class="checkbox-group">${options
-    .map(
-      (opt) =>
-        `<label><input type="checkbox" name="${escapeHtml(name)}" value="${escapeHtml(opt.value)}"${selectedValues.has(opt.value) ? " checked" : ""}> ${escapeHtml(opt.label)}</label>`,
-    )
-    .join("")}</fieldset>`;
+  `<fieldset class="checkbox-group">${
+    options
+      .map(
+        (opt) =>
+          `<label><input type="checkbox" name="${escapeHtml(name)}" value="${
+            escapeHtml(opt.value)
+          }"${selectedValues.has(opt.value) ? " checked" : ""}> ${
+            escapeHtml(opt.label)
+          }</label>`,
+      )
+      .join("")
+  }</fieldset>`;
 
 /**
  * Render a single form field
@@ -84,41 +92,55 @@ export const renderField = (field: Field, value: string = ""): string =>
   String(
     <label>
       {field.label}
-      {field.type === "textarea" ? (
-        <textarea
-          name={field.name}
-          rows="3"
-          required={field.required}
-          placeholder={field.placeholder}
-        >
-          <Raw html={escapeHtml(value)} />
-        </textarea>
-      ) : field.type === "select" && field.options ? (
-        <Raw
-          html={`<select name="${escapeHtml(field.name)}" id="${escapeHtml(field.name)}">${renderSelectOptions(field.options, value)}</select>`}
-        />
-      ) : field.type === "checkbox-group" && field.options ? (
-        <Raw
-          html={renderCheckboxGroup(field.name, field.options, new Set(value ? value.split(",").map((v) => v.trim()) : []))}
-        />
-      ) : (
-        <input
-          type={field.type}
-          name={field.name}
-          value={value || undefined}
-          required={field.required}
-          placeholder={field.placeholder}
-          min={field.min}
-          pattern={field.pattern}
-          autofocus={field.autofocus}
-        />
-      )}
+      {field.type === "textarea"
+        ? (
+          <textarea
+            name={field.name}
+            rows="3"
+            required={field.required}
+            placeholder={field.placeholder}
+          >
+            <Raw html={escapeHtml(value)} />
+          </textarea>
+        )
+        : field.type === "select" && field.options
+        ? (
+          <Raw
+            html={`<select name="${escapeHtml(field.name)}" id="${
+              escapeHtml(field.name)
+            }">${renderSelectOptions(field.options, value)}</select>`}
+          />
+        )
+        : field.type === "checkbox-group" && field.options
+        ? (
+          <Raw
+            html={renderCheckboxGroup(
+              field.name,
+              field.options,
+              new Set(
+                value ? value.split(",").map((v) => v.trim()) : [],
+              ),
+            )}
+          />
+        )
+        : (
+          <input
+            type={field.type}
+            name={field.name}
+            value={value || undefined}
+            required={field.required}
+            placeholder={field.placeholder}
+            min={field.min}
+            pattern={field.pattern}
+            autofocus={field.autofocus}
+          />
+        )}
       {field.hint && (
         <small>
           {field.hint}
         </small>
       )}
-    </label>
+    </label>,
   );
 
 /**
@@ -141,9 +163,7 @@ const parseFieldValue = (
   trimmed: string,
 ): string | number | null =>
   field.type === "number"
-    ? trimmed
-      ? Number.parseInt(trimmed, 10)
-      : null
+    ? trimmed ? Number.parseInt(trimmed, 10) : null
     : trimmed || null;
 
 /**
