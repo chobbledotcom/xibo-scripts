@@ -92,6 +92,14 @@ Environment variables are configured as **Bunny native secrets** in the Bunny Ed
 
 - `PORT` - Server port (defaults to 3000, local dev only)
 
+### Dev/Test Environment
+
+These env vars are available in the dev environment for running integration tests against a real Xibo CMS:
+
+- `XIBO_API_URL` - Xibo CMS base URL
+- `XIBO_CLIENT_ID` - OAuth2 client ID
+- `XIBO_CLIENT_SECRET` - OAuth2 client secret
+
 ### Xibo Configuration
 
 Xibo API credentials (URL, Client ID, Client Secret) are configured via the admin settings page (`/admin/settings`) and stored encrypted in the database. They are NOT environment variables.

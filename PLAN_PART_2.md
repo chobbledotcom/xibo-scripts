@@ -4,6 +4,16 @@
 
 **Depends on**: Part 1 (base infrastructure, settings DB, admin layout)
 
+### Dev Environment
+
+The following env vars are available in the dev environment for running tests against a real Xibo CMS instance:
+
+- `XIBO_API_URL` - Xibo CMS base URL
+- `XIBO_CLIENT_ID` - OAuth2 client ID
+- `XIBO_CLIENT_SECRET` - OAuth2 client secret
+
+Use these for integration tests that hit the real API (in addition to unit tests with mocked responses).
+
 ---
 
 ## 2.1 Xibo API Client (`src/lib/xibo/client.ts`)
@@ -86,17 +96,23 @@ TypeScript interfaces for all Xibo API entities:
 
 ## 2.6 Tests
 
-- Xibo client tests (mock HTTP responses):
+**Unit tests** (mock HTTP responses):
+- Xibo client:
   - Authentication flow (success, failure, token refresh)
   - GET/POST/PUT/DELETE operations
   - Error handling (network errors, 4xx, 5xx)
   - Multipart upload
-- Cache tests:
+- Cache:
   - Cache hit/miss, TTL expiry, invalidation
-- Settings tests:
+- Settings:
   - Save/load encrypted credentials
   - Connection test
   - Settings page rendering
+
+**Integration tests** (real Xibo API via env vars):
+- Authenticate with real credentials from `XIBO_API_URL`/`XIBO_CLIENT_ID`/`XIBO_CLIENT_SECRET`
+- List menu boards, media, layouts from real CMS
+- Verify response shapes match TypeScript interfaces
 
 ## Expected Outcome
 
