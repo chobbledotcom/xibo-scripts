@@ -1,5 +1,5 @@
 import { describe, expect, test } from "#test-compat";
-import { now, today, nowIso, nowMs } from "#lib/now.ts";
+import { now, nowIso, nowMs, today } from "#lib/now.ts";
 
 describe("now", () => {
   describe("now()", () => {

@@ -15,15 +15,39 @@ interface AdminNavProps {
 export const AdminNav = ({ session }: AdminNavProps = {}): JSX.Element => (
   <nav>
     <ul>
-      <li><a href="/admin/">Dashboard</a></li>
-      <li><a href="/admin/menuboards">Menu Boards</a></li>
-      <li><a href="/admin/media">Media</a></li>
-      <li><a href="/admin/layouts">Layouts</a></li>
-      <li><a href="/admin/datasets">Datasets</a></li>
-      {session?.adminLevel === "owner" && <li><a href="/admin/users">Users</a></li>}
-      {session?.adminLevel === "owner" && <li><a href="/admin/settings">Settings</a></li>}
-      {session?.adminLevel === "owner" && <li><a href="/admin/sessions">Sessions</a></li>}
-      <li><a href="/admin/logout">Logout</a></li>
+      <li>
+        <a href="/admin/">Dashboard</a>
+      </li>
+      <li>
+        <a href="/admin/menuboards">Menu Boards</a>
+      </li>
+      <li>
+        <a href="/admin/media">Media</a>
+      </li>
+      <li>
+        <a href="/admin/layouts">Layouts</a>
+      </li>
+      <li>
+        <a href="/admin/datasets">Datasets</a>
+      </li>
+      {session?.adminLevel === "owner" && (
+        <li>
+          <a href="/admin/users">Users</a>
+        </li>
+      )}
+      {session?.adminLevel === "owner" && (
+        <li>
+          <a href="/admin/settings">Settings</a>
+        </li>
+      )}
+      {session?.adminLevel === "owner" && (
+        <li>
+          <a href="/admin/sessions">Sessions</a>
+        </li>
+      )}
+      <li>
+        <a href="/admin/logout">Logout</a>
+      </li>
     </ul>
   </nav>
 );
@@ -37,5 +61,7 @@ interface BreadcrumbProps {
  * Breadcrumb link for sub-pages
  */
 export const Breadcrumb = ({ href, label }: BreadcrumbProps): JSX.Element => (
-  <p><a href={href}>&larr; {label}</a></p>
+  <p>
+    <a href={href}>&larr; {label}</a>
+  </p>
 );

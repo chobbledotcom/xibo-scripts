@@ -35,7 +35,8 @@ const inlineAssetsPlugin: Plugin = {
     }));
 
     build.onLoad({ filter: /.*/, namespace: "inline-asset-paths" }, () => ({
-      contents: `export const CSS_PATH = "/mvp.css?ts=${BUILD_TS}";\nexport const JS_PATH = "/admin.js?ts=${BUILD_TS}";`,
+      contents:
+        `export const CSS_PATH = "/mvp.css?ts=${BUILD_TS}";\nexport const JS_PATH = "/admin.js?ts=${BUILD_TS}";`,
       loader: "ts",
     }));
 

@@ -24,6 +24,7 @@
     "#jsx/jsx-runtime": "./src/lib/jsx/jsx-runtime.ts",
     "#jsx/jsx-dev-runtime": "./src/lib/jsx/jsx-runtime.ts",
     "#jsx/": "./src/lib/jsx/",
+    "#xibo/": "./src/lib/xibo/",
     "#lib/db/": "./src/lib/db/",
     "#lib/jsx/": "./src/lib/jsx/",
     "#lib/": "./src/lib/",

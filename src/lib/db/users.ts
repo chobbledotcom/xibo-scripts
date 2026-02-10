@@ -28,12 +28,19 @@ const insertUser = async (opts: {
   const usernameIndex = await hmacHash(opts.username.toLowerCase());
   const encryptedUsername = await encrypt(opts.username.toLowerCase());
   const encryptedAdminLevel = await encrypt(opts.adminLevel);
-  const encryptedPasswordHash = opts.passwordHash ? await encrypt(opts.passwordHash) : "";
-  const encryptedInviteCode = opts.inviteCodeHash ? await encrypt(opts.inviteCodeHash) : null;
-  const encryptedInviteExpiry = opts.inviteExpiry ? await encrypt(opts.inviteExpiry) : null;
+  const encryptedPasswordHash = opts.passwordHash
+    ? await encrypt(opts.passwordHash)
+    : "";
+  const encryptedInviteCode = opts.inviteCodeHash
+    ? await encrypt(opts.inviteCodeHash)
+    : null;
+  const encryptedInviteExpiry = opts.inviteExpiry
+    ? await encrypt(opts.inviteExpiry)
+    : null;
 
   const result = await getDb().execute({
-    sql: `INSERT INTO users (username_hash, username_index, password_hash, wrapped_data_key, admin_level, invite_code_hash, invite_expiry)
+    sql:
+      `INSERT INTO users (username_hash, username_index, password_hash, wrapped_data_key, admin_level, invite_code_hash, invite_expiry)
           VALUES (?, ?, ?, ?, ?, ?, ?)`,
     args: [
       encryptedUsername,
@@ -68,7 +75,14 @@ export const createUser = (
   wrappedDataKey: string | null,
   adminLevel: AdminLevel,
 ): Promise<User> =>
-  insertUser({ username, adminLevel, passwordHash, wrappedDataKey, inviteCodeHash: null, inviteExpiry: null });
+  insertUser({
+    username,
+    adminLevel,
+    passwordHash,
+    wrappedDataKey,
+    inviteCodeHash: null,
+    inviteExpiry: null,
+  });
 
 /**
  * Create an invited user (no password yet, has invite code)
@@ -79,7 +93,14 @@ export const createInvitedUser = (
   inviteCodeHash: string,
   inviteExpiry: string,
 ): Promise<User> =>
-  insertUser({ username, adminLevel, passwordHash: "", wrappedDataKey: null, inviteCodeHash, inviteExpiry });
+  insertUser({
+    username,
+    adminLevel,
+    passwordHash: "",
+    wrappedDataKey: null,
+    inviteCodeHash,
+    inviteExpiry,
+  });
 
 /**
  * Look up a user by username (using blind index)
@@ -159,7 +180,8 @@ export const setUserPassword = async (
   const encryptedNull = await encrypt("");
 
   await getDb().execute({
-    sql: "UPDATE users SET password_hash = ?, invite_code_hash = ?, invite_expiry = ? WHERE id = ?",
+    sql:
+      "UPDATE users SET password_hash = ?, invite_code_hash = ?, invite_expiry = ? WHERE id = ?",
     args: [encryptedHash, encryptedNull, encryptedNull, userId],
   });
 

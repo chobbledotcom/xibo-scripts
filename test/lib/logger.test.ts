@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "#test-compat";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  spyOn,
+  test,
+} from "#test-compat";
 import {
   createRequestTimer,
   ErrorCode,
@@ -11,7 +18,9 @@ import {
 describe("logger", () => {
   describe("redactPath", () => {
     test("redacts numeric IDs in admin paths", () => {
-      expect(redactPath("/admin/menuboards/123")).toBe("/admin/menuboards/[id]");
+      expect(redactPath("/admin/menuboards/123")).toBe(
+        "/admin/menuboards/[id]",
+      );
     });
 
     test("redacts multiple numeric IDs", () => {

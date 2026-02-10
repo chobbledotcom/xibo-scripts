@@ -24,9 +24,12 @@ export const logActivity = async (message: string): Promise<void> => {
 /**
  * Get all activity log entries (most recent first)
  */
-export const getAllActivityLog = async (limit = 100): Promise<ActivityLogEntry[]> => {
+export const getAllActivityLog = async (
+  limit = 100,
+): Promise<ActivityLogEntry[]> => {
   const result = await getDb().execute({
-    sql: "SELECT id, created, message FROM activity_log ORDER BY id DESC LIMIT ?",
+    sql:
+      "SELECT id, created, message FROM activity_log ORDER BY id DESC LIMIT ?",
     args: [limit],
   });
   return result.rows as unknown as ActivityLogEntry[];

@@ -6,7 +6,9 @@
  * - Bunny Edge: uses process.env (Node.js compatibility)
  */
 
-declare const Deno: { env: { get(key: string): string | undefined } } | undefined;
+declare const Deno:
+  | { env: { get(key: string): string | undefined } }
+  | undefined;
 
 /**
  * Get an environment variable value

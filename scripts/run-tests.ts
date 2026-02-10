@@ -79,7 +79,9 @@ const main = async (): Promise<void> => {
     const lcov = new TextDecoder().decode(lcovResult.stdout);
 
     // Parse lcov records: enforce 100% line coverage, report branch coverage
-    const records = lcov.split("end_of_record").filter((r) => r.includes("SF:"));
+    const records = lcov.split("end_of_record").filter((r) =>
+      r.includes("SF:")
+    );
     if (records.length === 0) {
       console.error("No coverage data found");
       Deno.exit(1);

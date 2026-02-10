@@ -6,13 +6,17 @@ import { type Client, createClient } from "@libsql/client";
 import { setDb } from "#lib/db/client.ts";
 import { initDb, LATEST_UPDATE } from "#lib/db/migrations/index.ts";
 import { getSession, resetSessionCache } from "#lib/db/sessions.ts";
-import { clearSetupCompleteCache, completeSetup, invalidateSettingsCache } from "#lib/db/settings.ts";
+import {
+  clearSetupCompleteCache,
+  completeSetup,
+  invalidateSettingsCache,
+} from "#lib/db/settings.ts";
 
 // Re-export crypto helpers (no db dependency)
 export {
-  TEST_ENCRYPTION_KEY,
-  setupTestEncryptionKey,
   clearTestEncryptionKey,
+  setupTestEncryptionKey,
+  TEST_ENCRYPTION_KEY,
 } from "#test-utils/crypto-helpers.ts";
 
 import { setupTestEncryptionKey } from "#test-utils/crypto-helpers.ts";
@@ -107,8 +111,18 @@ export const createTestDbWithSetup = async (): Promise<void> => {
     if (cachedSetupUsers) {
       for (const row of cachedSetupUsers) {
         await cachedClient!.execute({
-          sql: "INSERT INTO users (id, username_hash, username_index, password_hash, wrapped_data_key, admin_level, invite_code_hash, invite_expiry) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          args: [row.id, row.username_hash, row.username_index, row.password_hash, row.wrapped_data_key, row.admin_level, row.invite_code_hash, row.invite_expiry],
+          sql:
+            "INSERT INTO users (id, username_hash, username_index, password_hash, wrapped_data_key, admin_level, invite_code_hash, invite_expiry) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+          args: [
+            row.id,
+            row.username_hash,
+            row.username_index,
+            row.password_hash,
+            row.wrapped_data_key,
+            row.admin_level,
+            row.invite_code_hash,
+            row.invite_expiry,
+          ],
         });
       }
     }
@@ -241,7 +255,10 @@ export const loginAsAdmin = async (): Promise<{
 }> => {
   const { handleRequest } = await import("#routes");
   const loginResponse = await handleRequest(
-    mockFormRequest("/admin/login", { username: TEST_ADMIN_USERNAME, password: TEST_ADMIN_PASSWORD }),
+    mockFormRequest("/admin/login", {
+      username: TEST_ADMIN_USERNAME,
+      password: TEST_ADMIN_PASSWORD,
+    }),
   );
   const cookie = loginResponse.headers.get("set-cookie") || "";
   const csrfToken = await getCsrfTokenFromCookie(cookie);
@@ -259,7 +276,8 @@ export const loginAsAdmin = async (): Promise<{
 export const testRequest = (
   path: string,
   token?: string | null,
-  options: { cookie?: string; method?: string; data?: Record<string, string> } = {},
+  options: { cookie?: string; method?: string; data?: Record<string, string> } =
+    {},
 ): Request => {
   const { cookie, method, data } = options;
   const headers: Record<string, string> = { host: "localhost" };
@@ -290,7 +308,10 @@ export const testRequest = (
  */
 export const awaitTestRequest = async (
   path: string,
-  tokenOrOptions?: string | { cookie?: string; data?: Record<string, string> } | null,
+  tokenOrOptions?:
+    | string
+    | { cookie?: string; data?: Record<string, string> }
+    | null,
 ): Promise<Response> => {
   const { handleRequest } = await import("#routes");
   if (typeof tokenOrOptions === "object" && tokenOrOptions !== null) {
@@ -307,7 +328,9 @@ interface Restorable {
 /**
  * Run a test body with mocks that are automatically restored afterward.
  */
-export const withMocks = async <T extends Restorable | Record<string, Restorable>>(
+export const withMocks = async <
+  T extends Restorable | Record<string, Restorable>,
+>(
   setup: () => T,
   body: (mocks: T) => void | Promise<void>,
   cleanup?: () => void | Promise<void>,
@@ -331,16 +354,14 @@ import { expect } from "#test-compat";
 
 /** Assert a Response has the given status code. */
 export const expectStatus =
-  (status: number) =>
-  (response: Response): Response => {
+  (status: number) => (response: Response): Response => {
     expect(response.status).toBe(status);
     return response;
   };
 
 /** Assert a Response is a redirect (302) to the given location. */
 export const expectRedirect =
-  (location: string) =>
-  (response: Response): Response => {
+  (location: string) => (response: Response): Response => {
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe(location);
     return response;

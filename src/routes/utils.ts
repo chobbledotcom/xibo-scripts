@@ -141,8 +141,10 @@ export const redirect = (url: string, cookie?: string): Response => {
 /**
  * Create redirect response with a success message as query parameter (PRG pattern)
  */
-export const redirectWithSuccess = (basePath: string, message: string): Response =>
-  redirect(`${basePath}?success=${encodeURIComponent(message)}`);
+export const redirectWithSuccess = (
+  basePath: string,
+  message: string,
+): Response => redirect(`${basePath}?success=${encodeURIComponent(message)}`);
 
 /**
  * Parse form data from request
@@ -183,8 +185,7 @@ export const withCookie = (response: Response, cookie: string): Response => {
  * Create HTML response with cookie
  */
 export const htmlResponseWithCookie =
-  (cookie: string) =>
-  (html: string, status = 200): Response =>
+  (cookie: string) => (html: string, status = 200): Response =>
     withCookie(htmlResponse(html, status), cookie);
 
 /**
@@ -212,7 +213,9 @@ const requireOwnerRole = (
   session: AuthSession,
   handler: (session: AuthSession) => Response | Promise<Response>,
 ): Response | Promise<Response> =>
-  session.adminLevel === "owner" ? handler(session) : htmlResponse("Forbidden", 403);
+  session.adminLevel === "owner"
+    ? handler(session)
+    : htmlResponse("Forbidden", 403);
 
 /** CSRF form result type */
 export type CsrfFormResult =
@@ -223,7 +226,11 @@ export type CsrfFormResult =
 const DEFAULT_CSRF_COOKIE = "csrf_token";
 
 /** Generate CSRF cookie string */
-export const csrfCookie = (token: string, path: string, cookieName = DEFAULT_CSRF_COOKIE): string =>
+export const csrfCookie = (
+  token: string,
+  path: string,
+  cookieName = DEFAULT_CSRF_COOKIE,
+): string =>
   `${cookieName}=${token}; HttpOnly; Secure; SameSite=Strict; Path=${path}; Max-Age=3600`;
 
 /**
@@ -272,7 +279,10 @@ export const requireAuthForm = async (
   return { ok: true, session, form };
 };
 
-type FormHandler = (session: AuthSession, form: URLSearchParams) => Response | Promise<Response>;
+type FormHandler = (
+  session: AuthSession,
+  form: URLSearchParams,
+) => Response | Promise<Response>;
 type SessionHandler = (session: AuthSession) => Response | Promise<Response>;
 
 /** Unwrap an AuthFormResult, optionally checking role */
@@ -290,13 +300,20 @@ const handleAuthForm = async (
 };
 
 /** Handle request with auth form - unwrap AuthFormResult */
-export const withAuthForm = (request: Request, handler: FormHandler): Promise<Response> =>
-  handleAuthForm(request, null, handler);
+export const withAuthForm = (
+  request: Request,
+  handler: FormHandler,
+): Promise<Response> => handleAuthForm(request, null, handler);
 
 /** Require owner role - returns 403 if not owner, redirect if not authenticated */
-export const requireOwnerOr = (request: Request, handler: SessionHandler): Promise<Response> =>
+export const requireOwnerOr = (
+  request: Request,
+  handler: SessionHandler,
+): Promise<Response> =>
   requireSessionOr(request, (session) => requireOwnerRole(session, handler));
 
 /** Handle request with owner auth form - requires owner role + CSRF validation */
-export const withOwnerAuthForm = (request: Request, handler: FormHandler): Promise<Response> =>
-  handleAuthForm(request, "owner", handler);
+export const withOwnerAuthForm = (
+  request: Request,
+  handler: FormHandler,
+): Promise<Response> => handleAuthForm(request, "owner", handler);

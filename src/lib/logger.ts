@@ -102,7 +102,7 @@ export const logError = (context: ErrorContext): void => {
 /**
  * Create a request timer for measuring duration
  */
-export const createRequestTimer = (): (() => number) => {
+export const createRequestTimer = (): () => number => {
   const start = performance.now();
   return () => Math.round(performance.now() - start);
 };

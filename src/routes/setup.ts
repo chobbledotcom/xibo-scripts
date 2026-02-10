@@ -23,26 +23,24 @@ const setupCsrfCookie = (token: string): string =>
   `setup_csrf=${token}; HttpOnly; Secure; SameSite=Strict; Path=/setup; Max-Age=3600`;
 
 /** Response helper with setup CSRF cookie */
-const setupResponse =
-  (token: string) =>
-  (error?: string, status = 200) =>
-    htmlResponseWithCookie(setupCsrfCookie(token))(
-      setupPage(error, token),
-      status,
-    );
+const setupResponse = (token: string) => (error?: string, status = 200) =>
+  htmlResponseWithCookie(setupCsrfCookie(token))(
+    setupPage(error, token),
+    status,
+  );
 
 /**
  * Validate setup form data
  */
 type SetupValidation =
   | {
-      valid: true;
-      username: string;
-      password: string;
-      xiboApiUrl: string;
-      xiboClientId: string;
-      xiboClientSecret: string;
-    }
+    valid: true;
+    username: string;
+    password: string;
+    xiboApiUrl: string;
+    xiboClientId: string;
+    xiboClientSecret: string;
+  }
   | { valid: false; error: string };
 
 const validateSetupForm = (form: URLSearchParams): SetupValidation => {
@@ -54,7 +52,11 @@ const validateSetupForm = (form: URLSearchParams): SetupValidation => {
     return validation;
   }
 
-  const { admin_username: username, admin_password: password, admin_password_confirm: passwordConfirm } = validation.values;
+  const {
+    admin_username: username,
+    admin_password: password,
+    admin_password_confirm: passwordConfirm,
+  } = validation.values;
   const xiboApiUrl = String(validation.values.xibo_api_url || "");
   const xiboClientId = String(validation.values.xibo_client_id || "");
   const xiboClientSecret = String(validation.values.xibo_client_secret || "");

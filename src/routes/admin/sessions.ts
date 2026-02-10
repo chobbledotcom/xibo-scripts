@@ -30,7 +30,7 @@ const sessionsPage = (
         <input type="hidden" name="csrf_token" value={session.csrfToken} />
         <button type="submit">Clear Other Sessions</button>
       </form>
-    </Layout>
+    </Layout>,
   );
 
 /**
