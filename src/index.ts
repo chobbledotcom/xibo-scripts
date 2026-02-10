@@ -21,6 +21,10 @@ Deno.serve(
   { port },
   (request: Request, info: Deno.ServeHandlerInfo) =>
     handleRequest(request, {
-      requestIP: () => ({ address: info.remoteAddr.hostname }),
+      requestIP: () => ({
+        address: "hostname" in info.remoteAddr
+          ? info.remoteAddr.hostname
+          : "unknown",
+      }),
     }),
 );
