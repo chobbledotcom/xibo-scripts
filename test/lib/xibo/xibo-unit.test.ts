@@ -750,7 +750,7 @@ describe("xibo-unit", () => {
       it("re-authenticates on 401 and retries successfully", async () => {
         let authCallCount = 0;
         let apiCallCount = 0;
-        const mock = mockFetch((url, _init) => {
+        const mock = mockFetch((url) => {
           if (url.includes("/api/authorize/access_token")) {
             authCallCount++;
             return jsonResponse(MOCK_TOKEN_RESPONSE);
