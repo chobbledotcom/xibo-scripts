@@ -14,14 +14,18 @@ interface LoginAttempt {
   locked_until: number | null;
 }
 
+/** Fetch login attempt record for an IP */
+const getAttempt = (ip: string): Promise<LoginAttempt | undefined> =>
+  queryOne<LoginAttempt>(
+    "SELECT ip, attempts, locked_until FROM login_attempts WHERE ip = ?",
+    [ip],
+  );
+
 /**
  * Check if a client IP is rate limited
  */
 export const isLoginRateLimited = async (ip: string): Promise<boolean> => {
-  const attempt = await queryOne<LoginAttempt>(
-    "SELECT ip, attempts, locked_until FROM login_attempts WHERE ip = ?",
-    [ip],
-  );
+  const attempt = await getAttempt(ip);
 
   if (!attempt) return false;
 
@@ -43,10 +47,7 @@ export const isLoginRateLimited = async (ip: string): Promise<boolean> => {
  * Record a failed login attempt
  */
 export const recordFailedLogin = async (ip: string): Promise<void> => {
-  const attempt = await queryOne<LoginAttempt>(
-    "SELECT ip, attempts, locked_until FROM login_attempts WHERE ip = ?",
-    [ip],
-  );
+  const attempt = await getAttempt(ip);
 
   if (!attempt) {
     await getDb().execute({
