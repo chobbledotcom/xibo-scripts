@@ -9,6 +9,7 @@
 import {
   createRequestTimer,
   ErrorCode,
+  type ErrorCodeType,
   logDebug,
   logError,
 } from "#lib/logger.ts";
@@ -127,7 +128,7 @@ const readErrorText = async (
 /** Throw XiboClientError for non-ok responses with error text and logging */
 const throwOnError = async (
   response: globalThis.Response,
-  code: ErrorCode,
+  code: ErrorCodeType,
   detail: string,
   messagePrefix: string,
 ): Promise<void> => {
