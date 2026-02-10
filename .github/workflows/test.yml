@@ -1,43 +1,37 @@
-name: Tests
+name: Test
 
 on:
-  pull_request:
-    branches: [ main, master ]
-  workflow_dispatch:
   push:
-    branches: [ main, master ]
+    branches-ignore: [main]
+  merge_group:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        ruby-version: ['3.3']
+    runs-on: ubicloud-standard-16
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: ${{ matrix.ruby-version }}
-        bundler-cache: true
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
-    - name: Install dependencies
-      run: |
-        gem install bundler
-        bundle install --jobs 4 --retry 3
+      - name: Install dependencies
+        run: deno install --allow-scripts
 
-    - name: Run tests
-      run: |
-        bundle exec rake spec
+      - name: Typecheck
+        run: deno task typecheck
 
-    - name: Test summary
-      if: always()
-      run: |
-        if [ -f spec/examples.txt ]; then
-          echo "Test results:"
-          tail -n 5 spec/examples.txt || true
-        fi
+      - name: Lint
+        run: deno task lint
+
+      - name: Copy-paste detection
+        run: deno task cpd
+
+      - name: Run tests with coverage
+        env:
+          ALLOWED_DOMAIN: localhost
+          DB_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+        run: deno task test:coverage

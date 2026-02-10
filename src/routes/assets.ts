@@ -2,9 +2,17 @@
  * Static asset handlers - serve CSS, JS, and favicon
  */
 
-import mvpCss from "#static/mvp.css" with { type: "text" };
-import adminJs from "#static/admin.js" with { type: "text" };
-import faviconSvg from "#static/favicon.svg" with { type: "text" };
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const staticDir = join(currentDir, "..", "static");
+
+// Read static files at module load time
+// These get inlined by esbuild during edge build
+const mvpCss = Deno.readTextFileSync(join(staticDir, "mvp.css"));
+const adminJs = Deno.readTextFileSync(join(staticDir, "admin.js"));
+const faviconSvg = Deno.readTextFileSync(join(staticDir, "favicon.svg"));
 
 /** Cache headers for static assets (1 year for cache-busted paths) */
 const CACHE_HEADERS = {

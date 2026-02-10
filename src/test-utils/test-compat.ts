@@ -79,8 +79,7 @@ const assertFalse = (value: unknown, message?: string): void => {
 
 const assertInstanceOf = (
   actual: unknown,
-  // deno-lint-ignore no-explicit-any
-  expectedType: new (...args: any[]) => any,
+  expectedType: new (...args: unknown[]) => unknown,
 ): void => {
   assert(
     actual instanceof expectedType,
