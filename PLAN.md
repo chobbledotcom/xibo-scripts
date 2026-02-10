@@ -183,3 +183,85 @@ xibo-scripts/
 ├── PLAN.md                        # This file
 └── README.md                      # Project documentation
 ```
+
+## Part 1 Completion Status
+
+Part 1 (Base Infrastructure) is **complete**. All files listed in the "What We Reuse from Tickets" table have been adapted and created. 171 tests pass covering FP, env, now, JSX runtime, logger, crypto, and forms.
+
+## Learnings for Future Agents
+
+### Copying from Tickets Repo
+
+1. **Clone tickets first**: `git clone` the tickets repo to `/tmp/tickets` for reference. Read files from there, don't try to copy blindly — every file needs adaptation.
+
+2. **Key adaptation points when copying from tickets**:
+   - `src/lib/db/settings.ts`: The `completeSetup()` function signature changes. Tickets takes `(username, password, currency)`, xibo-scripts takes `(username, password, xiboApiUrl, xiboClientId, xiboClientSecret)`. All setup-related tests and routes cascade from this change.
+   - `src/templates/fields.ts`: Replace ticket-specific form types (EventFormValues, TicketFormValues, etc.) with Xibo-specific types (SetupFormValues with xibo_api_url/client_id/client_secret, XiboCredentialsFormValues).
+   - `src/templates/admin/nav.tsx`: Navigation links change from Events/Calendar/Attendees to Menu Boards/Media/Layouts/Datasets.
+   - `src/templates/admin/dashboard.tsx`: Quick links change accordingly.
+   - `src/routes/setup.ts`: The setup form validation and `completeSetup` call changes.
+   - `src/routes/admin/settings.ts`: Replace Stripe/Square credentials forms with Xibo credentials.
+   - `src/lib/logger.ts`: ErrorCodes replace STRIPE_*/SQUARE_*/CAPACITY_* with XIBO_API_*.
+   - `scripts/build-edge.ts`: Remove stripe/square/qrcode from externals and esm.sh rewrites.
+   - `scripts/run-tests.ts`: Remove stripe-mock dependency entirely.
+
+3. **Files that copy nearly as-is** (minimal changes):
+   - `src/fp/index.ts` — exact copy
+   - `src/lib/crypto.ts` — exact copy (except remove `generateTicketToken`)
+   - `src/lib/env.ts` — exact copy
+   - `src/lib/now.ts` — exact copy
+   - `src/lib/db/client.ts` — exact copy
+   - `src/lib/db/sessions.ts` — exact copy
+   - `src/lib/db/login-attempts.ts` — exact copy
+   - `src/lib/db/activityLog.ts` — exact copy
+   - `src/lib/db/users.ts` — exact copy
+   - `src/lib/jsx/jsx-runtime.ts` — exact copy
+   - `src/lib/forms.tsx` — exact copy
+   - `src/routes/router.ts` — exact copy
+   - `src/routes/middleware.ts` — exact copy
+   - `src/routes/utils.ts` — exact copy
+   - `src/routes/types.ts` — exact copy
+   - `src/routes/health.ts` — exact copy
+   - `src/routes/assets.ts` — exact copy
+   - `src/routes/static.ts` — exact copy
+   - `src/routes/admin/auth.ts` — exact copy
+   - `src/routes/admin/utils.ts` — exact copy
+   - `src/routes/admin/sessions.ts` — exact copy
+   - `src/static/mvp.css` — exact copy
+   - `src/static/admin.js` — exact copy
+   - `biome.json`, `.jscpd.json`, `setup.sh` — exact copy
+   - `scripts/css-minify.ts` — exact copy
+   - `src/test-utils/test-compat.ts` — modified (see below)
+
+### Environment & Dependencies
+
+4. **JSR packages may be unreachable**: The `jsr:@std/assert` import in `test-compat.ts` fails in some CI/sandbox environments. The adapted version uses `node:assert/strict` instead, which is always available in Deno. This is a **critical change** — without it, no tests run.
+
+5. **npm packages require network access**: `@libsql/client` is an npm package that needs to be downloaded. In environments without npm registry access, tests that touch the database layer won't work. Structure test helpers so crypto-only helpers live in a separate file (`src/test-utils/crypto-helpers.ts`) that doesn't import `@libsql/client`.
+
+6. **Test-compat.ts reimplementation**: The `test-compat.ts` Jest-like API was rewritten to use `node:assert/strict` instead of `jsr:@std/assert`. Key mappings:
+   - `assert` → `nodeAssert.ok`
+   - `assertEquals` → `nodeAssert.deepStrictEqual`
+   - `assertStrictEquals` → `nodeAssert.strictEqual`
+   - `assertMatch` → `nodeAssert.match`
+   - `assertThrows` / `assertRejects` → manual try/catch implementations
+
+### Architecture Notes
+
+7. **Lazy loading pattern**: Routes use `once()` from FP utilities for lazy initialization. This optimizes cold boot on Bunny Edge where each request is a fresh isolate.
+
+8. **Key hierarchy**: The encryption system uses a 3-level key hierarchy:
+   - `DB_ENCRYPTION_KEY` (env var) → encrypts settings at rest
+   - Per-user `KEK` (derived from password hash) → wraps the data key
+   - `DATA_KEY` (random AES key) → encrypts user-specific data
+   - Session tokens can also wrap the data key via `wrapKeyWithToken`/`unwrapKeyWithToken`
+
+9. **Test performance**: Use `TEST_PBKDF2_ITERATIONS=1` in test environment (set by `setupTestEncryptionKey()`) to avoid slow PBKDF2 iterations. Also `TEST_RSA_KEY_SIZE=1024` for faster key generation in tests.
+
+10. **Import maps**: All local imports use `#` prefixed aliases defined in `deno.json`. This is critical for the esbuild bundler which resolves these during the build step.
+
+### What Part 2 Needs to Build
+
+11. **Xibo API client** (`src/lib/xibo/client.ts`): OAuth2 client credentials flow. The Xibo CMS API uses a standard OAuth2 token endpoint at `{base_url}/api/authorize/access_token`. Store the token in memory with expiry tracking.
+
+12. **Admin routes for Xibo entities**: The nav already links to `/admin/menuboards`, `/admin/media`, `/admin/layouts`, `/admin/datasets` — but these routes don't exist yet. Part 2 should create the Xibo API client and connection test page. Parts 3-5 build the actual entity management pages.

@@ -11,3 +11,14 @@ tmp/*
 
 # Docker version tracking
 .docker-version
+
+# Deno/Node
+node_modules/
+*.db
+dist/
+.bin/
+coverage/
+cov_profile/
+coverage_data/
+.jscpd-report/
+/bunny-script.ts
