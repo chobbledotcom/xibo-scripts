@@ -77,8 +77,8 @@ describe("xibo/cache", () => {
       expect(result).toBeNull();
     });
 
-    it("exports DEFAULT_CACHE_TTL_MS as 30 seconds", () => {
-      expect(DEFAULT_CACHE_TTL_MS).toBe(30_000);
+    it("exports DEFAULT_CACHE_TTL_MS as 10 minutes", () => {
+      expect(DEFAULT_CACHE_TTL_MS).toBe(600_000);
     });
   });
 

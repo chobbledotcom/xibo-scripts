@@ -9,8 +9,8 @@
 import { getDb } from "#lib/db/client.ts";
 import { nowMs } from "#lib/now.ts";
 
-/** Default TTL: 30 seconds */
-export const DEFAULT_CACHE_TTL_MS = 30_000;
+/** Default TTL: 10 minutes — mutations auto-invalidate, so this is safe */
+export const DEFAULT_CACHE_TTL_MS = 600_000;
 
 /**
  * Read a cached value.  Returns `null` on miss or expiry.
@@ -37,7 +37,7 @@ export const cacheGet = async (key: string): Promise<string | null> => {
 };
 
 /**
- * Write a value into the cache with a TTL (default 30 s).
+ * Write a value into the cache with a TTL (default 10 min).
  */
 export const cacheSet = async (
   key: string,
