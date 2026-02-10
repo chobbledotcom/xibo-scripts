@@ -421,7 +421,12 @@ export const getDashboardStatus = async (
     }),
   );
 
-  const [menuBoardCount, mediaCount, layoutCount, datasetCount] = counts;
+  const [
+    menuBoardCount = null,
+    mediaCount = null,
+    layoutCount = null,
+    datasetCount = null,
+  ] = counts;
 
   return {
     connected: true,
