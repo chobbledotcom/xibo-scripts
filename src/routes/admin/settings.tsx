@@ -38,7 +38,6 @@ const settingsPage = (
   xiboClientId: string | null,
   connectionResult?: ConnectionTestResult,
   success?: string,
-  error?: string,
 ): string =>
   String(
     <Layout title="Settings">
@@ -46,7 +45,6 @@ const settingsPage = (
       <h2>Settings</h2>
 
       {success && <div class="success">{success}</div>}
-      {error && <div class="error">{error}</div>}
 
       <section>
         <h3>Xibo CMS Connection</h3>
@@ -178,10 +176,7 @@ const handlePasswordChange = (request: Request): Promise<Response> =>
     const { getUserById, verifyUserPassword } = await import(
       "#lib/db/users.ts"
     );
-    const user = await getUserById(session.userId);
-    if (!user) {
-      return htmlResponse("User not found", 400);
-    }
+    const user = (await getUserById(session.userId))!;
     const passwordHash = await verifyUserPassword(user, current_password);
     if (!passwordHash || !session.wrappedDataKey) {
       return htmlResponse("Invalid current password", 400);
@@ -190,7 +185,7 @@ const handlePasswordChange = (request: Request): Promise<Response> =>
     const success = await settingsApi.updateUserPassword(
       session.userId,
       passwordHash,
-      session.wrappedDataKey,
+      user.wrapped_data_key!,
       new_password,
     );
 

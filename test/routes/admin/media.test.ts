@@ -140,6 +140,7 @@ describe("media routes", () => {
   let csrfToken: string;
 
   beforeEach(async () => {
+    Deno.env.set("ALLOWED_DOMAIN", "localhost");
     await createTestDbWithSetup();
     // Set up Xibo credentials in the database
     await updateXiboCredentials(XIBO_URL, XIBO_CLIENT_ID, XIBO_CLIENT_SECRET);
@@ -636,6 +637,61 @@ describe("media routes", () => {
       const html = await response.text();
       expect(html).toContain("Download failed");
       expect(html).toContain("404");
+    });
+
+    test("handles non-Error thrown value in errorMessage", async () => {
+      globalThis.fetch = createMockFetch({
+        "example.com/throw-string.jpg": () => {
+          // Throw a string, not an Error, to exercise the non-Error branch
+          // of errorMessage() (line 66: e instanceof Error ? e.message : "Unknown error")
+          throw "network failure string";
+        },
+        "/api/folders": emptyFoldersHandler,
+      });
+
+      const response = await handleRequest(
+        mockFormRequest(
+          "/admin/media/upload-url",
+          {
+            csrf_token: csrfToken,
+            url: "https://example.com/throw-string.jpg",
+            name: "StringError",
+          },
+          cookie,
+        ),
+      );
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      expect(html).toContain("Failed to download");
+      expect(html).toContain("Unknown error");
+    });
+
+    test("downloads URL with no content-type and no file extension", async () => {
+      globalThis.fetch = createMockFetch({
+        "example.com/noext": () =>
+          new Response("binary data", {
+            // No content-type header — exercises `|| ""` fallback on line 252
+            headers: {},
+          }),
+        "/api/library": () => jsonResponse({ mediaId: 20, name: "NoExt" }),
+        "/api/folders": emptyFoldersHandler,
+      });
+
+      const response = await handleRequest(
+        mockFormRequest(
+          "/admin/media/upload-url",
+          {
+            csrf_token: csrfToken,
+            url: "https://example.com/noext",
+            name: "NoExt",
+          },
+          cookie,
+        ),
+      );
+      expect(response.status).toBe(302);
+      expect(response.headers.get("location")).toContain(
+        "/admin/media?success=",
+      );
     });
 
     test("shows error when upload to Xibo fails after download", async () => {

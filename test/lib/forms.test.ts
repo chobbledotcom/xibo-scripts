@@ -120,6 +120,99 @@ describe("forms", () => {
       const html = renderField(field);
       expect(html).toContain('type="date"');
     });
+
+    test("renders datetime-local input", () => {
+      const field: Field = {
+        name: "event_time",
+        label: "Event Time",
+        type: "datetime-local",
+      };
+      const html = renderField(field);
+      expect(html).toContain('type="datetime-local"');
+    });
+
+    test("renders textarea with pre-filled value", () => {
+      const field: Field = {
+        name: "notes",
+        label: "Notes",
+        type: "textarea",
+      };
+      const html = renderField(field, "pre-filled content");
+      expect(html).toContain("pre-filled content");
+    });
+
+    test("renders select with selected value", () => {
+      const field: Field = {
+        name: "role",
+        label: "Role",
+        type: "select",
+        options: [
+          { value: "admin", label: "Admin" },
+          { value: "user", label: "User" },
+        ],
+      };
+      const html = renderField(field, "user");
+      expect(html).toContain("selected");
+    });
+
+    test("renders checkbox-group with checked values", () => {
+      const field: Field = {
+        name: "perms",
+        label: "Permissions",
+        type: "checkbox-group",
+        options: [
+          { value: "read", label: "Read" },
+          { value: "write", label: "Write" },
+          { value: "admin", label: "Admin" },
+        ],
+      };
+      const html = renderField(field, "read,admin");
+      expect(html).toContain("checked");
+    });
+
+    test("escapes HTML in textarea value", () => {
+      const field: Field = {
+        name: "notes",
+        label: "Notes",
+        type: "textarea",
+      };
+      const html = renderField(field, "<script>alert(1)</script>");
+      expect(html).toContain("&lt;script&gt;");
+      expect(html).not.toContain("<script>alert");
+    });
+
+    test("renders with min attribute", () => {
+      const field: Field = {
+        name: "count",
+        label: "Count",
+        type: "number",
+        min: 0,
+      };
+      const html = renderField(field);
+      expect(html).toContain('min="0"');
+    });
+
+    test("renders with pattern attribute", () => {
+      const field: Field = {
+        name: "code",
+        label: "Code",
+        type: "text",
+        pattern: "[A-Z]+",
+      };
+      const html = renderField(field);
+      expect(html).toContain('pattern="[A-Z]+"');
+    });
+
+    test("renders with autofocus attribute", () => {
+      const field: Field = {
+        name: "name",
+        label: "Name",
+        type: "text",
+        autofocus: true,
+      };
+      const html = renderField(field);
+      expect(html).toContain("autofocus");
+    });
   });
 
   describe("renderFields", () => {
@@ -229,6 +322,55 @@ describe("forms", () => {
       if (result.valid) {
         expect(result.values.amount).toBeNull();
       }
+    });
+
+    test("validates checkbox-group field (joins with commas)", () => {
+      const fields: Field[] = [
+        {
+          name: "perms",
+          label: "Permissions",
+          type: "checkbox-group",
+          options: [
+            { value: "read", label: "Read" },
+            { value: "write", label: "Write" },
+          ],
+        },
+      ];
+      const form = new URLSearchParams();
+      form.append("perms", "read");
+      form.append("perms", "write");
+      const result = validateForm(form, fields);
+      expect(result.valid).toBe(true);
+      if (result.valid) {
+        expect(result.values.perms).toBe("read,write");
+      }
+    });
+
+    test("returns null for empty optional text field", () => {
+      const fields: Field[] = [
+        { name: "description", label: "Description", type: "text" },
+      ];
+      const form = new URLSearchParams({ description: "" });
+      const result = validateForm(form, fields);
+      expect(result.valid).toBe(true);
+      if (result.valid) {
+        expect(result.values.description).toBeNull();
+      }
+    });
+
+    test("skips custom validate on empty optional field", () => {
+      const fields: Field[] = [
+        {
+          name: "email",
+          label: "Email",
+          type: "email",
+          validate: (_v) => "Should not run",
+        },
+      ];
+      const form = new URLSearchParams({ email: "" });
+      const result = validateForm(form, fields);
+      // Should be valid because the field is optional and empty
+      expect(result.valid).toBe(true);
     });
   });
 

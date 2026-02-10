@@ -132,7 +132,7 @@ const handleBoardList = (request: Request): Promise<Response> =>
       try {
         boards = await get<XiboMenuBoard[]>(config, "menuboard");
       } catch (e) {
-        error = e instanceof Error ? e.message : "Failed to load menu boards";
+        error = (e as Error).message;
       }
       return htmlResponse(menuBoardListPage(session, boards, success, error));
     }),
@@ -197,9 +197,7 @@ const handleBoardDetail = (
           categories,
         );
       } catch (e) {
-        error = e instanceof Error
-          ? e.message
-          : "Failed to load categories";
+        error = (e as Error).message;
       }
       return htmlResponse(
         menuBoardDetailPage(
@@ -455,7 +453,7 @@ const handleProductCreate = (
       const body: Record<string, unknown> = {
         menuCategoryId: Number(params.catId),
         name,
-        price: price ?? "",
+        price,
         description: description ?? "",
         calories: calories ?? "",
         allergyInfo: allergy_info ?? "",
@@ -530,7 +528,7 @@ const handleProductUpdate = (
       const body: Record<string, unknown> = {
         menuCategoryId: Number(params.catId),
         name,
-        price: price ?? "",
+        price,
         description: description ?? "",
         calories: calories ?? "",
         allergyInfo: allergy_info ?? "",

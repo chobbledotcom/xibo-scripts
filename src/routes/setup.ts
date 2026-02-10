@@ -117,7 +117,7 @@ const handleSetupPost = async (
   if (!csrfResult.ok) return csrfResult.response;
 
   const form = csrfResult.form;
-  const formCsrf = form.get("csrf_token") || "";
+  const formCsrf = form.get("csrf_token")!;
 
   const validation = validateSetupForm(form);
 
