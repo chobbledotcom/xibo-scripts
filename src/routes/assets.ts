@@ -2,9 +2,10 @@
  * Static asset handlers - serve CSS, JS, and favicon
  */
 
-import { dirname, fromFileUrl, join } from "@std/path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const currentDir = dirname(fromFileUrl(import.meta.url));
+const currentDir = dirname(fileURLToPath(import.meta.url));
 const staticDir = join(currentDir, "..", "static");
 
 // Read static files at module load time
