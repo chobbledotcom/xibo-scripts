@@ -27,6 +27,7 @@ const main = async (): Promise<void> => {
     "--allow-run",
     "--allow-sys",
     "--allow-ffi",
+    "--unstable-raw-imports",
   ];
 
   if (useCoverage) {
