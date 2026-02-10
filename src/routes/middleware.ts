@@ -57,16 +57,19 @@ export const isValidDomain = (request: Request): boolean => {
 };
 
 /**
- * Validate Content-Type for POST requests
- * Returns true if the request is valid (not a POST, or has correct Content-Type)
- * All POST endpoints require form-urlencoded
+ * Validate Content-Type for POST requests.
+ * Returns true if the request is valid (not a POST, or has correct Content-Type).
+ * POST endpoints use form-urlencoded or multipart/form-data (file uploads).
  */
 export const isValidContentType = (request: Request): boolean => {
   if (request.method !== "POST") {
     return true;
   }
   const contentType = request.headers.get("content-type") || "";
-  return contentType.startsWith("application/x-www-form-urlencoded");
+  return (
+    contentType.startsWith("application/x-www-form-urlencoded") ||
+    contentType.startsWith("multipart/form-data")
+  );
 };
 
 /**

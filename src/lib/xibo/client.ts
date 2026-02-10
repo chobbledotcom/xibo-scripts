@@ -116,6 +116,39 @@ export class XiboClientError extends Error {
 }
 
 /**
+ * Execute an authenticated fetch with auto-refresh on 401.
+ * Shared by apiRequest and getRaw.
+ */
+const fetchWithAuth = async (
+  config: XiboConfig,
+  makeRequest: (token: string) => Promise<globalThis.Response>,
+): Promise<globalThis.Response> => {
+  let token = await ensureToken(config);
+  let response: globalThis.Response;
+
+  try {
+    response = await makeRequest(token);
+  } catch (e) {
+    logError({ code: ErrorCode.XIBO_API_CONNECTION, detail: String(e) });
+    throw new XiboClientError("Failed to connect to Xibo CMS", 0);
+  }
+
+  // Auto-refresh on 401
+  if (response.status === 401) {
+    clearToken();
+    token = await ensureToken(config);
+    try {
+      response = await makeRequest(token);
+    } catch (e) {
+      logError({ code: ErrorCode.XIBO_API_CONNECTION, detail: String(e) });
+      throw new XiboClientError("Failed to connect to Xibo CMS", 0);
+    }
+  }
+
+  return response;
+};
+
+/**
  * Make an authenticated request to the Xibo API.
  * On 401, re-authenticates once and retries.
  */
@@ -153,28 +186,7 @@ const apiRequest = async (
     return fetch(url, { method, headers, body: reqBody });
   };
 
-  let token = await ensureToken(config);
-  let response: globalThis.Response;
-
-  try {
-    response = await makeRequest(token);
-  } catch (e) {
-    logError({ code: ErrorCode.XIBO_API_CONNECTION, detail: String(e) });
-    throw new XiboClientError("Failed to connect to Xibo CMS", 0);
-  }
-
-  // Auto-refresh on 401
-  if (response.status === 401) {
-    clearToken();
-    token = await ensureToken(config);
-    try {
-      response = await makeRequest(token);
-    } catch (e) {
-      logError({ code: ErrorCode.XIBO_API_CONNECTION, detail: String(e) });
-      throw new XiboClientError("Failed to connect to Xibo CMS", 0);
-    }
-  }
-
+  const response = await fetchWithAuth(config, makeRequest);
   const duration = timer();
   logDebug("Xibo", `${method} ${endpoint} ${response.status} ${duration}ms`);
 
@@ -284,6 +296,33 @@ export const postMultipart = async <T>(
   const result = await apiRequest(config, "POST", endpoint, { formData });
   await invalidateCacheForEndpoint(endpoint);
   return result as T;
+};
+
+/**
+ * GET returning a raw Response (for binary downloads like images).
+ * Does not use JSON parsing or the cache layer.
+ */
+export const getRaw = async (
+  config: XiboConfig,
+  endpoint: string,
+): Promise<globalThis.Response> => {
+  const timer = createRequestTimer();
+
+  const response = await fetchWithAuth(config, (token) => {
+    const url = `${config.apiUrl}/api/${endpoint}`;
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  });
+
+  logDebug("Xibo", `GET(raw) ${endpoint} ${response.status} ${timer()}ms`);
+
+  if (!response.ok) {
+    throw new XiboClientError(
+      `API request failed: GET ${endpoint} ${response.status}`,
+      response.status,
+    );
+  }
+
+  return response;
 };
 
 /**
