@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "#test-compat";
-import { createTestDb, resetDb } from "#test-utils";
+import { createTestDb, createTestDbWithSetup, resetDb } from "#test-utils";
 import {
   authenticate,
   clearToken,
@@ -14,6 +14,7 @@ import {
   XiboClientError,
 } from "#xibo/client.ts";
 import { cacheGet, cacheInvalidateAll } from "#xibo/cache.ts";
+import { updateXiboCredentials, invalidateSettingsCache } from "#lib/db/settings.ts";
 import type { XiboConfig, XiboDataset } from "#xibo/types.ts";
 
 /** Load config from env vars for integration tests */
@@ -199,6 +200,95 @@ describe("xibo/client", () => {
     it("returns null when credentials are not stored", async () => {
       const result = await loadXiboConfig();
       expect(result).toBeNull();
+    });
+
+    it("returns config object when credentials exist", async () => {
+      // Need setup complete to store encrypted credentials
+      await createTestDbWithSetup();
+      await updateXiboCredentials(
+        "https://xibo.test",
+        "test-client-id",
+        "test-client-secret",
+      );
+      invalidateSettingsCache();
+
+      const result = await loadXiboConfig();
+      expect(result).not.toBeNull();
+      expect(result!.apiUrl).toBe("https://xibo.test");
+      expect(result!.clientId).toBe("test-client-id");
+      expect(result!.clientSecret).toBe("test-client-secret");
+    });
+  });
+
+  describe("authenticate (mocked)", () => {
+    const originalFetch = globalThis.fetch;
+
+    afterEach(() => {
+      globalThis.fetch = originalFetch;
+    });
+
+    it("throws on network error with XiboClientError", async () => {
+      globalThis.fetch = (() =>
+        Promise.reject(new Error("Network failure"))) as typeof globalThis.fetch;
+
+      const fakeConfig: XiboConfig = {
+        apiUrl: "https://fake.test",
+        clientId: "x",
+        clientSecret: "x",
+      };
+
+      try {
+        await authenticate(fakeConfig);
+        expect(true).toBe(false);
+      } catch (e) {
+        expect(e).toBeInstanceOf(XiboClientError);
+        expect((e as XiboClientError).httpStatus).toBe(0);
+      }
+    });
+
+    it("throws on non-200 auth response", async () => {
+      globalThis.fetch = (() =>
+        Promise.resolve(
+          new Response("Unauthorized", { status: 401 }),
+        )) as typeof globalThis.fetch;
+
+      const fakeConfig: XiboConfig = {
+        apiUrl: "https://fake.test",
+        clientId: "x",
+        clientSecret: "x",
+      };
+
+      try {
+        await authenticate(fakeConfig);
+        expect(true).toBe(false);
+      } catch (e) {
+        expect(e).toBeInstanceOf(XiboClientError);
+        expect((e as XiboClientError).message).toContain(
+          "Authentication failed",
+        );
+      }
+    });
+  });
+
+  describe("getDashboardStatus (mocked)", () => {
+    const originalFetch = globalThis.fetch;
+
+    afterEach(() => {
+      globalThis.fetch = originalFetch;
+    });
+
+    it("returns disconnected status on error", async () => {
+      globalThis.fetch = (() =>
+        Promise.reject(new Error("Network failure"))) as typeof globalThis.fetch;
+
+      const fakeConfig: XiboConfig = {
+        apiUrl: "https://fake.test",
+        clientId: "x",
+        clientSecret: "x",
+      };
+      const status = await getDashboardStatus(fakeConfig);
+      expect(status.connected).toBe(false);
+      expect(status.version).toBeNull();
     });
   });
 

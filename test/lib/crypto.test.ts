@@ -111,8 +111,20 @@ describe("encryption", () => {
       );
     });
 
-    it("throws when key is wrong length", () => {
+    it("throws when key is too short", () => {
       Deno.env.set("DB_ENCRYPTION_KEY", btoa("tooshort"));
+      clearEncryptionKeyCache();
+      expect(() => validateEncryptionKey()).toThrow(
+        "DB_ENCRYPTION_KEY must be 32 bytes",
+      );
+    });
+
+    it("throws when key is too long", () => {
+      // 48 bytes - longer than the required 32
+      Deno.env.set(
+        "DB_ENCRYPTION_KEY",
+        btoa("abcdefghijklmnopqrstuvwxyz012345extra_bytes!!"),
+      );
       clearEncryptionKeyCache();
       expect(() => validateEncryptionKey()).toThrow(
         "DB_ENCRYPTION_KEY must be 32 bytes",
