@@ -172,6 +172,16 @@ Use helpers from `#test-utils` instead of defining locally:
 import { mockRequest, mockFormRequest, createTestDb, resetDb } from "#test-utils";
 ```
 
+### Integration Tests (Xibo API)
+
+Tests in `test/lib/xibo/` run against a real Xibo CMS instance using env vars (`XIBO_API_URL`, `XIBO_CLIENT_ID`, `XIBO_CLIENT_SECRET`). These are always available in the dev environment.
+
+- **No mocking** — tests hit the real API, so avoid excessive calls that add latency
+- **Clean up after yourself** — if a test creates an entity (dataset, layout, media), delete it at the end
+- **Combine related assertions** in a single test when they share setup (e.g., create + update + delete in one test) to minimize API round-trips
+- **Use `dataset` for CRUD tests** — datasets have no dependencies and are available on all CMS instances
+- **Menu Board module may not be installed** — the `menuboard` API endpoint can return 500; tests should handle this gracefully
+
 ### Anti-Patterns to Avoid
 
 | Anti-Pattern | What To Do Instead |
@@ -181,3 +191,25 @@ import { mockRequest, mockFormRequest, createTestDb, resetDb } from "#test-utils
 | Duplicating test helpers | Use `#test-utils` |
 | Magic numbers/strings | Import constants from production |
 | Testing private internals | Test public API behavior |
+
+## Xibo API Client
+
+The Xibo API client (`src/lib/xibo/client.ts`) handles OAuth2 authentication and provides typed HTTP methods:
+
+- **Config**: Loaded from encrypted DB settings via `loadXiboConfig()`
+- **Auth**: Client credentials grant → `POST /api/authorize/access_token`
+- **Auto-refresh**: On 401, re-authenticates once and retries
+- **Caching**: GET responses cached in libsql (`src/lib/xibo/cache.ts`) with 30s TTL
+- **Cache invalidation**: Mutations (POST/PUT/DELETE) invalidate caches by endpoint prefix
+
+### Import alias
+
+```typescript
+import { get, post, put, del, testConnection } from "#xibo/client.ts";
+import type { XiboConfig, XiboLayout } from "#xibo/types.ts";
+import { cacheGet, cacheSet, cacheInvalidateAll } from "#xibo/cache.ts";
+```
+
+## Domain Context
+
+This tool manages a Xibo CMS that drives digital signage layouts. The primary entities are **layouts** (the main display format), **media** (images/videos in the library), and **datasets** (structured data). Menu boards were originally planned but the CMS module may not be available — layouts are the core entity we work with. Always base new work on the existing codebase patterns and code, not on assumptions.

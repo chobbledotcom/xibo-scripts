@@ -7,7 +7,7 @@ import { getDb } from "#lib/db/client.ts";
 /**
  * The latest database update identifier - update this when changing schema
  */
-export const LATEST_UPDATE = "initial xibo schema";
+export const LATEST_UPDATE = "add cache table";
 
 /**
  * Run a migration that may fail if already applied (e.g., adding a column that exists)
@@ -100,9 +100,19 @@ export const initDb = async (): Promise<void> => {
     )
   `);
 
+  // Create cache table for API response caching (libsql-backed TTL cache)
+  await runMigration(`
+    CREATE TABLE IF NOT EXISTS cache (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      expires INTEGER NOT NULL
+    )
+  `);
+
   // Update the version marker
   await getDb().execute({
-    sql: "INSERT OR REPLACE INTO settings (key, value) VALUES ('latest_db_update', ?)",
+    sql:
+      "INSERT OR REPLACE INTO settings (key, value) VALUES ('latest_db_update', ?)",
     args: [LATEST_UPDATE],
   });
 };
@@ -111,6 +121,7 @@ export const initDb = async (): Promise<void> => {
  * All database tables in order for safe dropping (respects foreign key constraints)
  */
 const ALL_TABLES = [
+  "cache",
   "activity_log",
   "sessions",
   "users",
