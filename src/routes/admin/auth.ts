@@ -2,25 +2,25 @@
  * Admin authentication routes - login and logout
  */
 
-import { deriveKEK, unwrapKey, wrapKeyWithToken } from "#lib/crypto.ts";
+import { deriveKEK, unwrapKey } from "#lib/crypto.ts";
 import {
   clearLoginAttempts,
   isLoginRateLimited,
   recordFailedLogin,
 } from "#lib/db/login-attempts.ts";
-import { createSession, deleteSession } from "#lib/db/sessions.ts";
+import { deleteSession } from "#lib/db/sessions.ts";
 import { getUserByUsername, verifyUserPassword } from "#lib/db/users.ts";
 import { validateForm } from "#lib/forms.tsx";
-import { nowMs } from "#lib/now.ts";
 import { loginResponse } from "#routes/admin/dashboard.ts";
 import { clearSessionCookie } from "#routes/admin/utils.ts";
 import { defineRoutes } from "#routes/router.ts";
 import type { ServerContext } from "#routes/types.ts";
 import {
-  generateSecureToken,
+  createSessionWithKey,
   getClientIp,
   parseFormData,
   redirect,
+  sessionCookieValue,
   withSession,
 } from "#routes/utils.ts";
 import { loginFields, type LoginFormValues } from "#templates/fields.ts";
@@ -37,17 +37,8 @@ const createLoginSession = async (
   dataKey: CryptoKey,
   userId: number,
 ): Promise<Response> => {
-  const token = generateSecureToken();
-  const csrfToken = generateSecureToken();
-  const expires = nowMs() + 24 * 60 * 60 * 1000;
-  const wrappedDataKey = await wrapKeyWithToken(dataKey, token);
-
-  await createSession(token, csrfToken, expires, wrappedDataKey, userId);
-
-  return redirect(
-    "/admin",
-    `__Host-session=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`,
-  );
+  const token = await createSessionWithKey(dataKey, userId);
+  return redirect("/admin", sessionCookieValue(token));
 };
 
 /**

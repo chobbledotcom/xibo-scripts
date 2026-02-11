@@ -41,3 +41,22 @@ export interface User {
   invite_code_hash: string | null; // encrypted SHA-256 of invite token, null after password set
   invite_expiry: string | null; // encrypted ISO 8601, null after password set
 }
+
+/** Business entity (encrypted at rest) */
+export interface Business {
+  id: number;
+  name: string; // encrypted
+  xibo_folder_id: number | null;
+  folder_name: string | null; // encrypted
+  xibo_dataset_id: number | null;
+  created_at: string; // encrypted ISO 8601
+}
+
+/** Screen entity (encrypted at rest) */
+export interface Screen {
+  id: number;
+  name: string; // encrypted
+  business_id: number;
+  xibo_display_id: number | null;
+  created_at: string; // encrypted ISO 8601
+}

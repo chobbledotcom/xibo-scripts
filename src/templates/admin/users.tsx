@@ -25,6 +25,14 @@ const userStatus = (user: DisplayUser): string => {
   return "Invited";
 };
 
+/** Check if a user can be impersonated by the current session */
+const canImpersonate = (user: DisplayUser, session: AdminSession): boolean =>
+  user.hasDataKey &&
+  user.hasPassword &&
+  user.adminLevel !== "owner" &&
+  (session.adminLevel === "owner" ||
+    (session.adminLevel === "manager" && user.adminLevel === "user"));
+
 /**
  * Admin user management page
  */
@@ -67,6 +75,7 @@ export const adminUsersPage = (
               <th>Status</th>
               <th>Actions</th>
               <th></th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -80,6 +89,14 @@ export const adminUsersPage = (
                     <form class="inline" method="POST" action={`/admin/users/${user.id}/activate`}>
                       <input type="hidden" name="csrf_token" value={session.csrfToken} />
                       <button type="submit">Activate</button>
+                    </form>
+                  )}
+                </td>
+                <td>
+                  {canImpersonate(user, session) && (
+                    <form class="inline" method="POST" action={`/admin/users/${user.id}/impersonate`}>
+                      <input type="hidden" name="csrf_token" value={session.csrfToken} />
+                      <button type="submit">Impersonate</button>
                     </form>
                   )}
                 </td>

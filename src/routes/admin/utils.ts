@@ -4,6 +4,7 @@
 
 import { get, del, loadXiboConfig } from "#xibo/client.ts";
 import { validateForm, type Field } from "#lib/forms.tsx";
+import type { AdminSession } from "#lib/types.ts";
 import type { XiboConfig } from "#xibo/types.ts";
 import type { AuthSession } from "#routes/utils.ts";
 import {
@@ -23,6 +24,13 @@ type ParamHandler = (request: Request, params: Params) => Promise<Response>;
 /** Clear session cookie on logout */
 export const clearSessionCookie =
   "__Host-session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0";
+
+/** Build AdminSession for template rendering from an AuthSession */
+export const toAdminSession = (session: AuthSession): AdminSession => ({
+  csrfToken: session.csrfToken,
+  adminLevel: session.adminLevel,
+  impersonating: session.impersonating,
+});
 
 /**
  * Load Xibo config or redirect to settings if not configured.
@@ -196,3 +204,18 @@ export const deleteRoute = (
 ): ParamHandler =>
 (request, params) =>
   deleteEntity(request, endpointFn(params), listUrl, successMsg);
+
+/**
+ * Load an entity by ID and pass it to a handler, or early-return 404.
+ * Combines load-or-404 and handler dispatch in a single call.
+ */
+export const withEntity = async <T>(
+  loader: (id: number) => Promise<T | null>,
+  id: number,
+  label: string,
+  handler: (entity: T) => Promise<Response>,
+): Promise<Response> => {
+  const entity = await loader(id);
+  if (!entity) return htmlResponse(`<h1>${label} not found</h1>`, 404);
+  return handler(entity);
+};

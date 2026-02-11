@@ -3,16 +3,25 @@
  */
 
 import { compact, map, pipe, reduce } from "#fp";
-import { constantTimeEqual, generateSecureToken } from "#lib/crypto.ts";
 import {
+  constantTimeEqual,
+  generateSecureToken,
+  wrapKeyWithToken,
+} from "#lib/crypto.ts";
+import {
+  createSession,
   deleteSession,
   getSession,
   onSessionCacheInvalidation,
 } from "#lib/db/sessions.ts";
-import { decryptAdminLevel, getUserById } from "#lib/db/users.ts";
+import {
+  decryptAdminLevel,
+  decryptUsername,
+  getUserById,
+} from "#lib/db/users.ts";
 import { ErrorCode, logError } from "#lib/logger.ts";
 import { nowMs } from "#lib/now.ts";
-import type { AdminLevel } from "#lib/types.ts";
+import type { AdminLevel, ImpersonationInfo } from "#lib/types.ts";
 import type { ServerContext } from "#routes/types.ts";
 
 // Re-export for use by other route modules
@@ -64,6 +73,7 @@ export type AuthSession = {
   wrappedDataKey: string | null;
   userId: number;
   adminLevel: AdminLevel;
+  impersonating?: ImpersonationInfo;
 };
 
 /**
@@ -85,6 +95,9 @@ export const resetAuthSessionCache = (): void => {
   authSessionCache.clear();
 };
 
+/** Cookie name for the admin's original session during impersonation */
+const ADMIN_SESSION_COOKIE = "__Host-admin-session";
+
 /**
  * Get authenticated session if valid (with 10s TTL cache)
  */
@@ -95,13 +108,17 @@ export const getAuthenticatedSession = async (
   const token = cookies.get("__Host-session");
   if (!token) return null;
 
-  // Check auth session cache
-  const cached = authSessionCache.get(token);
+  // Detect impersonation: if admin session cookie exists, we're impersonating
+  const adminToken = cookies.get(ADMIN_SESSION_COOKIE);
+
+  // Check auth session cache (cache key includes admin token to differentiate)
+  const cacheKey = adminToken ? `${token}:imp` : token;
+  const cached = authSessionCache.get(cacheKey);
   if (cached) {
     if (Date.now() - cached.cachedAt <= AUTH_SESSION_CACHE_TTL_MS) {
       return cached.session;
     }
-    authSessionCache.delete(token);
+    authSessionCache.delete(cacheKey);
   }
 
   const session = await getSession(token);
@@ -125,15 +142,23 @@ export const getAuthenticatedSession = async (
 
   const adminLevel = await decryptAdminLevel(user);
 
+  // Build impersonation info if admin session cookie is present
+  let impersonating: ImpersonationInfo | undefined;
+  if (adminToken) {
+    const username = await decryptUsername(user);
+    impersonating = { username, userId: session.user_id };
+  }
+
   const authSession: AuthSession = {
     token,
     csrfToken: session.csrf_token,
     wrappedDataKey: session.wrapped_data_key,
     userId: session.user_id,
     adminLevel,
+    impersonating,
   };
 
-  authSessionCache.set(token, { session: authSession, cachedAt: Date.now() });
+  authSessionCache.set(cacheKey, { session: authSession, cachedAt: Date.now() });
 
   return authSession;
 };
@@ -383,4 +408,47 @@ export const getSearchParam = (
 ): string | null => {
   const url = new URL(request.url);
   return url.searchParams.get(key);
+};
+
+/** Session expiry duration (24 hours) */
+const SESSION_EXPIRY_MS = 86_400_000;
+
+/** Session cookie max-age attribute */
+export const SESSION_MAX_AGE = "Max-Age=86400";
+
+/**
+ * Create a new authenticated session with a wrapped data key.
+ * Shared by login and impersonation flows.
+ * Returns the session token for cookie setting.
+ */
+export const createSessionWithKey = async (
+  dataKey: CryptoKey,
+  userId: number,
+): Promise<string> => {
+  const token = generateSecureToken();
+  const csrfToken = generateSecureToken();
+  const expires = nowMs() + SESSION_EXPIRY_MS;
+  const wrappedDataKey = await wrapKeyWithToken(dataKey, token);
+  await createSession(token, csrfToken, expires, wrappedDataKey, userId);
+  return token;
+};
+
+/**
+ * Build a __Host-session cookie string from a token.
+ */
+export const sessionCookieValue = (token: string): string =>
+  `__Host-session=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; ${SESSION_MAX_AGE}`;
+
+/**
+ * Create a redirect response with multiple Set-Cookie headers.
+ */
+export const redirectWithCookies = (
+  location: string,
+  cookies: string[],
+): Response => {
+  const headers = new Headers({ location });
+  for (const cookie of cookies) {
+    headers.append("set-cookie", cookie);
+  }
+  return new Response(null, { status: 302, headers });
 };
