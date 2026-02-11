@@ -6,48 +6,7 @@
 
 import * as esbuild from "esbuild";
 import type { Plugin } from "esbuild";
-import { resolve } from "@std/path";
 import { minifyCss } from "./css-minify.ts";
-
-// Read import aliases from deno.json for esbuild resolution
-const denoConfig = JSON.parse(await Deno.readTextFile("./deno.json"));
-const importMap: Record<string, string> = denoConfig.imports ?? {};
-
-/**
- * Plugin to resolve # prefixed import aliases from deno.json
- * esbuild doesn't understand Deno's import map natively
- */
-const denoAliasPlugin: Plugin = {
-  name: "deno-aliases",
-  setup(build) {
-    // Sort prefix keys longest-first so #lib/db/ matches before #lib/
-    const prefixKeys = Object.keys(importMap)
-      .filter((k) => k.startsWith("#") && k.endsWith("/"))
-      .sort((a, b) => b.length - a.length);
-
-    const exactKeys = Object.keys(importMap)
-      .filter((k) => k.startsWith("#") && !k.endsWith("/"));
-
-    build.onResolve({ filter: /^#/ }, (args) => {
-      // Try exact match first
-      for (const key of exactKeys) {
-        if (args.path === key) {
-          return { path: resolve(importMap[key]) };
-        }
-      }
-
-      // Try prefix match (longest prefix first)
-      for (const prefix of prefixKeys) {
-        if (args.path.startsWith(prefix)) {
-          const remainder = args.path.slice(prefix.length);
-          return { path: resolve(importMap[prefix] + remainder) };
-        }
-      }
-
-      return undefined;
-    });
-  },
-};
 
 // Build timestamp for cache-busting (seconds since epoch)
 const BUILD_TS = Math.floor(Date.now() / 1000);
@@ -133,7 +92,7 @@ const result = await esbuild.build({
   format: "esm",
   minify: true,
   bundle: true,
-  plugins: [inlineAssetsPlugin, denoAliasPlugin],
+  plugins: [inlineAssetsPlugin],
   external: [
     "@bunny.net/edgescript-sdk",
     "@libsql/client",
