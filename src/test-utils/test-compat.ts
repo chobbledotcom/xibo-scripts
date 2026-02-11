@@ -87,13 +87,20 @@ const assertInstanceOf = (
   );
 };
 
+// deno-lint-ignore no-explicit-any
+type ErrorClass = new (...args: any[]) => Error;
+
 /** Validate caught error from assertThrows/assertRejects */
 const validateCaughtError = (
   e: unknown,
   sentinel: string,
+  errorClass?: ErrorClass,
   msgIncludes?: string,
 ): void => {
   if ((e as Error).message === sentinel) throw e;
+  if (errorClass) {
+    assertInstanceOf(e, errorClass);
+  }
   if (msgIncludes) {
     assert(
       (e as Error).message.includes(msgIncludes),
@@ -106,29 +113,27 @@ const validateCaughtError = (
 
 const assertThrows = (
   fn: () => void,
-  // deno-lint-ignore no-explicit-any
-  _errorClass?: new (...args: any[]) => any,
+  errorClass?: ErrorClass,
   msgIncludes?: string,
 ): void => {
   try {
     fn();
     throw new Error("Expected function to throw");
   } catch (e) {
-    validateCaughtError(e, "Expected function to throw", msgIncludes);
+    validateCaughtError(e, "Expected function to throw", errorClass, msgIncludes);
   }
 };
 
 const assertRejects = async (
   fn: () => Promise<unknown>,
-  // deno-lint-ignore no-explicit-any
-  _errorClass?: new (...args: any[]) => any,
+  errorClass?: ErrorClass,
   msgIncludes?: string,
 ): Promise<void> => {
   try {
     await fn();
     throw new Error("Expected function to reject");
   } catch (e) {
-    validateCaughtError(e, "Expected function to reject", msgIncludes);
+    validateCaughtError(e, "Expected function to reject", errorClass, msgIncludes);
   }
 };
 
@@ -487,7 +492,7 @@ class ExpectChain<T> {
     }
   }
 
-  toThrow(expected?: string | RegExp | Error): void {
+  toThrow(expected?: string | RegExp | Error | ErrorClass): void {
     const fn = this.actual as () => void;
     if (this.isNot) {
       try {
@@ -496,7 +501,9 @@ class ExpectChain<T> {
         throw new Error("Expected function not to throw");
       }
     } else {
-      if (expected instanceof Error) {
+      if (typeof expected === "function") {
+        assertThrows(fn, expected);
+      } else if (expected instanceof Error) {
         assertThrows(fn, Error, expected.message);
       } else if (typeof expected === "string") {
         assertThrows(fn, Error, expected);
@@ -558,9 +565,11 @@ class RejectsChain {
     this.promise = promise;
   }
 
-  async toThrow(expected?: string | RegExp): Promise<void> {
+  async toThrow(expected?: string | RegExp | ErrorClass): Promise<void> {
     const fn = () => this.promise;
-    if (typeof expected === "string") {
+    if (typeof expected === "function") {
+      await assertRejects(fn, expected);
+    } else if (typeof expected === "string") {
       await assertRejects(fn, Error, expected);
     } else {
       await assertRejects(fn, Error);

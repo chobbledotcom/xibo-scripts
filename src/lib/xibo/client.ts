@@ -397,7 +397,7 @@ export const getDashboardStatus = async (
   let version: string | null = null;
   try {
     const about = await get<XiboAbout>(config, "about");
-    version = about.version || null;
+    version = about.version;
   } catch {
     return empty;
   }
@@ -421,10 +421,12 @@ export const getDashboardStatus = async (
     }),
   );
 
-  const menuBoardCount = counts[0] !== undefined ? counts[0] : null;
-  const mediaCount = counts[1] !== undefined ? counts[1] : null;
-  const layoutCount = counts[2] !== undefined ? counts[2] : null;
-  const datasetCount = counts[3] !== undefined ? counts[3] : null;
+  const [
+    menuBoardCount = null,
+    mediaCount = null,
+    layoutCount = null,
+    datasetCount = null,
+  ] = counts;
 
   return {
     connected: true,

@@ -95,6 +95,7 @@ describe("admin/menuboards routes", () => {
   let csrfToken: string;
 
   beforeEach(async () => {
+    Deno.env.set("ALLOWED_DOMAIN", "localhost");
     await createTestDbWithSetup();
     clearToken();
     await cacheInvalidateAll();
@@ -1020,6 +1021,683 @@ describe("menuboard templates", () => {
     );
     expect(html).toContain("Yes");
     expect(html).toContain("No");
+  });
+});
+
+describe("admin/menuboards uncovered branches", () => {
+  let cookie: string;
+  let csrfToken: string;
+
+  beforeEach(async () => {
+    Deno.env.set("ALLOWED_DOMAIN", "localhost");
+    await createTestDbWithSetup();
+    clearToken();
+    await cacheInvalidateAll();
+    const login = await loginAsAdmin();
+    cookie = login.cookie;
+    csrfToken = login.csrfToken;
+  });
+
+  afterEach(() => {
+    clearToken();
+    resetDb();
+  });
+
+  describe("product grouped by unknown category (line 91)", () => {
+    it("groups a product whose menuCategoryId is not in categories", async () => {
+      await setupXiboCredentials();
+      const orphanProduct: XiboProduct = {
+        ...PRODUCT,
+        menuProductId: 200,
+        menuCategoryId: 999,
+        name: "Orphan",
+      };
+      const mock = mockXiboFetch((url) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard/1/category"))
+          return jsonResponse([CATEGORY]);
+        if (url.includes("/api/menuboard/1/product"))
+          return jsonResponse([PRODUCT, orphanProduct]);
+        if (url.includes("/api/menuboard"))
+          return jsonResponse([BOARD]);
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockRequest("/admin/menuboard/1", { headers: { cookie } }),
+        );
+        expect(response.status).toBe(200);
+        const body = await response.text();
+        expect(body).toContain("Soup");
+      } finally {
+        mock.restore();
+      }
+    });
+  });
+
+  describe("board list error catch (line 135)", () => {
+    it("shows error message when fetch throws", async () => {
+      await setupXiboCredentials();
+      const mock = mockXiboFetch((url) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard"))
+          throw new Error("Connection refused");
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockRequest("/admin/menuboards", { headers: { cookie } }),
+        );
+        expect(response.status).toBe(200);
+        const body = await response.text();
+        // safeFetch wraps throw as XiboClientError("Failed to connect to Xibo CMS")
+        expect(body).toContain("Failed to connect");
+        expect(body).toContain("error");
+      } finally {
+        mock.restore();
+      }
+    });
+  });
+
+  describe("board create with empty optional fields (lines 164-165)", () => {
+    it("creates a board without code or description", async () => {
+      await setupXiboCredentials();
+      let capturedBody: string | undefined;
+      const mock = mockXiboFetch((url, init) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard") && init?.method === "POST") {
+          capturedBody = init.body as string;
+          return jsonResponse({ ...BOARD, menuBoardId: 7 });
+        }
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockFormRequest(
+            "/admin/menuboard",
+            { csrf_token: csrfToken, name: "Minimal Board" },
+            cookie,
+          ),
+        );
+        expect(response.status).toBe(302);
+        expect(response.headers.get("location")).toContain(
+          "/admin/menuboard/7",
+        );
+        expect(capturedBody).toBeDefined();
+      } finally {
+        mock.restore();
+      }
+    });
+  });
+
+  describe("board detail categories/products fetch error (lines 199-203)", () => {
+    it("shows error when categories fetch throws", async () => {
+      await setupXiboCredentials();
+      const mock = mockXiboFetch((url) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard/1/category"))
+          throw new Error("Category fetch failed");
+        if (url.includes("/api/menuboard"))
+          return jsonResponse([BOARD]);
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockRequest("/admin/menuboard/1", { headers: { cookie } }),
+        );
+        expect(response.status).toBe(200);
+        const body = await response.text();
+        // safeFetch wraps throw as XiboClientError - caught by error handler
+        expect(body).toContain("Failed to connect");
+        expect(body).toContain("error");
+      } finally {
+        mock.restore();
+      }
+    });
+
+    it("shows error when categories endpoint returns 500", async () => {
+      await setupXiboCredentials();
+      const mock = mockXiboFetch((url) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard/1/category"))
+          return jsonResponse({ message: "Internal Error" }, 500);
+        if (url.includes("/api/menuboard"))
+          return jsonResponse([BOARD]);
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockRequest("/admin/menuboard/1", { headers: { cookie } }),
+        );
+        expect(response.status).toBe(200);
+        const body = await response.text();
+        expect(body).toContain("API request failed");
+        expect(body).toContain("error");
+      } finally {
+        mock.restore();
+      }
+    });
+  });
+
+  describe("board update with empty optional fields (lines 250-251)", () => {
+    it("updates a board without code or description", async () => {
+      await setupXiboCredentials();
+      const mock = mockXiboFetch((url, init) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard/1") && init?.method === "PUT")
+          return jsonResponse(BOARD);
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockFormRequest(
+            "/admin/menuboard/1",
+            { csrf_token: csrfToken, name: "Updated Board" },
+            cookie,
+          ),
+        );
+        expect(response.status).toBe(302);
+        expect(response.headers.get("location")).toContain(
+          "/admin/menuboard/1",
+        );
+      } finally {
+        mock.restore();
+      }
+    });
+  });
+
+  describe("board delete when fetchBoard returns null (line 271)", () => {
+    it("uses params.id as fallback name when board not found", async () => {
+      await setupXiboCredentials();
+      const mock = mockXiboFetch((url, init) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard") && init?.method === "GET")
+          return jsonResponse([]);
+        if (url.includes("/api/menuboard/999") && init?.method === "DELETE")
+          return new Response(null, { status: 204 });
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockFormRequest(
+            "/admin/menuboard/999/delete",
+            { csrf_token: csrfToken },
+            cookie,
+          ),
+        );
+        expect(response.status).toBe(302);
+        expect(response.headers.get("location")).toContain(
+          "/admin/menuboards",
+        );
+      } finally {
+        mock.restore();
+      }
+    });
+  });
+
+  describe("category create with optional fields (lines 315, 317)", () => {
+    it("creates category without code and with media_id", async () => {
+      await setupXiboCredentials();
+      let capturedBody: string | undefined;
+      const mock = mockXiboFetch((url, init) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard/1/category") && init?.method === "POST") {
+          capturedBody = init.body as string;
+          return jsonResponse(CATEGORY);
+        }
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockFormRequest(
+            "/admin/menuboard/1/category",
+            { csrf_token: csrfToken, name: "Desserts", media_id: "42" },
+            cookie,
+          ),
+        );
+        expect(response.status).toBe(302);
+        expect(response.headers.get("location")).toContain(
+          "/admin/menuboard/1",
+        );
+        expect(capturedBody).toContain("mediaId");
+      } finally {
+        mock.restore();
+      }
+    });
+
+    it("creates category without code and without media_id", async () => {
+      await setupXiboCredentials();
+      const mock = mockXiboFetch((url, init) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard/1/category") && init?.method === "POST")
+          return jsonResponse(CATEGORY);
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockFormRequest(
+            "/admin/menuboard/1/category",
+            { csrf_token: csrfToken, name: "Desserts" },
+            cookie,
+          ),
+        );
+        expect(response.status).toBe(302);
+        expect(response.headers.get("location")).toContain(
+          "/admin/menuboard/1",
+        );
+      } finally {
+        mock.restore();
+      }
+    });
+  });
+
+  describe("category edit board not found (line 337)", () => {
+    it("returns 404 when board not found for category edit", async () => {
+      await setupXiboCredentials();
+      const mock = mockXiboFetch((url) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard")) return jsonResponse([]);
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockRequest("/admin/menuboard/999/category/10/edit", {
+            headers: { cookie },
+          }),
+        );
+        expect(response.status).toBe(404);
+      } finally {
+        mock.restore();
+      }
+    });
+  });
+
+  describe("category update validation error (line 362)", () => {
+    it("returns 400 when category update name is missing", async () => {
+      await setupXiboCredentials();
+      const { handleRequest } = await import("#routes");
+      const response = await handleRequest(
+        mockFormRequest(
+          "/admin/menuboard/1/category/10",
+          { csrf_token: csrfToken },
+          cookie,
+        ),
+      );
+      expect(response.status).toBe(400);
+      const body = await response.text();
+      expect(body).toContain("required");
+    });
+  });
+
+  describe("category update with optional fields (lines 367, 369)", () => {
+    it("updates category without code and with media_id", async () => {
+      await setupXiboCredentials();
+      let capturedBody: string | undefined;
+      const mock = mockXiboFetch((url, init) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard/1/category/10") && init?.method === "PUT") {
+          capturedBody = init.body as string;
+          return jsonResponse(CATEGORY);
+        }
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockFormRequest(
+            "/admin/menuboard/1/category/10",
+            { csrf_token: csrfToken, name: "Updated Cat", media_id: "55" },
+            cookie,
+          ),
+        );
+        expect(response.status).toBe(302);
+        expect(response.headers.get("location")).toContain(
+          "/admin/menuboard/1",
+        );
+        expect(capturedBody).toContain("mediaId");
+      } finally {
+        mock.restore();
+      }
+    });
+
+    it("updates category without code and without media_id", async () => {
+      await setupXiboCredentials();
+      const mock = mockXiboFetch((url, init) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard/1/category/10") && init?.method === "PUT")
+          return jsonResponse(CATEGORY);
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockFormRequest(
+            "/admin/menuboard/1/category/10",
+            { csrf_token: csrfToken, name: "Updated Cat" },
+            cookie,
+          ),
+        );
+        expect(response.status).toBe(302);
+        expect(response.headers.get("location")).toContain(
+          "/admin/menuboard/1",
+        );
+      } finally {
+        mock.restore();
+      }
+    });
+  });
+
+  describe("product new board not found (line 420)", () => {
+    it("returns 404 when board not found for product new", async () => {
+      await setupXiboCredentials();
+      const mock = mockXiboFetch((url) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard")) return jsonResponse([]);
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockRequest(
+            "/admin/menuboard/999/category/10/product/new",
+            { headers: { cookie } },
+          ),
+        );
+        expect(response.status).toBe(404);
+      } finally {
+        mock.restore();
+      }
+    });
+  });
+
+  describe("product create with optional fields (lines 458, 464)", () => {
+    it("creates product without price fallback and with media_id", async () => {
+      await setupXiboCredentials();
+      let capturedBody: string | undefined;
+      const mock = mockXiboFetch((url, init) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (
+          url.includes("/api/menuboard/1/product") &&
+          init?.method === "POST"
+        ) {
+          capturedBody = init.body as string;
+          return jsonResponse(PRODUCT);
+        }
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockFormRequest(
+            "/admin/menuboard/1/category/10/product",
+            {
+              csrf_token: csrfToken,
+              name: "Salad",
+              price: "8.99",
+              media_id: "77",
+            },
+            cookie,
+          ),
+        );
+        expect(response.status).toBe(302);
+        expect(response.headers.get("location")).toContain(
+          "/admin/menuboard/1",
+        );
+        expect(capturedBody).toContain("mediaId");
+      } finally {
+        mock.restore();
+      }
+    });
+
+    it("creates product with only required fields (price/description defaults)", async () => {
+      await setupXiboCredentials();
+      const mock = mockXiboFetch((url, init) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (
+          url.includes("/api/menuboard/1/product") &&
+          init?.method === "POST"
+        )
+          return jsonResponse(PRODUCT);
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockFormRequest(
+            "/admin/menuboard/1/category/10/product",
+            {
+              csrf_token: csrfToken,
+              name: "Salad",
+              price: "8.99",
+            },
+            cookie,
+          ),
+        );
+        expect(response.status).toBe(302);
+      } finally {
+        mock.restore();
+      }
+    });
+  });
+
+  describe("product edit board/category not found (lines 486, 490)", () => {
+    it("returns 404 when board not found for product edit", async () => {
+      await setupXiboCredentials();
+      const mock = mockXiboFetch((url) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard")) return jsonResponse([]);
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockRequest(
+            "/admin/menuboard/999/category/10/product/100/edit",
+            { headers: { cookie } },
+          ),
+        );
+        expect(response.status).toBe(404);
+      } finally {
+        mock.restore();
+      }
+    });
+
+    it("returns 404 when category not found for product edit", async () => {
+      await setupXiboCredentials();
+      const mock = mockXiboFetch((url) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (url.includes("/api/menuboard/1/category"))
+          return jsonResponse([]);
+        if (url.includes("/api/menuboard"))
+          return jsonResponse([BOARD]);
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockRequest(
+            "/admin/menuboard/1/category/999/product/100/edit",
+            { headers: { cookie } },
+          ),
+        );
+        expect(response.status).toBe(404);
+      } finally {
+        mock.restore();
+      }
+    });
+  });
+
+  describe("product update validation error (line 526)", () => {
+    it("returns 400 when product update name is missing", async () => {
+      await setupXiboCredentials();
+      const { handleRequest } = await import("#routes");
+      const response = await handleRequest(
+        mockFormRequest(
+          "/admin/menuboard/1/category/10/product/100",
+          { csrf_token: csrfToken, price: "5.00" },
+          cookie,
+        ),
+      );
+      expect(response.status).toBe(400);
+      const body = await response.text();
+      expect(body).toContain("required");
+    });
+  });
+
+  describe("product update with optional fields (lines 533, 539)", () => {
+    it("updates product with media_id", async () => {
+      await setupXiboCredentials();
+      let capturedBody: string | undefined;
+      const mock = mockXiboFetch((url, init) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (
+          url.includes("/api/menuboard/1/product/100") &&
+          init?.method === "PUT"
+        ) {
+          capturedBody = init.body as string;
+          return jsonResponse(PRODUCT);
+        }
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockFormRequest(
+            "/admin/menuboard/1/category/10/product/100",
+            {
+              csrf_token: csrfToken,
+              name: "Updated Soup",
+              price: "6.99",
+              media_id: "88",
+            },
+            cookie,
+          ),
+        );
+        expect(response.status).toBe(302);
+        expect(response.headers.get("location")).toContain(
+          "/admin/menuboard/1",
+        );
+        expect(capturedBody).toContain("mediaId");
+      } finally {
+        mock.restore();
+      }
+    });
+
+    it("updates product without optional fields (price/description defaults)", async () => {
+      await setupXiboCredentials();
+      const mock = mockXiboFetch((url, init) => {
+        if (url.includes("/api/authorize/access_token"))
+          return tokenResponse();
+        if (
+          url.includes("/api/menuboard/1/product/100") &&
+          init?.method === "PUT"
+        )
+          return jsonResponse(PRODUCT);
+        return null;
+      });
+      try {
+        const { handleRequest } = await import("#routes");
+        const response = await handleRequest(
+          mockFormRequest(
+            "/admin/menuboard/1/category/10/product/100",
+            {
+              csrf_token: csrfToken,
+              name: "Updated Soup",
+              price: "6.99",
+            },
+            cookie,
+          ),
+        );
+        expect(response.status).toBe(302);
+      } finally {
+        mock.restore();
+      }
+    });
+  });
+});
+
+describe("menuboard detail template success/error divs (lines 96-97)", () => {
+  it("renders success div in board detail page", async () => {
+    const { menuBoardDetailPage } = await import(
+      "#templates/admin/menuboards.tsx"
+    );
+    const session = { csrfToken: "test", adminLevel: "owner" as const };
+    const html = menuBoardDetailPage(
+      session,
+      BOARD,
+      [CATEGORY],
+      { [CATEGORY.menuCategoryId]: [PRODUCT] },
+      "Board updated successfully",
+    );
+    expect(html).toContain('<div class="success">Board updated successfully</div>');
+  });
+
+  it("renders error div in board detail page", async () => {
+    const { menuBoardDetailPage } = await import(
+      "#templates/admin/menuboards.tsx"
+    );
+    const session = { csrfToken: "test", adminLevel: "owner" as const };
+    const html = menuBoardDetailPage(
+      session,
+      BOARD,
+      [],
+      {},
+      undefined,
+      "Something went wrong",
+    );
+    expect(html).toContain('<div class="error">Something went wrong</div>');
+  });
+});
+
+describe("menuboard detail template category with no products (line 169)", () => {
+  it("renders empty product list when category has no products in map", async () => {
+    const { menuBoardDetailPage } = await import(
+      "#templates/admin/menuboards.tsx"
+    );
+    const session = { csrfToken: "test", adminLevel: "owner" as const };
+    const emptyCategory: XiboCategory = {
+      menuCategoryId: 20,
+      menuId: 1,
+      name: "Empty Cat",
+      code: "EC",
+      mediaId: null,
+    };
+    const html = menuBoardDetailPage(
+      session,
+      BOARD,
+      [emptyCategory],
+      {},
+    );
+    expect(html).toContain("Empty Cat");
+    expect(html).toContain("No products in this category");
   });
 });
 

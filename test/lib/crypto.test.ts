@@ -538,3 +538,34 @@ describe("encryptWithKey and decryptWithKey", () => {
     );
   });
 });
+
+describe("generateKeyPair — default modulus length", () => {
+  it("generates valid key pair with default 2048-bit modulus when TEST_RSA_KEY_SIZE is unset", async () => {
+    const {
+      setupTestEncryptionKey,
+      clearTestEncryptionKey,
+    } = await import("#test-utils/crypto-helpers.ts");
+
+    setupTestEncryptionKey();
+
+    // Remove TEST_RSA_KEY_SIZE so the default 2048 path is taken
+    const savedKeySize = Deno.env.get("TEST_RSA_KEY_SIZE");
+    Deno.env.delete("TEST_RSA_KEY_SIZE");
+
+    try {
+      const { publicKey, privateKey } = await generateKeyPair();
+      expect(publicKey).toBeDefined();
+      expect(privateKey).toBeDefined();
+      const pubJwk = JSON.parse(publicKey);
+      const privJwk = JSON.parse(privateKey);
+      expect(pubJwk.kty).toBe("RSA");
+      expect(privJwk.kty).toBe("RSA");
+    } finally {
+      // Restore env var
+      if (savedKeySize) {
+        Deno.env.set("TEST_RSA_KEY_SIZE", savedKeySize);
+      }
+      clearTestEncryptionKey();
+    }
+  });
+});
