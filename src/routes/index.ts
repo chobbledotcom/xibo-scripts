@@ -27,6 +27,12 @@ const loadAdminRoutes = once(async () => {
   return routeAdmin;
 });
 
+/** Lazy-load user (dashboard) routes */
+const loadUserRoutes = once(async () => {
+  const { routeUser } = await import("#routes/user/index.ts");
+  return routeUser;
+});
+
 /** Lazy-load setup routes */
 const loadSetupRoutes = once(async () => {
   const { createSetupRouter } = await import("#routes/setup.ts");
@@ -58,12 +64,14 @@ const createLazyRoute =
 
 /** Lazy-loaded route handlers */
 const routeAdminPath = createLazyRoute("/admin", loadAdminRoutes);
+const routeDashboardPath = createLazyRoute("/dashboard", loadUserRoutes);
 
 /**
  * Route main application requests (after setup is complete)
  */
 const routeMainApp: RouterFn = async (request, path, method, server) =>
   (await routeAdminPath(request, path, method, server)) ??
+    (await routeDashboardPath(request, path, method, server)) ??
     notFoundResponse();
 
 /**

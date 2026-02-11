@@ -32,6 +32,8 @@ export const CONFIG_KEYS = {
   XIBO_API_URL: "xibo_api_url",
   XIBO_CLIENT_ID: "xibo_client_id",
   XIBO_CLIENT_SECRET: "xibo_client_secret",
+  // Shared photo repository folder
+  SHARED_FOLDER_ID: "shared_folder_id",
 } as const;
 
 /**
@@ -300,6 +302,24 @@ export const updateUserPassword = async (
 };
 
 /**
+ * Get the shared folder ID for the shared photo repository.
+ * Returns the numeric folder ID or null if not configured.
+ */
+export const getSharedFolderId = async (): Promise<number | null> => {
+  const value = await getSetting(CONFIG_KEYS.SHARED_FOLDER_ID);
+  if (!value) return null;
+  const id = Number(value);
+  return Number.isFinite(id) ? id : null;
+};
+
+/**
+ * Set the shared folder ID for the shared photo repository.
+ */
+export const setSharedFolderId = async (folderId: number): Promise<void> => {
+  await setSetting(CONFIG_KEYS.SHARED_FOLDER_ID, String(folderId));
+};
+
+/**
  * Stubbable API for testing
  */
 export const settingsApi = {
@@ -317,4 +337,6 @@ export const settingsApi = {
   getXiboClientId,
   getXiboClientSecret,
   updateXiboCredentials,
+  getSharedFolderId,
+  setSharedFolderId,
 };

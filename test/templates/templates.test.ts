@@ -4,6 +4,7 @@ import { adminDashboardPage } from "#templates/admin/dashboard.tsx";
 import { adminLoginPage } from "#templates/admin/login.tsx";
 import { setupPage, setupCompletePage } from "#templates/setup.tsx";
 import { AdminNav, Breadcrumb } from "#templates/admin/nav.tsx";
+import { UserNav } from "#templates/user/nav.tsx";
 import {
   menuBoardListPage,
   menuBoardDetailPage,
@@ -112,6 +113,28 @@ describe("Breadcrumb", () => {
     const html = String(Breadcrumb({ href: "/admin/menuboards", label: "Back to Menu Boards" }));
     expect(html).toContain('href="/admin/menuboards"');
     expect(html).toContain("Back to Menu Boards");
+  });
+});
+
+describe("UserNav", () => {
+  it("shows My Media and Logout links for normal session", () => {
+    const html = String(UserNav({ session: userSession }));
+    expect(html).toContain("/dashboard/media");
+    expect(html).toContain("/admin/logout");
+    expect(html).not.toContain("stop-impersonating");
+  });
+
+  it("shows impersonation banner when impersonating", () => {
+    const impersonatingSession: AdminSession = {
+      csrfToken: "csrf-imp",
+      adminLevel: "user",
+      impersonating: { username: "testuser", userId: 5 },
+    };
+    const html = String(UserNav({ session: impersonatingSession }));
+    expect(html).toContain("You are impersonating");
+    expect(html).toContain("testuser");
+    expect(html).toContain("/admin/stop-impersonating");
+    expect(html).not.toContain("/admin/logout");
   });
 });
 

@@ -49,6 +49,11 @@ export const AdminNav = ({ session }: AdminNavProps = {}): JSX.Element => (
       )}
       {isManagerOrAbove(session) && (
         <li>
+          <a href="/admin/media/shared">Shared Photos</a>
+        </li>
+      )}
+      {isManagerOrAbove(session) && (
+        <li>
           <a href="/admin/layouts">Layouts</a>
         </li>
       )}
