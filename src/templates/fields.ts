@@ -208,6 +208,7 @@ export const inviteUserFields: Field[] = [
     type: "select",
     required: true,
     options: [
+      { value: "user", label: "User" },
       { value: "manager", label: "Manager" },
       { value: "owner", label: "Owner" },
     ],

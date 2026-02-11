@@ -1,5 +1,5 @@
 /**
- * Admin user management routes - owner only
+ * Admin user management routes - manager or above
  */
 
 import { unwrapKeyWithToken } from "#lib/crypto.ts";
@@ -27,10 +27,11 @@ import {
   htmlResponse,
   redirect,
   redirectWithSuccess,
-  requireOwnerOr,
+  requireManagerOrAbove,
+  withManagerAuthForm,
   withOwnerAuthForm,
 } from "#routes/utils.ts";
-import type { AdminSession, User } from "#lib/types.ts";
+import type { AdminLevel, AdminSession, User } from "#lib/types.ts";
 import {
   adminUsersPage,
   type DisplayUser,
@@ -40,8 +41,11 @@ import { inviteUserFields, type InviteUserFormValues } from "#templates/fields.t
 /** Invite link expiry: 7 days */
 const INVITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** Valid admin levels */
-const VALID_ADMIN_LEVELS = ["owner", "manager"] as const;
+/** Valid admin levels for user creation */
+const VALID_ADMIN_LEVELS: readonly AdminLevel[] = ["owner", "manager", "user"];
+
+/** Roles a manager is allowed to create (users only) */
+const MANAGER_ALLOWED_ROLES: readonly AdminLevel[] = ["user"];
 
 /**
  * Decrypt user data for display
@@ -71,10 +75,10 @@ const renderUsersPage = async (
 };
 
 /**
- * Handle GET /admin/users
+ * Handle GET /admin/users - accessible by managers and owners
  */
 const handleUsersGet = (request: Request): Promise<Response> =>
-  requireOwnerOr(request, async (session) => {
+  requireManagerOrAbove(request, async (session) => {
     const invite = getSearchParam(request, "invite");
     const success = getSearchParam(request, "success");
     return htmlResponse(
@@ -89,9 +93,10 @@ const handleUsersGet = (request: Request): Promise<Response> =>
 
 /**
  * Handle POST /admin/users - create invited user
+ * Managers can create "user" role only. Owners can create any role.
  */
 const handleUsersPost = (request: Request): Promise<Response> =>
-  withOwnerAuthForm(request, async (session, form) => {
+  withManagerAuthForm(request, async (session, form) => {
     const validation = validateForm<InviteUserFormValues>(form, inviteUserFields);
     if (!validation.valid) {
       return htmlResponse(
@@ -106,6 +111,21 @@ const handleUsersPost = (request: Request): Promise<Response> =>
       return htmlResponse(
         await renderUsersPage(session, undefined, "Invalid role"),
         400,
+      );
+    }
+
+    // Enforce role hierarchy: managers can only create users
+    if (
+      session.adminLevel === "manager" &&
+      !MANAGER_ALLOWED_ROLES.includes(adminLevel)
+    ) {
+      return htmlResponse(
+        await renderUsersPage(
+          session,
+          undefined,
+          "Managers can only create users",
+        ),
+        403,
       );
     }
 

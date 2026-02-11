@@ -7,7 +7,7 @@ import { getDb } from "#lib/db/client.ts";
 /**
  * The latest database update identifier - update this when changing schema
  */
-export const LATEST_UPDATE = "add cache table";
+export const LATEST_UPDATE = "add multi-tenant tables";
 
 /**
  * Run a migration that may fail if already applied (e.g., adding a column that exists)
@@ -109,6 +109,52 @@ export const initDb = async (): Promise<void> => {
     )
   `);
 
+  // Create businesses table
+  await runMigration(`
+    CREATE TABLE IF NOT EXISTS businesses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      xibo_folder_id INTEGER,
+      folder_name TEXT,
+      xibo_dataset_id INTEGER,
+      created_at TEXT NOT NULL
+    )
+  `);
+
+  // Create business_users mapping table (many-to-many)
+  await runMigration(`
+    CREATE TABLE IF NOT EXISTS business_users (
+      business_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      PRIMARY KEY (business_id, user_id)
+    )
+  `);
+
+  // Create screens table (belong to a business, map to Xibo displays)
+  await runMigration(`
+    CREATE TABLE IF NOT EXISTS screens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      business_id INTEGER NOT NULL,
+      xibo_display_id INTEGER,
+      created_at TEXT NOT NULL
+    )
+  `);
+
+  // Create menu_screens table (user-configured, each becomes a Xibo layout)
+  await runMigration(`
+    CREATE TABLE IF NOT EXISTS menu_screens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      screen_id INTEGER NOT NULL,
+      template_id TEXT NOT NULL,
+      display_time INTEGER NOT NULL,
+      sort_order INTEGER NOT NULL,
+      xibo_layout_id INTEGER,
+      created_at TEXT NOT NULL
+    )
+  `);
+
   // Update the version marker
   await getDb().execute({
     sql:
@@ -121,6 +167,10 @@ export const initDb = async (): Promise<void> => {
  * All database tables in order for safe dropping (respects foreign key constraints)
  */
 const ALL_TABLES = [
+  "menu_screens",
+  "screens",
+  "business_users",
+  "businesses",
   "cache",
   "activity_log",
   "sessions",
