@@ -628,7 +628,7 @@ describe("admin businesses management", () => {
       );
       expect(response.status).toBe(302);
       const location = response.headers.get("location")!;
-      expect(decodeURIComponent(location)).toContain("Xibo provisioning failed");
+      expect(decodeURIComponent(location)).toContain("API request failed");
       expect(location).toContain("error=");
 
       // Business should NOT be created when provisioning fails

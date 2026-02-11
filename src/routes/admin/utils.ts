@@ -10,6 +10,7 @@ import type { AuthSession } from "#routes/utils.ts";
 import {
   htmlResponse,
   redirect,
+  redirectWithError,
   redirectWithSuccess,
   requireSessionOr,
   withAuthForm,
@@ -185,6 +186,24 @@ export const formRouteP = <T>(
   });
 
 /**
+ * Execute a Xibo API operation, then run onSuccess only if it succeeds.
+ * On API failure, redirects with an error message — no DB writes happen.
+ * Use this whenever a DB write must be guarded by a successful Xibo API call.
+ */
+export const xiboThenPersist = async <T>(
+  apiCall: () => Promise<T>,
+  errorUrl: string,
+  onSuccess: (result: T) => Promise<Response>,
+): Promise<Response> => {
+  try {
+    const result = await apiCall();
+    return onSuccess(result);
+  } catch (e) {
+    return redirectWithError(errorUrl, errorMessage(e));
+  }
+};
+
+/**
  * Delete a single entity and redirect to the list page.
  * Shows error on the list page if delete fails.
  */
@@ -194,16 +213,13 @@ export const deleteEntity = (
   listUrl: string,
   successMsg: string,
 ): Promise<Response> =>
-  withXiboForm(request, async (_session, _form, config) => {
-    try {
-      await del(config, endpoint);
-      return redirectWithSuccess(listUrl, successMsg);
-    } catch (e) {
-      return redirect(
-        `${listUrl}?error=${encodeURIComponent(`Delete failed: ${errorMessage(e)}`)}`,
-      );
-    }
-  });
+  withXiboForm(request, (_session, _form, config) =>
+    xiboThenPersist(
+      () => del(config, endpoint),
+      listUrl,
+      () => Promise.resolve(redirectWithSuccess(listUrl, successMsg)),
+    ),
+  );
 
 /**
  * Create a delete route handler from endpoint template, list URL, and message.
