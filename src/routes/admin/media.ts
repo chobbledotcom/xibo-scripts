@@ -13,6 +13,7 @@ import {
   postMultipart,
 } from "#xibo/client.ts";
 import type { XiboConfig, XiboFolder, XiboMedia } from "#xibo/types.ts";
+import type { AdminSession } from "#lib/types.ts";
 import { defineRoutes, type RouteParams } from "#routes/router.ts";
 import {
   getAuthenticatedSession,
@@ -65,6 +66,20 @@ const fetchMedia = (config: XiboConfig): Promise<XiboMedia[]> =>
 function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : "Unknown error";
 }
+
+/**
+ * Return an error response showing the upload page with the given message.
+ * Fetches the current folder list so the form remains functional.
+ */
+const uploadPageError = async (
+  config: XiboConfig,
+  session: AdminSession,
+  message: string,
+  status?: number,
+): Promise<Response> => {
+  const folders = await fetchFolders(config);
+  return htmlResponse(mediaUploadPage(session, folders, message), status);
+};
 
 /**
  * GET /admin/media — list all media with optional filters
@@ -146,11 +161,7 @@ const handleMediaUploadPost = async (
   try {
     formData = await request.formData();
   } catch {
-    const folders = await fetchFolders(config);
-    return htmlResponse(
-      mediaUploadPage(session, folders, "Invalid form data"),
-      400,
-    );
+    return uploadPageError(config, session, "Invalid form data", 400);
   }
 
   const csrfToken = formData.get("csrf_token");
@@ -164,9 +175,10 @@ const handleMediaUploadPost = async (
 
   const file = formData.get("file");
   if (!file || !(file instanceof File) || file.size === 0) {
-    const folders = await fetchFolders(config);
-    return htmlResponse(
-      mediaUploadPage(session, folders, "Please select a file to upload"),
+    return uploadPageError(
+      config,
+      session,
+      "Please select a file to upload",
       400,
     );
   }
@@ -185,13 +197,10 @@ const handleMediaUploadPost = async (
     await postMultipart<XiboMedia>(config, "library", uploadData);
     return redirectWithSuccess("/admin/media", `Uploaded "${name}"`);
   } catch (e) {
-    const folders = await fetchFolders(config);
-    return htmlResponse(
-      mediaUploadPage(
-        session,
-        folders,
-        `Upload failed: ${errorMessage(e)}`,
-      ),
+    return uploadPageError(
+      config,
+      session,
+      `Upload failed: ${errorMessage(e)}`,
     );
   }
 };
@@ -207,19 +216,11 @@ const handleMediaUploadUrl = (request: Request): Promise<Response> =>
       const folderId = (form.get("folderId") || "").trim();
 
       if (!url) {
-        const folders = await fetchFolders(config);
-        return htmlResponse(
-          mediaUploadPage(session, folders, "URL is required"),
-          400,
-        );
+        return uploadPageError(config, session, "URL is required", 400);
       }
 
       if (!name) {
-        const folders = await fetchFolders(config);
-        return htmlResponse(
-          mediaUploadPage(session, folders, "Name is required"),
-          400,
-        );
+        return uploadPageError(config, session, "Name is required", 400);
       }
 
       // Download the file from the URL
@@ -227,24 +228,18 @@ const handleMediaUploadUrl = (request: Request): Promise<Response> =>
       try {
         fileResponse = await fetch(url);
       } catch (e) {
-        const folders = await fetchFolders(config);
-        return htmlResponse(
-          mediaUploadPage(
-            session,
-            folders,
-            `Failed to download: ${errorMessage(e)}`,
-          ),
+        return uploadPageError(
+          config,
+          session,
+          `Failed to download: ${errorMessage(e)}`,
         );
       }
 
       if (!fileResponse.ok) {
-        const folders = await fetchFolders(config);
-        return htmlResponse(
-          mediaUploadPage(
-            session,
-            folders,
-            `Download failed: HTTP ${fileResponse.status}`,
-          ),
+        return uploadPageError(
+          config,
+          session,
+          `Download failed: HTTP ${fileResponse.status}`,
         );
       }
 
@@ -271,13 +266,10 @@ const handleMediaUploadUrl = (request: Request): Promise<Response> =>
           `Uploaded "${name}" from URL`,
         );
       } catch (e) {
-        const folders = await fetchFolders(config);
-        return htmlResponse(
-          mediaUploadPage(
-            session,
-            folders,
-            `Upload failed: ${errorMessage(e)}`,
-          ),
+        return uploadPageError(
+          config,
+          session,
+          `Upload failed: ${errorMessage(e)}`,
         );
       }
     }),
