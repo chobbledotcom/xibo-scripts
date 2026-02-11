@@ -2,7 +2,9 @@
  * Admin user management routes - manager or above
  */
 
+import { filter } from "#fp";
 import { unwrapKeyWithToken } from "#lib/crypto.ts";
+import { logActivity } from "#lib/db/activityLog.ts";
 import {
   activateUser,
   createInvitedUser,
@@ -60,6 +62,14 @@ const toDisplayUser = async (
   hasDataKey: user.wrapped_data_key !== null,
 });
 
+/** Managers see only user-role users; owners see everyone */
+const filterUsersForRole = (
+  actorRole: AdminLevel,
+): (users: DisplayUser[]) => DisplayUser[] =>
+  actorRole === "owner"
+    ? (users) => users
+    : filter((u: DisplayUser) => u.adminLevel === "user");
+
 /**
  * Render users page with current state
  */
@@ -70,7 +80,8 @@ const renderUsersPage = async (
   success?: string,
 ): Promise<string> => {
   const users = await getAllUsers();
-  const displayUsers = await Promise.all(users.map(toDisplayUser));
+  const allDisplay = await Promise.all(users.map(toDisplayUser));
+  const displayUsers = filterUsersForRole(session.adminLevel)(allDisplay);
   return adminUsersPage(displayUsers, session, inviteLink, error, success);
 };
 
@@ -97,7 +108,7 @@ const handleUsersGet = (request: Request): Promise<Response> =>
  */
 const handleUsersPost = (request: Request): Promise<Response> =>
   withManagerAuthForm(request, async (session, form) => {
-    const validation = validateForm<InviteUserFormValues>(form, inviteUserFields);
+    const validation = validateForm<InviteUserFormValues>(form, inviteUserFields(session.adminLevel));
     if (!validation.valid) {
       return htmlResponse(
         await renderUsersPage(session, undefined, validation.error),
@@ -152,6 +163,8 @@ const handleUsersPost = (request: Request): Promise<Response> =>
       codeHash,
       expiry,
     );
+
+    await logActivity(`Invited user "${username}" with role "${adminLevel}"`);
 
     const domain = getAllowedDomain();
     const inviteLink = `https://${domain}/join/${inviteCode}`;
@@ -240,6 +253,8 @@ const handleUserActivate = (
 
     await activateUser(userId, dataKey, decryptedPasswordHash);
 
+    await logActivity(`Activated user ${userId}`);
+
     return redirectWithSuccess("/admin/users", "User activated successfully");
   });
 
@@ -265,6 +280,8 @@ const handleUserDelete = (
     }
 
     await deleteUser(userId);
+
+    await logActivity(`Deleted user ${userId}`);
 
     return redirectWithSuccess("/admin/users", "User deleted successfully");
   });

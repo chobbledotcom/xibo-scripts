@@ -8,7 +8,7 @@ import { defineRoutes } from "#routes/router.ts";
 import {
   htmlResponse,
   redirect,
-  requireOwnerOr,
+  requireOwnerOnly,
   withOwnerAuthForm,
 } from "#routes/utils.ts";
 import { Layout } from "#templates/layout.tsx";
@@ -37,7 +37,7 @@ const sessionsPage = (
  * Handle GET /admin/sessions
  */
 const handleSessionsGet = (request: Request): Promise<Response> =>
-  requireOwnerOr(request, async (session) => {
+  requireOwnerOnly(request, async (session) => {
     const sessions = await getAllSessions();
     return htmlResponse(sessionsPage(sessions.length, session));
   });

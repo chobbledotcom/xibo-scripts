@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "#test-compat";
+import { getAllActivityLog } from "#lib/db/activityLog.ts";
 import { getDb } from "#lib/db/client.ts";
 import { createSession } from "#lib/db/sessions.ts";
 import {
@@ -674,6 +675,70 @@ describe("admin users management", () => {
       expect(response.status).toBe(302);
       const location = response.headers.get("location")!;
       expect(decodeURIComponent(location)).toContain("/join/");
+    });
+  });
+
+  describe("audit logging", () => {
+    it("logs activity when user is invited", async () => {
+      await handle(
+        mockFormRequest(
+          "/admin/users",
+          { username: "audituser", admin_level: "manager", csrf_token: csrfToken },
+          cookie,
+        ),
+      );
+
+      const logs = await getAllActivityLog();
+      expect(logs.length).toBeGreaterThan(0);
+      expect(logs[0]!.message).toContain("Invited user");
+      expect(logs[0]!.message).toContain("audituser");
+    });
+
+    it("logs activity when user is activated", async () => {
+      await handle(
+        mockFormRequest(
+          "/admin/users",
+          { username: "activateaudit", admin_level: "manager", csrf_token: csrfToken },
+          cookie,
+        ),
+      );
+      await setUserPassword(2, "newpassword123");
+
+      await handle(
+        mockFormRequest(
+          "/admin/users/2/activate",
+          { csrf_token: csrfToken },
+          cookie,
+        ),
+      );
+
+      const logs = await getAllActivityLog();
+      const activateLog = logs.find((l) => l.message.includes("Activated"));
+      expect(activateLog).not.toBeNull();
+      expect(activateLog!.message).toContain("Activated user 2");
+    });
+
+    it("logs activity when user is deleted", async () => {
+      await handle(
+        mockFormRequest(
+          "/admin/users",
+          { username: "deleteaudit", admin_level: "manager", csrf_token: csrfToken },
+          cookie,
+        ),
+      );
+
+      await handle(
+        mockFormRequest(
+          "/admin/users/2/delete",
+          { csrf_token: csrfToken },
+          cookie,
+        ),
+      );
+
+      const logs = await getAllActivityLog();
+      const deleteLog = logs.find((l) => l.message.includes("Deleted"));
+      expect(deleteLog).not.toBeNull();
+      expect(deleteLog!.message).toContain("Deleted user 2");
     });
   });
 

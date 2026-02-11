@@ -357,7 +357,7 @@ const sessionWithRole = (check: RoleCheck) =>
       requireRole(check, session, handler));
 
 /** Require owner role - returns 403 if not owner, redirect if not authenticated */
-export const requireOwnerOr = sessionWithRole(isOwner);
+export const requireOwnerOnly = sessionWithRole(isOwner);
 
 /** Require manager or above - returns 403 if user role, redirect if not authenticated */
 export const requireManagerOrAbove = sessionWithRole(isManagerOrAbove);

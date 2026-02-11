@@ -53,7 +53,7 @@ export const adminUsersPage = (
       <h2>Invite New User</h2>
       <form method="POST" action="/admin/users">
         <input type="hidden" name="csrf_token" value={session.csrfToken} />
-        <Raw html={renderFields(inviteUserFields)} />
+        <Raw html={renderFields(inviteUserFields(session.adminLevel))} />
         <button type="submit">Create Invite</button>
       </form>
 

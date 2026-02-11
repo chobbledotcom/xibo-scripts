@@ -115,20 +115,25 @@ describe("database layer", () => {
 
     it("business_users table enforces composite primary key", async () => {
       const { getDb } = await import("#lib/db/client.ts");
+      // Create parent records for FK constraints
+      await getDb().execute({
+        sql: "INSERT INTO users (username_hash, username_index, password_hash, admin_level) VALUES (?, ?, ?, ?)",
+        args: ["u1", "idx1", "", "user"],
+      });
       await getDb().execute({
         sql: "INSERT INTO businesses (name, created_at) VALUES (?, ?)",
         args: ["enc:biz", "enc:now"],
       });
       await getDb().execute({
         sql: "INSERT INTO business_users (business_id, user_id) VALUES (?, ?)",
-        args: [1, 100],
+        args: [1, 1],
       });
       // Duplicate should fail
       let threw = false;
       try {
         await getDb().execute({
           sql: "INSERT INTO business_users (business_id, user_id) VALUES (?, ?)",
-          args: [1, 100],
+          args: [1, 1],
         });
       } catch {
         threw = true;
@@ -138,17 +143,26 @@ describe("database layer", () => {
 
     it("business_users allows multiple users per business", async () => {
       const { getDb } = await import("#lib/db/client.ts");
+      // Create parent records for FK constraints
+      await getDb().execute({
+        sql: "INSERT INTO users (username_hash, username_index, password_hash, admin_level) VALUES (?, ?, ?, ?)",
+        args: ["u1", "idx1", "", "user"],
+      });
+      await getDb().execute({
+        sql: "INSERT INTO users (username_hash, username_index, password_hash, admin_level) VALUES (?, ?, ?, ?)",
+        args: ["u2", "idx2", "", "user"],
+      });
       await getDb().execute({
         sql: "INSERT INTO businesses (name, created_at) VALUES (?, ?)",
         args: ["enc:biz", "enc:now"],
       });
       await getDb().execute({
         sql: "INSERT INTO business_users (business_id, user_id) VALUES (?, ?)",
-        args: [1, 100],
+        args: [1, 1],
       });
       await getDb().execute({
         sql: "INSERT INTO business_users (business_id, user_id) VALUES (?, ?)",
-        args: [1, 200],
+        args: [1, 2],
       });
       const result = await getDb().execute("SELECT * FROM business_users WHERE business_id = 1");
       expect(result.rows.length).toBe(2);

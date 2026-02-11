@@ -7,7 +7,7 @@ import { getDb } from "#lib/db/client.ts";
 /**
  * The latest database update identifier - update this when changing schema
  */
-export const LATEST_UPDATE = "add multi-tenant tables";
+export const LATEST_UPDATE = "add multi-tenant tables with fk and indexes";
 
 /**
  * Run a migration that may fail if already applied (e.g., adding a column that exists)
@@ -124,29 +124,39 @@ export const initDb = async (): Promise<void> => {
   // Create business_users mapping table (many-to-many)
   await runMigration(`
     CREATE TABLE IF NOT EXISTS business_users (
-      business_id INTEGER NOT NULL,
-      user_id INTEGER NOT NULL,
+      business_id INTEGER NOT NULL REFERENCES businesses(id),
+      user_id INTEGER NOT NULL REFERENCES users(id),
       PRIMARY KEY (business_id, user_id)
     )
   `);
+
+  // Index for reverse lookup: find all businesses for a given user
+  await runMigration(
+    `CREATE INDEX IF NOT EXISTS idx_business_users_user ON business_users(user_id)`,
+  );
 
   // Create screens table (belong to a business, map to Xibo displays)
   await runMigration(`
     CREATE TABLE IF NOT EXISTS screens (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      business_id INTEGER NOT NULL,
+      business_id INTEGER NOT NULL REFERENCES businesses(id),
       xibo_display_id INTEGER,
       created_at TEXT NOT NULL
     )
   `);
+
+  // Index for screens by business
+  await runMigration(
+    `CREATE INDEX IF NOT EXISTS idx_screens_business ON screens(business_id)`,
+  );
 
   // Create menu_screens table (user-configured, each becomes a Xibo layout)
   await runMigration(`
     CREATE TABLE IF NOT EXISTS menu_screens (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      screen_id INTEGER NOT NULL,
+      screen_id INTEGER NOT NULL REFERENCES screens(id),
       template_id TEXT NOT NULL,
       display_time INTEGER NOT NULL,
       sort_order INTEGER NOT NULL,
@@ -154,6 +164,11 @@ export const initDb = async (): Promise<void> => {
       created_at TEXT NOT NULL
     )
   `);
+
+  // Index for menu_screens by screen
+  await runMigration(
+    `CREATE INDEX IF NOT EXISTS idx_menu_screens_screen ON menu_screens(screen_id)`,
+  );
 
   // Update the version marker
   await getDb().execute({
