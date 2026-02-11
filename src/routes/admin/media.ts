@@ -11,6 +11,7 @@ import {
   loadXiboConfig,
   postMultipart,
 } from "#xibo/client.ts";
+import type { AdminLevel } from "#lib/types.ts";
 import type { XiboConfig, XiboFolder, XiboMedia } from "#xibo/types.ts";
 import { defineRoutes } from "#routes/router.ts";
 import {
@@ -53,7 +54,7 @@ const fetchMedia = (config: XiboConfig): Promise<XiboMedia[]> =>
  * Render upload page with an error, fetching folders for the form.
  */
 const uploadError = async (
-  session: { csrfToken: string; adminLevel: string },
+  session: { csrfToken: string; adminLevel: AdminLevel },
   config: XiboConfig,
   message: string,
   status = 200,
@@ -66,7 +67,7 @@ const uploadError = async (
  * Build upload FormData, send to Xibo, and handle success/error.
  */
 const performUpload = async (
-  session: { csrfToken: string; adminLevel: string },
+  session: { csrfToken: string; adminLevel: AdminLevel },
   config: XiboConfig,
   file: File,
   name: string,

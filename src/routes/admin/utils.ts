@@ -159,9 +159,9 @@ export const formRouteP = <T>(
   ) => Promise<Response>,
 ): ParamHandler =>
 (request, params) =>
-  withXiboForm(request, async (_session, form, config) => {
+  withXiboForm(request, (_session, form, config) => {
     const v = validateForm<T>(form, fields);
-    if (!v.valid) return htmlResponse(v.error, 400);
+    if (!v.valid) return Promise.resolve(htmlResponse(v.error, 400));
     return handler(v.values, config, params);
   });
 

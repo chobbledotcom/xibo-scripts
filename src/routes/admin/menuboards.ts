@@ -147,7 +147,7 @@ const boardRoute = (
     request: Request,
   ) => Promise<Response>,
 ) =>
-  detailRoute(async (session, config, params, request) =>
+  detailRoute((session, config, params, request) =>
     withBoard(config, params[paramName]!, (board) =>
       handler(session, config, board, request)),
   );
@@ -164,7 +164,7 @@ const boardCategoryRoute = (
     params: Record<string, string | undefined>,
   ) => Promise<Response>,
 ) =>
-  detailRoute(async (session, config, params) =>
+  detailRoute((session, config, params) =>
     withBoardCategory(config, params.boardId!, params[catParam]!,
       (board, category, categories) =>
         handler(session, config, board, category, categories, params)),
@@ -187,7 +187,7 @@ const deleteBoardChild = (
       );
       return redirectWithSuccess(
         `/admin/menuboard/${params.boardId}`,
-        `${entity[0].toUpperCase()}${entity.slice(1)} deleted`,
+        `${entity[0]!.toUpperCase()}${entity.slice(1)} deleted`,
       );
     },
   );
@@ -308,8 +308,8 @@ const handleBoardDetail = boardRoute(
 /** GET /admin/menuboard/:id/edit — edit board form */
 const handleBoardEdit = boardRoute(
   "id",
-  async (session, _config, board) =>
-    htmlResponse(menuBoardFormPage(session, board)),
+  (session, _config, board) =>
+    Promise.resolve(htmlResponse(menuBoardFormPage(session, board))),
 );
 
 /** POST /admin/menuboard/:id — update board */
@@ -344,10 +344,10 @@ const handleBoardDelete = formRouteP<Record<string, never>>(
 /** GET /admin/menuboard/:boardId/category/new — new category form */
 const handleCategoryNew = boardRoute(
   "boardId",
-  async (session, _config, board) =>
-    htmlResponse(
+  (session, _config, board) =>
+    Promise.resolve(htmlResponse(
       categoryFormPage(session, board.menuBoardId, board.name),
-    ),
+    )),
 );
 
 /** POST /admin/menuboard/:boardId/category — create category */
@@ -370,15 +370,15 @@ const handleCategoryCreate = formRouteP<CategoryFormValues>(
 /** GET /admin/menuboard/:boardId/category/:id/edit — edit category form */
 const handleCategoryEdit = boardCategoryRoute(
   "id",
-  async (session, _config, board, category, _categories, _params) =>
-    htmlResponse(
+  (session, _config, board, category, _categories, _params) =>
+    Promise.resolve(htmlResponse(
       categoryFormPage(
         session,
         board.menuBoardId,
         board.name,
         category,
       ),
-    ),
+    )),
 );
 
 /** POST /admin/menuboard/:boardId/category/:id — update category */
@@ -406,8 +406,8 @@ const handleCategoryDelete = deleteBoardChild("category", "category");
 /** GET /admin/menuboard/:boardId/category/:catId/product/new — new product form */
 const handleProductNew = boardCategoryRoute(
   "catId",
-  async (session, _config, board, category, _categories, _params) =>
-    htmlResponse(
+  (session, _config, board, category, _categories, _params) =>
+    Promise.resolve(htmlResponse(
       productFormPage(
         session,
         board.menuBoardId,
@@ -415,7 +415,7 @@ const handleProductNew = boardCategoryRoute(
         category.menuCategoryId,
         category.name,
       ),
-    ),
+    )),
 );
 
 /** POST /admin/menuboard/:boardId/category/:catId/product — create product */
@@ -487,7 +487,7 @@ export const menuBoardRoutes = defineRoutes({
   // Boards
   "GET /admin/menuboards": (request) => handleBoardList(request),
   "GET /admin/menuboard/new": (request) => handleBoardNew(request),
-  "POST /admin/menuboard": (request) => handleBoardCreate(request),
+  "POST /admin/menuboard": (request) => handleBoardCreate(request, {}),
   "GET /admin/menuboard/:id": (request, params) =>
     handleBoardDetail(request, params),
   "GET /admin/menuboard/:id/edit": (request, params) =>

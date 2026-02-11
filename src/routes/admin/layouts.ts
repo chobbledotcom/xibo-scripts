@@ -151,10 +151,8 @@ const handleLayoutDeleteAll = (request: Request): Promise<Response> =>
         await del(config, `layout/${layout.layoutId}`);
       }
       const count = layouts.length;
-      return redirectWithSuccess(
-        "/admin/layouts",
-        `Deleted ${count} layout${count !== 1 ? "s" : ""}`,
-      );
+      const msg = `Deleted ${count} layout${count !== 1 ? "s" : ""}`;
+      return redirectWithSuccess("/admin/layouts", msg);
     } catch (e) {
       const msg = `Delete failed: ${errorMessage(e)}`;
       return redirect(`/admin/layouts?error=${encodeURIComponent(msg)}`);
