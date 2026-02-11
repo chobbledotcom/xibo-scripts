@@ -64,7 +64,7 @@ export const cacheDelete = async (key: string): Promise<void> => {
 /**
  * Invalidate all cache entries whose key starts with `prefix`.
  * Useful for clearing an entire entity family after mutations:
- *   `cacheInvalidatePrefix("menuboards")` clears all menu board caches.
+ *   `cacheInvalidatePrefix("layout")` clears all layout caches.
  */
 export const cacheInvalidatePrefix = async (prefix: string): Promise<void> => {
   await getDb().execute({

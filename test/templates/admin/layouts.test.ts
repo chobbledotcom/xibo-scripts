@@ -4,15 +4,10 @@
 
 import { describe, expect, test } from "#test-compat";
 import {
-  layoutCreatePage,
   layoutDetailPage,
   layoutListPage,
 } from "#templates/admin/layouts.tsx";
-import type {
-  XiboCategory,
-  XiboLayout,
-  XiboMenuBoard,
-} from "#xibo/types.ts";
+import type { XiboLayout } from "#xibo/types.ts";
 import type { AdminSession } from "#lib/types.ts";
 
 const session: AdminSession = {
@@ -73,51 +68,6 @@ describe("layoutListPage", () => {
   test("renders error message", () => {
     const html = layoutListPage(session, [], undefined, "API failed");
     expect(html).toContain("API failed");
-  });
-});
-
-describe("layoutCreatePage", () => {
-  const boards: XiboMenuBoard[] = [
-    {
-      menuBoardId: 1,
-      name: "Main Menu",
-      code: "main",
-      description: "",
-      modifiedDt: "2024-01-01",
-    },
-  ];
-
-  const categoriesByBoard: Record<number, XiboCategory[]> = {
-    1: [
-      { menuCategoryId: 10, menuId: 1, name: "Burgers", code: "bg", mediaId: null },
-      { menuCategoryId: 11, menuId: 1, name: "Drinks", code: "dk", mediaId: null },
-    ],
-  };
-
-  test("renders form with board and category options", () => {
-    const html = layoutCreatePage(session, boards, categoriesByBoard);
-    expect(html).toContain("Create Layout");
-    expect(html).toContain("Main Menu");
-    expect(html).toContain("Burgers");
-    expect(html).toContain("Drinks");
-    expect(html).toContain("1:10");
-    expect(html).toContain("1:11");
-  });
-
-  test("renders grid preview", () => {
-    const html = layoutCreatePage(session, boards, categoriesByBoard);
-    expect(html).toContain("Preview");
-    expect(html).toContain("Header");
-  });
-
-  test("renders error message", () => {
-    const html = layoutCreatePage(session, [], {}, "Something broke");
-    expect(html).toContain("Something broke");
-  });
-
-  test("renders with empty boards", () => {
-    const html = layoutCreatePage(session, [], {});
-    expect(html).toContain("Select a category");
   });
 });
 

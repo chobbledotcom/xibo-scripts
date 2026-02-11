@@ -3,11 +3,7 @@
  */
 
 import type { AdminSession } from "#lib/types.ts";
-import type {
-  XiboCategory,
-  XiboLayout,
-  XiboMenuBoard,
-} from "#xibo/types.ts";
+import type { XiboLayout } from "#xibo/types.ts";
 import {
   calculateGridPositions,
   calculateHeaderPosition,
@@ -37,10 +33,6 @@ export const layoutListPage = (
 
       {success && <div class="success">{success}</div>}
       {error && <div class="error">{error}</div>}
-
-      <p>
-        <a href="/admin/layout/create">Create Layout</a>
-      </p>
 
       {layouts.length === 0
         ? <p>No layouts found.</p>
@@ -75,58 +67,6 @@ export const layoutListPage = (
           </table>
         )}
       <p>{layouts.length} layout{layouts.length !== 1 ? "s" : ""}</p>
-    </Layout>,
-  );
-
-/**
- * Layout creation form — select a menu board category to generate layout for
- */
-export const layoutCreatePage = (
-  session: AdminSession,
-  boards: XiboMenuBoard[],
-  categoriesByBoard: Record<number, XiboCategory[]>,
-  error?: string,
-): string =>
-  String(
-    <Layout title="Create Layout">
-      <AdminNav session={session} />
-      <Breadcrumb href="/admin/layouts" label="Layouts" />
-      <h2>Create Layout</h2>
-
-      {error && <div class="error">{error}</div>}
-
-      <section>
-        <p>
-          Select a menu board and category to auto-generate a 1080x1920
-          portrait layout with a header and 3x4 product grid.
-        </p>
-
-        <form method="POST" action="/admin/layout/create">
-          <input type="hidden" name="csrf_token" value={session.csrfToken} />
-          <label>
-            Menu Board &amp; Category
-            <select name="category" required>
-              <option value="">Select a category...</option>
-              {boards.map((board) => {
-                const cats = categoriesByBoard[board.menuBoardId] ?? [];
-                return cats.map((cat) => (
-                  <option
-                    value={`${board.menuBoardId}:${cat.menuCategoryId}`}
-                  >
-                    {board.name} &rarr; {cat.name}
-                  </option>
-                ));
-              })}
-            </select>
-          </label>
-          <button type="submit">Generate Layout</button>
-        </form>
-      </section>
-
-      <section>
-        <h3>Preview</h3>
-        <GridVisualization />
-      </section>
     </Layout>,
   );
 
@@ -192,7 +132,7 @@ export const layoutDetailPage = (
 /**
  * CSS grid visualization of the 1080x1920 layout (scaled down).
  *
- * Shows the header at top and 3x4 product grid below.
+ * Shows the header at top and 3x4 grid below.
  */
 const GridVisualization = (): JSX.Element => {
   const scale = 0.2;

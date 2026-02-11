@@ -5,13 +5,6 @@ import { adminLoginPage } from "#templates/admin/login.tsx";
 import { setupPage, setupCompletePage } from "#templates/setup.tsx";
 import { AdminNav, Breadcrumb } from "#templates/admin/nav.tsx";
 import {
-  menuBoardListPage,
-  menuBoardDetailPage,
-  menuBoardFormPage,
-  categoryFormPage,
-  productFormPage,
-} from "#templates/admin/menuboards.tsx";
-import {
   mediaListPage,
   mediaUploadPage,
   mediaDetailPage,
@@ -19,9 +12,6 @@ import {
 import type { AdminSession } from "#lib/types.ts";
 import type {
   DashboardStatus,
-  XiboMenuBoard,
-  XiboCategory,
-  XiboProduct,
   XiboMedia,
   XiboFolder,
 } from "#xibo/types.ts";
@@ -81,10 +71,9 @@ describe("AdminNav", () => {
     expect(html).not.toContain("/admin/users");
   });
 
-  it("always shows Dashboard, Menu Boards, Media, Layouts, Datasets, Logout", () => {
+  it("always shows Dashboard, Media, Layouts, Datasets, Logout", () => {
     const html = String(AdminNav({ session: managerSession }));
     expect(html).toContain("/admin/");
-    expect(html).toContain("/admin/menuboards");
     expect(html).toContain("/admin/media");
     expect(html).toContain("/admin/layouts");
     expect(html).toContain("/admin/datasets");
@@ -94,9 +83,9 @@ describe("AdminNav", () => {
 
 describe("Breadcrumb", () => {
   it("renders link with href and label", () => {
-    const html = String(Breadcrumb({ href: "/admin/menuboards", label: "Back to Menu Boards" }));
-    expect(html).toContain('href="/admin/menuboards"');
-    expect(html).toContain("Back to Menu Boards");
+    const html = String(Breadcrumb({ href: "/admin/layouts", label: "Back to Layouts" }));
+    expect(html).toContain('href="/admin/layouts"');
+    expect(html).toContain("Back to Layouts");
   });
 });
 
@@ -124,7 +113,6 @@ describe("adminDashboardPage", () => {
   const disconnected: DashboardStatus = {
     connected: false,
     version: null,
-    menuBoardCount: null,
     mediaCount: null,
     layoutCount: null,
     datasetCount: null,
@@ -133,7 +121,6 @@ describe("adminDashboardPage", () => {
   const connected: DashboardStatus = {
     connected: true,
     version: "3.1.0",
-    menuBoardCount: 5,
     mediaCount: 12,
     layoutCount: 3,
     datasetCount: 2,
@@ -153,7 +140,6 @@ describe("adminDashboardPage", () => {
 
   it("shows resource counts table when connected", () => {
     const html = adminDashboardPage(ownerSession, connected);
-    expect(html).toContain("5");
     expect(html).toContain("12");
     expect(html).toContain("3");
   });
@@ -161,7 +147,6 @@ describe("adminDashboardPage", () => {
   it("shows Quick Links", () => {
     const html = adminDashboardPage(ownerSession, disconnected);
     expect(html).toContain("Quick Links");
-    expect(html).toContain("/admin/menuboards");
     expect(html).toContain("/admin/media");
   });
 });
@@ -259,165 +244,6 @@ describe("escapeHtml", () => {
     const input = "Hello World 123";
     const result = escapeHtml(input);
     expect(result).toBe("Hello World 123");
-  });
-});
-
-describe("menuBoardListPage", () => {
-  it("renders empty list with 'No menu boards'", () => {
-    const html = menuBoardListPage(ownerSession, []);
-    expect(html).toContain("No menu boards");
-    expect(html).toContain("Menu Boards");
-  });
-
-  it("renders board list with board names", () => {
-    const boards: XiboMenuBoard[] = [
-      { menuBoardId: 1, name: "Lunch Menu", code: "LM", description: "Lunch items", modifiedDt: "2024-01-01" },
-      { menuBoardId: 2, name: "Dinner Menu", code: "DM", description: "Dinner items", modifiedDt: "2024-01-02" },
-    ];
-    const html = menuBoardListPage(ownerSession, boards);
-    expect(html).toContain("Lunch Menu");
-    expect(html).toContain("Dinner Menu");
-    expect(html).toContain("/admin/menuboard/1");
-    expect(html).toContain("/admin/menuboard/2");
-    expect(html).toContain("LM");
-    expect(html).toContain("DM");
-  });
-
-  it("shows success message", () => {
-    const html = menuBoardListPage(ownerSession, [], "Board created!");
-    expect(html).toContain("Board created!");
-    expect(html).toContain('class="success"');
-  });
-
-  it("shows error message", () => {
-    const html = menuBoardListPage(ownerSession, [], undefined, "Something went wrong");
-    expect(html).toContain("Something went wrong");
-    expect(html).toContain('class="error"');
-  });
-});
-
-describe("menuBoardDetailPage", () => {
-  it("renders board detail with categories and products", () => {
-    const board: XiboMenuBoard = {
-      menuBoardId: 10,
-      name: "Brunch Board",
-      code: "BB",
-      description: "Weekend brunch",
-      modifiedDt: "2024-03-15",
-    };
-    const categories: XiboCategory[] = [
-      { menuCategoryId: 100, menuId: 10, name: "Beverages", code: "BEV", mediaId: null },
-      { menuCategoryId: 101, menuId: 10, name: "Entrees", code: "ENT", mediaId: null },
-    ];
-    const productsByCategory: Record<number, XiboProduct[]> = {
-      100: [
-        {
-          menuProductId: 1000,
-          menuCategoryId: 100,
-          name: "Coffee",
-          price: "3.50",
-          calories: "5",
-          allergyInfo: "",
-          availability: 1,
-          description: "Fresh brewed",
-          mediaId: null,
-        },
-      ],
-      101: [],
-    };
-    const html = menuBoardDetailPage(ownerSession, board, categories, productsByCategory);
-    expect(html).toContain("Brunch Board");
-    expect(html).toContain("BB");
-    expect(html).toContain("Weekend brunch");
-    expect(html).toContain("Beverages");
-    expect(html).toContain("Entrees");
-    expect(html).toContain("Coffee");
-    expect(html).toContain("3.50");
-    expect(html).toContain("Edit Board");
-    expect(html).toContain("Delete Board");
-    expect(html).toContain("Add Category");
-    expect(html).toContain("Add Product");
-    expect(html).toContain("/admin/menuboard/10/edit");
-    expect(html).toContain("/admin/menuboard/10/category/100/edit");
-  });
-});
-
-describe("menuBoardFormPage", () => {
-  it("renders new form", () => {
-    const html = menuBoardFormPage(ownerSession);
-    expect(html).toContain("New Menu Board");
-    expect(html).toContain('action="/admin/menuboard"');
-    expect(html).toContain("Create");
-    expect(html).toContain('name="csrf_token"');
-    expect(html).toContain('value="csrf-123"');
-  });
-
-  it("renders edit form with board data", () => {
-    const board: XiboMenuBoard = {
-      menuBoardId: 5,
-      name: "Test Board",
-      code: "TB",
-      description: "A test",
-      modifiedDt: "2024-01-01",
-    };
-    const html = menuBoardFormPage(ownerSession, board);
-    expect(html).toContain("Edit Test Board");
-    expect(html).toContain('action="/admin/menuboard/5"');
-    expect(html).toContain("Save Changes");
-    expect(html).toContain('value="csrf-123"');
-  });
-});
-
-describe("categoryFormPage", () => {
-  it("renders new category form", () => {
-    const html = categoryFormPage(ownerSession, 10, "My Board");
-    expect(html).toContain("New Category");
-    expect(html).toContain('action="/admin/menuboard/10/category"');
-    expect(html).toContain("Create");
-    expect(html).toContain("My Board");
-  });
-
-  it("renders edit category form", () => {
-    const category: XiboCategory = {
-      menuCategoryId: 20,
-      menuId: 10,
-      name: "Drinks",
-      code: "DRK",
-      mediaId: null,
-    };
-    const html = categoryFormPage(ownerSession, 10, "My Board", category);
-    expect(html).toContain("Edit Drinks");
-    expect(html).toContain('action="/admin/menuboard/10/category/20"');
-    expect(html).toContain("Save Changes");
-  });
-});
-
-describe("productFormPage", () => {
-  it("renders new product form", () => {
-    const html = productFormPage(ownerSession, 10, "My Board", 20, "Drinks");
-    expect(html).toContain("New Product");
-    expect(html).toContain('action="/admin/menuboard/10/category/20/product"');
-    expect(html).toContain("Create");
-    expect(html).toContain("in Drinks");
-  });
-
-  it("renders edit product form", () => {
-    const product: XiboProduct = {
-      menuProductId: 30,
-      menuCategoryId: 20,
-      name: "Latte",
-      price: "4.50",
-      calories: "200",
-      allergyInfo: "milk",
-      availability: 1,
-      description: "Creamy latte",
-      mediaId: null,
-    };
-    const html = productFormPage(ownerSession, 10, "My Board", 20, "Drinks", product);
-    expect(html).toContain("Edit Latte");
-    expect(html).toContain('action="/admin/menuboard/10/category/20/product/30"');
-    expect(html).toContain("Save Changes");
-    expect(html).toContain("in Drinks");
   });
 });
 

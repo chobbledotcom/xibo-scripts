@@ -41,12 +41,6 @@ const ConnectionStatus = (
         <tbody>
           <tr>
             <td>
-              <a href="/admin/menuboards">Menu Boards</a>
-            </td>
-            <td>{status.menuBoardCount ?? "—"}</td>
-          </tr>
-          <tr>
-            <td>
               <a href="/admin/media">Media</a>
             </td>
             <td>{status.mediaCount ?? "—"}</td>
@@ -90,10 +84,6 @@ export const adminDashboardPage = (
       <section>
         <h3>Quick Links</h3>
         <ul>
-          <li>
-            <a href="/admin/menuboards">Menu Boards</a>{" "}
-            - Manage menu boards, categories, and products
-          </li>
           <li>
             <a href="/admin/media">Media Library</a>{" "}
             - Upload and manage media files

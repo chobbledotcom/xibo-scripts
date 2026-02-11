@@ -19,9 +19,6 @@ export const AdminNav = ({ session }: AdminNavProps = {}): JSX.Element => (
         <a href="/admin/">Dashboard</a>
       </li>
       <li>
-        <a href="/admin/menuboards">Menu Boards</a>
-      </li>
-      <li>
         <a href="/admin/media">Media</a>
       </li>
       <li>

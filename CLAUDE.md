@@ -2,7 +2,7 @@
 
 A web-based Xibo CMS management tool using Bunny Edge Scripting and libsql.
 
-Manages menu boards, media library, layouts, and datasets in a Xibo CMS instance through an admin web interface deployed to the CDN edge.
+Manages media library, layouts, and datasets in a Xibo CMS instance through an admin web interface deployed to the CDN edge.
 
 ## Getting Started
 
@@ -180,7 +180,6 @@ Tests in `test/lib/xibo/` run against a real Xibo CMS instance using env vars (`
 - **Clean up after yourself** — if a test creates an entity (dataset, layout, media), delete it at the end
 - **Combine related assertions** in a single test when they share setup (e.g., create + update + delete in one test) to minimize API round-trips
 - **Use `dataset` for CRUD tests** — datasets have no dependencies and are available on all CMS instances
-- **Menu Board module may not be installed** — the `menuboard` API endpoint can return 500; tests should handle this gracefully
 
 ### Anti-Patterns to Avoid
 
@@ -212,4 +211,4 @@ import { cacheGet, cacheSet, cacheInvalidateAll } from "#xibo/cache.ts";
 
 ## Domain Context
 
-This tool manages a Xibo CMS that drives digital signage layouts. The primary entities are **layouts** (the main display format), **media** (images/videos in the library), and **datasets** (structured data). Menu boards were originally planned but the CMS module may not be available — layouts are the core entity we work with. Always base new work on the existing codebase patterns and code, not on assumptions.
+This tool manages a Xibo CMS that drives digital signage layouts. The primary entities are **layouts** (the main display format), **media** (images/videos in the library), and **datasets** (structured data). Always base new work on the existing codebase patterns and code, not on assumptions.

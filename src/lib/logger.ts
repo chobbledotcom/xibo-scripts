@@ -45,7 +45,7 @@ export type ErrorCodeType = (typeof ErrorCode)[keyof typeof ErrorCode];
  * Replaces numeric IDs in admin paths
  */
 export const redactPath = (path: string): string => {
-  // Redact numeric IDs in admin paths: /admin/menuboards/123 -> /admin/menuboards/[id]
+  // Redact numeric IDs in admin paths: /admin/layouts/123 -> /admin/layouts/[id]
   return path.replace(/\/(\d+)(\/|$)/g, "/[id]$2");
 };
 

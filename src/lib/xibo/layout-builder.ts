@@ -1,8 +1,8 @@
 /**
- * Layout builder — generates 1080x1920 portrait menu board layouts
+ * Layout builder — generates 1080x1920 portrait layouts
  *
- * Ports the Ruby LayoutBuilder to TypeScript. Creates layouts with a
- * header region at top and a 3x4 product grid filling the remaining space.
+ * Creates layouts with a header region at top and a 3x4 grid
+ * filling the remaining space.
  */
 
 import { logActivity } from "#lib/db/activityLog.ts";
@@ -114,7 +114,7 @@ export const layoutStatusLabel = (status: number): string =>
   LAYOUT_STATUS_LABELS[status] ?? `Unknown (${status})`;
 
 /**
- * Create a full menu board layout with header and product grid.
+ * Create a full layout with header and grid.
  *
  * 1. Get or create 1080x1920 resolution
  * 2. Create layout
@@ -138,7 +138,7 @@ export const createMenuLayout = async (
   const layoutName = `Menu - ${categoryName}`;
   const layout = await post<XiboLayout>(config, "layout", {
     name: layoutName,
-    description: `Auto-generated menu board layout for ${categoryName}`,
+    description: `Auto-generated layout for ${categoryName}`,
     resolutionId: resolution.resolutionId,
   });
 

@@ -565,9 +565,6 @@ describe("xibo-unit", () => {
             if (url.includes("/api/about")) {
               return jsonResponse({ version: "3.2.1" });
             }
-            if (url.includes("/api/menuboard")) {
-              return jsonResponse([{ id: 1 }, { id: 2 }]);
-            }
             if (url.includes("/api/library")) {
               return jsonResponse([{ id: 1 }]);
             }
@@ -584,7 +581,6 @@ describe("xibo-unit", () => {
           const status = await getDashboardStatus(MOCK_CONFIG);
           expect(status.connected).toBe(true);
           expect(status.version).toBe("3.2.1");
-          expect(status.menuBoardCount).toBe(2);
           expect(status.mediaCount).toBe(1);
           expect(status.layoutCount).toBe(3);
           expect(status.datasetCount).toBe(0);
@@ -604,7 +600,7 @@ describe("xibo-unit", () => {
           const status = await getDashboardStatus(MOCK_CONFIG);
           expect(status.connected).toBe(false);
           expect(status.version).toBeNull();
-          expect(status.menuBoardCount).toBeNull();
+
           expect(status.mediaCount).toBeNull();
           expect(status.layoutCount).toBeNull();
           expect(status.datasetCount).toBeNull();
@@ -954,7 +950,7 @@ describe("xibo-unit", () => {
           const status = await getDashboardStatus(MOCK_CONFIG);
           expect(status.connected).toBe(false);
           expect(status.version).toBeNull();
-          expect(status.menuBoardCount).toBeNull();
+
           expect(status.mediaCount).toBeNull();
           expect(status.layoutCount).toBeNull();
           expect(status.datasetCount).toBeNull();
@@ -971,12 +967,9 @@ describe("xibo-unit", () => {
             if (url.includes("/api/about")) {
               return jsonResponse({ version: "3.2.1" });
             }
-            if (url.includes("/api/menuboard")) {
-              // menuboard endpoint fails
-              return new Response("Module not installed", { status: 500 });
-            }
             if (url.includes("/api/library")) {
-              return jsonResponse([{ id: 1 }, { id: 2 }]);
+              // library endpoint fails
+              return new Response("Server Error", { status: 500 });
             }
             if (url.includes("/api/layout")) {
               return jsonResponse([{ id: 1 }]);
@@ -991,10 +984,9 @@ describe("xibo-unit", () => {
           const status = await getDashboardStatus(MOCK_CONFIG);
           expect(status.connected).toBe(true);
           expect(status.version).toBe("3.2.1");
-          // menuboard failed, so count is null
-          expect(status.menuBoardCount).toBeNull();
+          // library failed, so count is null
+          expect(status.mediaCount).toBeNull();
           // other counts succeeded
-          expect(status.mediaCount).toBe(2);
           expect(status.layoutCount).toBe(1);
           expect(status.datasetCount).toBe(3);
         } finally {

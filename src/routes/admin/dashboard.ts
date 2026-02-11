@@ -17,7 +17,6 @@ export const loginResponse = (error?: string, status = 200) =>
 const DISCONNECTED_STATUS: DashboardStatus = {
   connected: false,
   version: null,
-  menuBoardCount: null,
   mediaCount: null,
   layoutCount: null,
   datasetCount: null,

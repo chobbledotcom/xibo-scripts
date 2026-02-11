@@ -337,7 +337,7 @@ export const getRaw = async (
  */
 const invalidateCacheForEndpoint = async (endpoint: string): Promise<void> => {
   // Extract the first path segment as the entity prefix, e.g.
-  // "menuboard/5/category" → "menuboard"
+  // "layout/5/region" → "layout"
   const prefix = endpoint.split("/")[0];
   if (prefix) {
     await cacheInvalidatePrefix(prefix);
@@ -381,7 +381,6 @@ export const getDashboardStatus = async (
   const empty: DashboardStatus = {
     connected: false,
     version: null,
-    menuBoardCount: null,
     mediaCount: null,
     layoutCount: null,
     datasetCount: null,
@@ -404,7 +403,6 @@ export const getDashboardStatus = async (
 
   // Fetch counts in parallel — each uses its own cache key
   const countEndpoints = [
-    "menuboard",
     "library",
     "layout",
     "dataset",
@@ -422,7 +420,6 @@ export const getDashboardStatus = async (
   );
 
   const [
-    menuBoardCount = null,
     mediaCount = null,
     layoutCount = null,
     datasetCount = null,
@@ -431,7 +428,6 @@ export const getDashboardStatus = async (
   return {
     connected: true,
     version,
-    menuBoardCount,
     mediaCount,
     layoutCount,
     datasetCount,

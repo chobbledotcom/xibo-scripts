@@ -98,12 +98,12 @@ describe("xibo/cache", () => {
 
   describe("cacheInvalidatePrefix", () => {
     it("removes all keys matching prefix", async () => {
-      await cacheSet("menuboard_list", "boards");
-      await cacheSet("menuboard_5", "board5");
+      await cacheSet("layout_list", "layouts");
+      await cacheSet("layout_5", "layout5");
       await cacheSet("library_list", "media");
-      await cacheInvalidatePrefix("menuboard");
-      expect(await cacheGet("menuboard_list")).toBeNull();
-      expect(await cacheGet("menuboard_5")).toBeNull();
+      await cacheInvalidatePrefix("layout");
+      expect(await cacheGet("layout_list")).toBeNull();
+      expect(await cacheGet("layout_5")).toBeNull();
       expect(await cacheGet("library_list")).toBe("media");
     });
   });

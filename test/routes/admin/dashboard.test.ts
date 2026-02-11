@@ -93,7 +93,6 @@ describe("dashboard", () => {
       const res = await handle(mockRequest("/admin", { headers: { cookie } }));
       const body = await res.text();
       expect(body).toContain("Quick Links");
-      expect(body).toContain("/admin/menuboards");
       expect(body).toContain("/admin/media");
     });
   });
@@ -105,7 +104,6 @@ describe("dashboard", () => {
         if (url.includes("/api/authorize/access_token")) return tokenResponse();
         if (url.includes("/api/about"))
           return jsonResponse({ version: "3.2.1" });
-        if (url.includes("/api/menuboard")) return jsonResponse([{}, {}]);
         if (url.includes("/api/library")) return jsonResponse([{}]);
         if (url.includes("/api/layout")) return jsonResponse([{}, {}, {}]);
         if (url.includes("/api/dataset")) return jsonResponse([]);

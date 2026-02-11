@@ -18,14 +18,14 @@ import {
 describe("logger", () => {
   describe("redactPath", () => {
     test("redacts numeric IDs in admin paths", () => {
-      expect(redactPath("/admin/menuboards/123")).toBe(
-        "/admin/menuboards/[id]",
+      expect(redactPath("/admin/layouts/123")).toBe(
+        "/admin/layouts/[id]",
       );
     });
 
     test("redacts multiple numeric IDs", () => {
-      expect(redactPath("/admin/menuboards/123/categories/456")).toBe(
-        "/admin/menuboards/[id]/categories/[id]",
+      expect(redactPath("/admin/layouts/123/regions/456")).toBe(
+        "/admin/layouts/[id]/regions/[id]",
       );
     });
 
@@ -55,13 +55,13 @@ describe("logger", () => {
     test("logs request with redacted path", () => {
       logRequest({
         method: "GET",
-        path: "/admin/menuboards/42",
+        path: "/admin/layouts/42",
         status: 200,
         durationMs: 42,
       });
 
       expect(debugSpy).toHaveBeenCalledWith(
-        "[Request] GET /admin/menuboards/[id] 200 42ms",
+        "[Request] GET /admin/layouts/[id] 200 42ms",
       );
     });
 
@@ -140,9 +140,9 @@ describe("logger", () => {
     });
 
     test("logs with Xibo category", () => {
-      logDebug("Xibo", "Fetching menu boards");
+      logDebug("Xibo", "Fetching layouts");
 
-      expect(debugSpy).toHaveBeenCalledWith("[Xibo] Fetching menu boards");
+      expect(debugSpy).toHaveBeenCalledWith("[Xibo] Fetching layouts");
     });
   });
 

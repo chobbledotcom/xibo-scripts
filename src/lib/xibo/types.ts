@@ -15,37 +15,6 @@ export type XiboApiError = {
   message: string;
 };
 
-/** Menu board */
-export type XiboMenuBoard = {
-  menuBoardId: number;
-  name: string;
-  code: string;
-  description: string;
-  modifiedDt: string;
-};
-
-/** Menu board category */
-export type XiboCategory = {
-  menuCategoryId: number;
-  menuId: number;
-  name: string;
-  code: string;
-  mediaId: number | null;
-};
-
-/** Menu board product */
-export type XiboProduct = {
-  menuProductId: number;
-  menuCategoryId: number;
-  name: string;
-  price: string;
-  calories: string;
-  allergyInfo: string;
-  availability: number;
-  description: string;
-  mediaId: number | null;
-};
-
 /** Media library item */
 export type XiboMedia = {
   mediaId: number;
@@ -149,7 +118,6 @@ export type XiboAbout = {
 export type DashboardStatus = {
   connected: boolean;
   version: string | null;
-  menuBoardCount: number | null;
   mediaCount: number | null;
   layoutCount: number | null;
   datasetCount: number | null;
