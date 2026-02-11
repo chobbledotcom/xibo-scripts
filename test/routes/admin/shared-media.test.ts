@@ -12,11 +12,15 @@ import {
   test,
 } from "#test-compat";
 import {
+  createMockFetch,
   createTestDbWithSetup,
+  handle,
+  jsonResponse,
   loginAsAdmin,
   mockFormRequest,
   mockRequest,
   resetDb,
+  restoreFetch,
 } from "#test-utils";
 import {
   invalidateSettingsCache,
@@ -68,49 +72,6 @@ const otherMedia: XiboMedia[] = [
   },
 ];
 
-/** Original fetch for restore */
-const originalFetch = globalThis.fetch;
-
-const createMockFetch = (
-  handlers: Record<
-    string,
-    (url: string, init?: RequestInit) => Response | Promise<Response>
-  >,
-): typeof globalThis.fetch =>
-  (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const url = typeof input === "string"
-      ? input
-      : input instanceof URL
-      ? input.toString()
-      : input.url;
-
-    if (url.includes("/api/authorize/access_token")) {
-      return Promise.resolve(
-        new Response(
-          JSON.stringify({
-            access_token: "test-token",
-            token_type: "Bearer",
-            expires_in: 3600,
-          }),
-          { headers: { "content-type": "application/json" } },
-        ),
-      );
-    }
-
-    for (const [pattern, handler] of Object.entries(handlers)) {
-      if (url.includes(pattern)) {
-        return Promise.resolve(handler(url, init));
-      }
-    }
-
-    return originalFetch(input, init);
-  };
-
-const jsonResponse = (data: unknown): Response =>
-  new Response(JSON.stringify(data), {
-    headers: { "content-type": "application/json" },
-  });
-
 const mockMultipartRequest = (
   path: string,
   formData: FormData,
@@ -142,15 +103,10 @@ describe("shared media routes", () => {
   });
 
   afterEach(() => {
-    globalThis.fetch = originalFetch;
+    restoreFetch();
     clearToken();
     resetDb();
   });
-
-  const handleRequest = async (request: Request): Promise<Response> => {
-    const { handleRequest: handler } = await import("#routes");
-    return handler(request);
-  };
 
   const clearXiboConfig = async (): Promise<void> => {
     await updateXiboCredentials("", "", "");
@@ -160,7 +116,7 @@ describe("shared media routes", () => {
 
   describe("GET /admin/media/shared", () => {
     test("redirects to login when not authenticated", async () => {
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/shared"),
       );
       expect(response.status).toBe(302);
@@ -169,7 +125,7 @@ describe("shared media routes", () => {
 
     test("redirects to settings when Xibo not configured", async () => {
       await clearXiboConfig();
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/shared", { headers: { cookie } }),
       );
       expect(response.status).toBe(302);
@@ -179,7 +135,7 @@ describe("shared media routes", () => {
     test("shows message when shared folder not configured", async () => {
       globalThis.fetch = createMockFetch({});
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/shared", { headers: { cookie } }),
       );
       expect(response.status).toBe(200);
@@ -195,7 +151,7 @@ describe("shared media routes", () => {
         "/api/library": allMediaHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/shared", { headers: { cookie } }),
       );
       expect(response.status).toBe(200);
@@ -213,7 +169,7 @@ describe("shared media routes", () => {
         "/api/library": allMediaHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/shared?success=Photo+uploaded", {
           headers: { cookie },
         }),
@@ -231,7 +187,7 @@ describe("shared media routes", () => {
         "/api/library": () => new Response("Server Error", { status: 500 }),
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/shared", { headers: { cookie } }),
       );
       expect(response.status).toBe(200);
@@ -242,7 +198,7 @@ describe("shared media routes", () => {
 
   describe("GET /admin/media/shared/upload", () => {
     test("redirects to login when not authenticated", async () => {
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/shared/upload"),
       );
       expect(response.status).toBe(302);
@@ -252,7 +208,7 @@ describe("shared media routes", () => {
     test("renders upload form", async () => {
       globalThis.fetch = createMockFetch({});
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/shared/upload", { headers: { cookie } }),
       );
       expect(response.status).toBe(200);
@@ -266,7 +222,7 @@ describe("shared media routes", () => {
     test("redirects to login when not authenticated", async () => {
       const formData = new FormData();
       formData.append("csrf_token", "bad");
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/shared/upload", formData, ""),
       );
       expect(response.status).toBe(302);
@@ -277,7 +233,7 @@ describe("shared media routes", () => {
       await clearXiboConfig();
       const formData = new FormData();
       formData.append("csrf_token", csrfToken);
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/shared/upload", formData, cookie),
       );
       expect(response.status).toBe(302);
@@ -294,7 +250,7 @@ describe("shared media routes", () => {
         new File(["img"], "test.png", { type: "image/png" }),
       );
 
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/shared/upload", formData, cookie),
       );
       expect(response.status).toBe(400);
@@ -315,7 +271,7 @@ describe("shared media routes", () => {
         new File(["img"], "test.png", { type: "image/png" }),
       );
 
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/shared/upload", formData, cookie),
       );
       expect(response.status).toBe(403);
@@ -330,7 +286,7 @@ describe("shared media routes", () => {
       const formData = new FormData();
       formData.append("csrf_token", csrfToken);
 
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/shared/upload", formData, cookie),
       );
       expect(response.status).toBe(400);
@@ -351,7 +307,7 @@ describe("shared media routes", () => {
         new File(["img data"], "photo.jpg", { type: "image/jpeg" }),
       );
 
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/shared/upload", formData, cookie),
       );
       expect(response.status).toBe(400);
@@ -376,7 +332,7 @@ describe("shared media routes", () => {
       );
       formData.append("name", "Product Logo");
 
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/shared/upload", formData, cookie),
       );
       expect(response.status).toBe(302);
@@ -402,7 +358,7 @@ describe("shared media routes", () => {
         new File(["PNG image data"], "my-product.png", { type: "image/png" }),
       );
 
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/shared/upload", formData, cookie),
       );
       expect(response.status).toBe(302);
@@ -426,7 +382,7 @@ describe("shared media routes", () => {
       );
       formData.append("name", "Test");
 
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/shared/upload", formData, cookie),
       );
       expect(response.status).toBe(200);
@@ -440,7 +396,7 @@ describe("shared media routes", () => {
 
       globalThis.fetch = createMockFetch({});
 
-      const response = await handleRequest(
+      const response = await handle(
         new Request("http://localhost/admin/media/shared/upload", {
           method: "POST",
           headers: {
@@ -459,7 +415,7 @@ describe("shared media routes", () => {
 
   describe("POST /admin/media/shared/:id/delete", () => {
     test("redirects to login when not authenticated", async () => {
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest("/admin/media/shared/10/delete", {
           csrf_token: "bad",
         }),
@@ -472,7 +428,7 @@ describe("shared media routes", () => {
       // Don't set shared folder ID — it defaults to null
       invalidateSettingsCache();
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/shared/10/delete",
           { csrf_token: csrfToken },
@@ -499,7 +455,7 @@ describe("shared media routes", () => {
         "/api/library": allMediaHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/shared/10/delete",
           { csrf_token: csrfToken },
@@ -520,7 +476,7 @@ describe("shared media routes", () => {
         "/api/library": allMediaHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/shared/20/delete",
           { csrf_token: csrfToken },
@@ -550,7 +506,7 @@ describe("shared media routes", () => {
         "/api/library": allMediaHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/shared/10/delete",
           { csrf_token: csrfToken },
@@ -562,7 +518,7 @@ describe("shared media routes", () => {
     });
 
     test("returns 403 for invalid CSRF token", async () => {
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/shared/10/delete",
           { csrf_token: "wrong-token" },
@@ -580,7 +536,7 @@ describe("shared media routes", () => {
         "/api/library": () => new Response("Error", { status: 500 }),
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/shared/10/delete",
           { csrf_token: csrfToken },

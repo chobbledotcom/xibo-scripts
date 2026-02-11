@@ -17,13 +17,6 @@ import {
   updateBusinessXiboIds,
 } from "#lib/db/businesses.ts";
 import {
-  activateUser,
-  createInvitedUser,
-  hashInviteCode,
-  setUserPassword,
-} from "#lib/db/users.ts";
-import type { AdminLevel } from "#lib/types.ts";
-import {
   CONFIG_KEYS,
   invalidateSettingsCache,
   setSharedFolderId,
@@ -34,11 +27,15 @@ import { clearToken } from "#xibo/client.ts";
 import { cacheInvalidateAll } from "#xibo/cache.ts";
 import type { XiboMedia } from "#xibo/types.ts";
 import {
+  createActivateAndLogin,
+  createMockFetch,
   createTestDbWithSetup,
-  getCsrfTokenFromCookie,
+  handle,
+  jsonResponse,
   mockFormRequest,
   mockRequest,
   resetDb,
+  restoreFetch,
 } from "#test-utils";
 
 const XIBO_URL = "https://xibo.test";
@@ -90,49 +87,6 @@ const otherBusinessMedia: XiboMedia[] = [
 
 const allMedia = [...sharedMedia, ...businessMedia, ...otherBusinessMedia];
 
-/** Original fetch for restore */
-const originalFetch = globalThis.fetch;
-
-const createMockFetch = (
-  handlers: Record<
-    string,
-    (url: string, init?: RequestInit) => Response | Promise<Response>
-  >,
-): typeof globalThis.fetch =>
-  (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const url = typeof input === "string"
-      ? input
-      : input instanceof URL
-      ? input.toString()
-      : input.url;
-
-    if (url.includes("/api/authorize/access_token")) {
-      return Promise.resolve(
-        new Response(
-          JSON.stringify({
-            access_token: "test-token",
-            token_type: "Bearer",
-            expires_in: 3600,
-          }),
-          { headers: { "content-type": "application/json" } },
-        ),
-      );
-    }
-
-    for (const [pattern, handler] of Object.entries(handlers)) {
-      if (url.includes(pattern)) {
-        return Promise.resolve(handler(url, init));
-      }
-    }
-
-    return originalFetch(input, init);
-  };
-
-const jsonResponse = (data: unknown): Response =>
-  new Response(JSON.stringify(data), {
-    headers: { "content-type": "application/json" },
-  });
-
 const allMediaHandler = (): Response => jsonResponse(allMedia);
 
 const mockMultipartRequest = (
@@ -145,40 +99,6 @@ const mockMultipartRequest = (
     headers: { cookie: sessionCookie, host: "localhost" },
     body: formData,
   });
-
-const handle = async (req: Request): Promise<Response> => {
-  const { handleRequest } = await import("#routes");
-  return handleRequest(req);
-};
-
-/** Create a user with a given role, activate, log in, and return cookie + csrf */
-const createActivateAndLogin = async (
-  username: string,
-  role: AdminLevel,
-  password: string,
-): Promise<{ cookie: string; csrfToken: string; userId: number }> => {
-  const codeHash = await hashInviteCode(`${username}-code`);
-  const user = await createInvitedUser(
-    username,
-    role,
-    codeHash,
-    new Date(Date.now() + 86400000).toISOString(),
-  );
-  const pwHash = await setUserPassword(user.id, password);
-  const dataKey = await crypto.subtle.generateKey(
-    { name: "AES-GCM", length: 256 },
-    true,
-    ["encrypt", "decrypt"],
-  );
-  await activateUser(user.id, dataKey, pwHash);
-
-  const loginRes = await handle(
-    mockFormRequest("/admin/login", { username, password }),
-  );
-  const cookie = loginRes.headers.get("set-cookie") || "";
-  const csrfToken = (await getCsrfTokenFromCookie(cookie))!;
-  return { cookie, csrfToken, userId: user.id };
-};
 
 describe("user media routes", () => {
   let userCookie: string;
@@ -213,7 +133,7 @@ describe("user media routes", () => {
   });
 
   afterEach(() => {
-    globalThis.fetch = originalFetch;
+    restoreFetch();
     clearToken();
     resetDb();
   });

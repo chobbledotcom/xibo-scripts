@@ -95,18 +95,6 @@ export const proxyMediaPreview = async (
   }
 };
 
-/**
- * Extract success and error query parameters from a request URL.
- */
-export const getQueryMessages = (
-  request: Request,
-): { success?: string; error?: string } => {
-  const params = new URL(request.url).searchParams;
-  return {
-    success: params.get("success") || undefined,
-    error: params.get("error") || undefined,
-  };
-};
 
 /**
  * Validate CSRF token from multipart form data.
