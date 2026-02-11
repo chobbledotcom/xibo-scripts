@@ -36,11 +36,11 @@ import {
   withManagerAuthForm,
 } from "#routes/utils.ts";
 import {
-  errorMessage,
   getQueryMessages,
   toAdminSession,
   withEntity,
   withXiboConfig,
+  xiboThenPersist,
 } from "#routes/admin/utils.ts";
 import {
   adminBusinessCreatePage,
@@ -104,50 +104,43 @@ const getUsersForBusiness = async (
 };
 
 
+/** Resources provisioned in Xibo for a business */
+type ProvisionedResources = {
+  folderId: number;
+  folderName: string;
+  datasetId: number;
+};
+
 /**
  * Provision Xibo folder and dataset for a business.
- * Returns updated folder/dataset IDs or an error message.
+ * Returns resource IDs on success — throws on failure.
+ * Does NOT write to the database — caller uses xiboThenPersist to guard DB writes.
  */
 const provisionXiboResources = async (
   config: XiboConfig,
-  businessId: number,
   businessName: string,
-): Promise<string | null> => {
+): Promise<ProvisionedResources> => {
   const folderName = `${businessName}-${randomSuffix()}`;
 
-  try {
-    // Create folder
-    const folder = await post<XiboFolder>(config, "folder", {
-      text: folderName,
+  const folder = await post<XiboFolder>(config, "folder", {
+    text: folderName,
+  });
+
+  const dataset = await post<XiboDataset>(config, "dataset", {
+    dataSet: folderName,
+    description: `Product data for ${businessName}`,
+  });
+
+  for (const col of DATASET_COLUMNS) {
+    await post(config, `dataset/${dataset.dataSetId}/column`, {
+      heading: col.heading,
+      dataTypeId: col.dataTypeId,
+      dataSetColumnTypeId: 1, // Value column
+      columnOrder: col.columnOrder,
     });
-
-    // Create dataset
-    const dataset = await post<XiboDataset>(config, "dataset", {
-      dataSet: folderName,
-      description: `Product data for ${businessName}`,
-    });
-
-    // Add columns to dataset
-    for (const col of DATASET_COLUMNS) {
-      await post(config, `dataset/${dataset.dataSetId}/column`, {
-        heading: col.heading,
-        dataTypeId: col.dataTypeId,
-        dataSetColumnTypeId: 1, // Value column
-        columnOrder: col.columnOrder,
-      });
-    }
-
-    await updateBusinessXiboIds(
-      businessId,
-      folder.folderId,
-      folderName,
-      dataset.dataSetId,
-    );
-
-    return null;
-  } catch (e) {
-    return errorMessage(e);
   }
+
+  return { folderId: folder.folderId, folderName, datasetId: dataset.dataSetId };
 };
 
 /** Load screens and user assignments for a business (shared by detail + update) */
@@ -207,39 +200,35 @@ const handleBusinessCreateGet = (request: Request): Promise<Response> =>
  * Handle POST /admin/business/create
  */
 const handleBusinessCreatePost = (request: Request): Promise<Response> =>
-  withManagerAuthForm(request, async (session, form) => {
+  withManagerAuthForm(request, (session, form) => {
     const validation = validateBusinessFields(form);
     if (!validation.valid) {
-      return htmlResponse(
+      return Promise.resolve(htmlResponse(
         adminBusinessCreatePage(toAdminSession(session), validation.error),
         400,
-      );
+      ));
     }
 
     const { name } = validation.values;
-    const business = await createBusiness(name);
 
-    // Try to provision Xibo resources if config is available
-    const provisionError = await withXiboConfig(async (config) => {
-      const err = await provisionXiboResources(
-        config,
-        business.id,
-        name,
-      );
-      return new Response(err || "");
-    }).then((r) => r.text());
-
-    // If withXiboConfig redirected (no config), skip provisioning error
-    await logActivity(`Created business "${name}"`);
-
-    if (provisionError && !provisionError.includes("Configure Xibo")) {
-      return redirectWithSuccess(
+    // Provision Xibo resources first — only create DB record on success
+    return withXiboConfig((config) =>
+      xiboThenPersist(
+        () => provisionXiboResources(config, name),
         "/admin/businesses",
-        `Business created, but Xibo provisioning failed: ${provisionError}`,
-      );
-    }
-
-    return redirectWithSuccess("/admin/businesses", "Business created successfully");
+        async (provision) => {
+          const business = await createBusiness(name);
+          await updateBusinessXiboIds(
+            business.id,
+            provision.folderId,
+            provision.folderName,
+            provision.datasetId,
+          );
+          await logActivity(`Created business "${name}"`);
+          return redirectWithSuccess("/admin/businesses", "Business created successfully");
+        },
+      ),
+    );
   });
 
 /** Handle GET /admin/business/:id */

@@ -16,13 +16,12 @@ import {
   findMediaById,
   handleMultipartUpload,
   proxyMediaPreview,
-  redirectWithError,
   resolveAuthConfig,
   uploadToXibo,
   verifyAndDeleteMedia,
 } from "#xibo/media-ops.ts";
 import { defineRoutes } from "#routes/router.ts";
-import { htmlResponse } from "#routes/utils.ts";
+import { htmlResponse, redirectWithError } from "#routes/utils.ts";
 import {
   mediaDetailPage,
   mediaListPage,

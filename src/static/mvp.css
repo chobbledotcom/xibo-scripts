@@ -642,9 +642,9 @@ article > h2:first-child {
 
 /* App-specific additions */
 .error {
-  background: #ffeeee;
-  border-left: 4px solid #cc0000;
-  color: #cc0000;
+  background: #cc0000;
+  border-left: 4px solid #990000;
+  color: #ffffff;
   padding: 1rem;
   margin-bottom: 1rem;
 }
@@ -659,8 +659,8 @@ article > h2:first-child {
 
 @media (prefers-color-scheme: dark) {
   :root[color-mode="user"] .error {
-    background: #442222;
-    color: #ff6666;
+    background: #aa0000;
+    color: #ffffff;
   }
   :root[color-mode="user"] .success {
     background: #224422;

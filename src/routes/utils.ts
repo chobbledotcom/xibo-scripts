@@ -208,6 +208,14 @@ export const redirectWithSuccess = (
 ): Response => redirect(`${basePath}?success=${encodeURIComponent(message)}`);
 
 /**
+ * Create redirect response with an error message as query parameter (PRG pattern)
+ */
+export const redirectWithError = (
+  basePath: string,
+  message: string,
+): Response => redirect(`${basePath}?error=${encodeURIComponent(message)}`);
+
+/**
  * Parse form data from request
  */
 export const parseFormData = async (
