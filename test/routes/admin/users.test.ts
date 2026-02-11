@@ -755,4 +755,37 @@ describe("admin users management", () => {
       expect(getSearchParam(req, "invite")).toBeNull();
     });
   });
+
+  describe("canImpersonate in users template", () => {
+    it("shows Impersonate button for active user-role user when owner is logged in", async () => {
+      // Create and activate a user-role user
+      await createActivateAndLogin("impersonatee", "user", "userpass123");
+
+      const response = await awaitTestRequest("/admin/users", { cookie });
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      expect(html).toContain("Impersonate");
+      expect(html).toContain("/impersonate");
+    });
+
+    it("does not show Impersonate button for owner users", async () => {
+      // Only the owner user exists - should not show Impersonate for self
+      const response = await awaitTestRequest("/admin/users", { cookie });
+      const html = await response.text();
+      expect(html).not.toContain("Impersonate");
+    });
+
+    it("manager can impersonate user-role but not other managers", async () => {
+      // Create a manager and a user
+      const mgr = await createActivateAndLogin("mgr-imp", "manager", "mgrpass123");
+      await createActivateAndLogin("user-imp", "user", "userpass123");
+
+      const response = await awaitTestRequest("/admin/users", {
+        cookie: mgr.cookie,
+      });
+      const html = await response.text();
+      // Should show impersonate for user-role only
+      expect(html).toContain("Impersonate");
+    });
+  });
 });

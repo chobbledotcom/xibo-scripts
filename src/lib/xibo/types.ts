@@ -125,6 +125,15 @@ export type XiboResolution = {
   height: number;
 };
 
+/** Display (physical screen) */
+export type XiboDisplay = {
+  displayId: number;
+  display: string;
+  description: string;
+  licensed: number;
+  defaultLayoutId: number;
+};
+
 /** Xibo API client configuration */
 export type XiboConfig = {
   apiUrl: string;

@@ -3,11 +3,14 @@
  */
 
 import { authRoutes } from "#routes/admin/auth.ts";
+import { businessRoutes } from "#routes/admin/businesses.ts";
 import { dashboardRoutes } from "#routes/admin/dashboard.ts";
 import { datasetRoutes } from "#routes/admin/datasets.ts";
+import { impersonationRoutes } from "#routes/admin/impersonation.ts";
 import { layoutRoutes } from "#routes/admin/layouts.ts";
 import { mediaRoutes } from "#routes/admin/media.ts";
 import { menuBoardRoutes } from "#routes/admin/menuboards.ts";
+import { screenRoutes } from "#routes/admin/screens.ts";
 import { sessionsRoutes } from "#routes/admin/sessions.tsx";
 import { settingsRoutes } from "#routes/admin/settings.tsx";
 import { usersRoutes } from "#routes/admin/users.ts";
@@ -24,6 +27,9 @@ const adminRoutes = {
   ...layoutRoutes,
   ...datasetRoutes,
   ...usersRoutes,
+  ...businessRoutes,
+  ...screenRoutes,
+  ...impersonationRoutes,
 };
 
 /** Route admin requests using declarative router */

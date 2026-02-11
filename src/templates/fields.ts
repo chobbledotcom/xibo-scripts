@@ -260,6 +260,31 @@ const descriptionField: Field = { name: "description", label: "Description", typ
 /** Common field: media_id (optional number) */
 const mediaIdField: Field = { name: "media_id", label: "Media", type: "number", hint: "Media library ID" };
 
+/** Typed values from business form */
+export type BusinessFormValues = {
+  name: string;
+};
+
+/** Typed values from screen form */
+export type ScreenFormValues = {
+  name: string;
+  xibo_display_id: number | null;
+};
+
+/**
+ * Business form field definitions
+ */
+export const businessFields: Field[] = [
+  nameField,
+];
+
+/**
+ * Screen form field definitions
+ */
+export const screenFields: Field[] = [
+  nameField,
+];
+
 /**
  * Menu board form field definitions
  */

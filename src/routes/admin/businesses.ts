@@ -1,0 +1,356 @@
+/**
+ * Admin business management routes - manager or above
+ */
+
+import { filter } from "#fp";
+import { logActivity } from "#lib/db/activityLog.ts";
+import {
+  assignUserToBusiness,
+  createBusiness,
+  deleteBusiness,
+  getAllBusinesses,
+  getBusinessById,
+  getBusinessUserIds,
+  removeUserFromBusiness,
+  toDisplayBusiness,
+  updateBusiness,
+  updateBusinessXiboIds,
+} from "#lib/db/businesses.ts";
+import { getScreensForBusiness, toDisplayScreen } from "#lib/db/screens.ts";
+import {
+  decryptAdminLevel,
+  decryptUsername,
+  getAllUsers,
+  getUserById,
+} from "#lib/db/users.ts";
+import { validateForm, type ValidationResult } from "#lib/forms.tsx";
+import { post } from "#xibo/client.ts";
+import type { XiboConfig, XiboDataset, XiboFolder } from "#xibo/types.ts";
+import { defineRoutes } from "#routes/router.ts";
+import type { RouteParams } from "#routes/router.ts";
+import {
+  htmlResponse,
+  redirect,
+  redirectWithSuccess,
+  requireManagerOrAbove,
+  withManagerAuthForm,
+} from "#routes/utils.ts";
+import {
+  errorMessage,
+  toAdminSession,
+  withEntity,
+  withXiboConfig,
+} from "#routes/admin/utils.ts";
+import {
+  adminBusinessCreatePage,
+  adminBusinessDetailPage,
+  adminBusinessesPage,
+  type BusinessUser,
+} from "#templates/admin/businesses.tsx";
+import { businessFields, type BusinessFormValues } from "#templates/fields.ts";
+
+/** Validate business form fields */
+const validateBusinessFields = (form: URLSearchParams): ValidationResult<BusinessFormValues> =>
+  validateForm<BusinessFormValues>(form, businessFields);
+
+/** Generate a random 6-character alphanumeric string */
+const randomSuffix = (): string => {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join("");
+};
+
+/** Xibo dataset column data type IDs */
+const XIBO_STRING_TYPE = 1;
+const XIBO_NUMBER_TYPE = 2;
+
+/** Dataset columns to create for a business */
+const DATASET_COLUMNS = [
+  { heading: "name", dataTypeId: XIBO_STRING_TYPE, columnOrder: 1 },
+  { heading: "price", dataTypeId: XIBO_STRING_TYPE, columnOrder: 2 },
+  { heading: "media_id", dataTypeId: XIBO_NUMBER_TYPE, columnOrder: 3 },
+  { heading: "available", dataTypeId: XIBO_NUMBER_TYPE, columnOrder: 4 },
+  { heading: "sort_order", dataTypeId: XIBO_NUMBER_TYPE, columnOrder: 5 },
+] as const;
+
+/** Convert a User record to a BusinessUser for display */
+const toBusinessUser = async (
+  user: { id: number; username_hash: string; admin_level: string },
+): Promise<BusinessUser> => ({
+  id: user.id,
+  username: await decryptUsername(user as Parameters<typeof decryptUsername>[0]),
+  adminLevel: await decryptAdminLevel(user as Parameters<typeof decryptAdminLevel>[0]),
+});
+
+/** Get user-role users who are/aren't assigned to a business */
+const getUsersForBusiness = async (
+  businessId: number,
+): Promise<{ assigned: BusinessUser[]; available: BusinessUser[] }> => {
+  const [allUsers, assignedIds] = await Promise.all([
+    getAllUsers(),
+    getBusinessUserIds(businessId),
+  ]);
+
+  const allDisplay = await Promise.all(allUsers.map(toBusinessUser));
+  const userRoleOnly = filter((u: BusinessUser) => u.adminLevel === "user")(allDisplay);
+
+  const assignedSet = new Set(assignedIds);
+  const assigned = filter((u: BusinessUser) => assignedSet.has(u.id))(userRoleOnly);
+  const available = filter((u: BusinessUser) => !assignedSet.has(u.id))(userRoleOnly);
+
+  return { assigned, available };
+};
+
+
+/**
+ * Provision Xibo folder and dataset for a business.
+ * Returns updated folder/dataset IDs or an error message.
+ */
+const provisionXiboResources = async (
+  config: XiboConfig,
+  businessId: number,
+  businessName: string,
+): Promise<string | null> => {
+  const folderName = `${businessName}-${randomSuffix()}`;
+
+  try {
+    // Create folder
+    const folder = await post<XiboFolder>(config, "folder", {
+      text: folderName,
+    });
+
+    // Create dataset
+    const dataset = await post<XiboDataset>(config, "dataset", {
+      dataSet: folderName,
+      description: `Product data for ${businessName}`,
+    });
+
+    // Add columns to dataset
+    for (const col of DATASET_COLUMNS) {
+      await post(config, `dataset/${dataset.dataSetId}/column`, {
+        heading: col.heading,
+        dataTypeId: col.dataTypeId,
+        dataSetColumnTypeId: 1, // Value column
+        columnOrder: col.columnOrder,
+      });
+    }
+
+    await updateBusinessXiboIds(
+      businessId,
+      folder.folderId,
+      folderName,
+      dataset.dataSetId,
+    );
+
+    return null;
+  } catch (e) {
+    return errorMessage(e);
+  }
+};
+
+/** Load screens and user assignments for a business (shared by detail + update) */
+const loadBusinessContext = async (businessId: number) => {
+  const [screens, users] = await Promise.all([
+    getScreensForBusiness(businessId),
+    getUsersForBusiness(businessId),
+  ]);
+  return {
+    displayScreens: await Promise.all(screens.map(toDisplayScreen)),
+    ...users,
+  };
+};
+
+/** Render the business detail page with full context */
+const renderBusinessDetail = async (
+  biz: Parameters<typeof toDisplayBusiness>[0],
+  session: Parameters<typeof toAdminSession>[0],
+  error?: string,
+  success?: string,
+  status?: number,
+): Promise<Response> => {
+  const display = await toDisplayBusiness(biz);
+  const ctx = await loadBusinessContext(biz.id);
+  return htmlResponse(
+    adminBusinessDetailPage(
+      display, ctx.displayScreens, ctx.assigned, ctx.available,
+      toAdminSession(session), error, success,
+    ),
+    status,
+  );
+};
+
+/** Extract error and success query parameters from a request */
+const getQueryMessages = (request: Request) => {
+  const url = new URL(request.url);
+  return {
+    error: url.searchParams.get("error") || undefined,
+    success: url.searchParams.get("success") || undefined,
+  };
+};
+
+/**
+ * Handle GET /admin/businesses
+ */
+const handleBusinessesGet = (request: Request): Promise<Response> =>
+  requireManagerOrAbove(request, async (session) => {
+    const businesses = await getAllBusinesses();
+    const display = await Promise.all(businesses.map(toDisplayBusiness));
+    const { error, success } = getQueryMessages(request);
+    return htmlResponse(
+      adminBusinessesPage(display, toAdminSession(session), error, success),
+    );
+  });
+
+/**
+ * Handle GET /admin/business/create
+ */
+const handleBusinessCreateGet = (request: Request): Promise<Response> =>
+  requireManagerOrAbove(request, (session) =>
+    Promise.resolve(
+      htmlResponse(adminBusinessCreatePage(toAdminSession(session))),
+    ));
+
+/**
+ * Handle POST /admin/business/create
+ */
+const handleBusinessCreatePost = (request: Request): Promise<Response> =>
+  withManagerAuthForm(request, async (session, form) => {
+    const validation = validateBusinessFields(form);
+    if (!validation.valid) {
+      return htmlResponse(
+        adminBusinessCreatePage(toAdminSession(session), validation.error),
+        400,
+      );
+    }
+
+    const { name } = validation.values;
+    const business = await createBusiness(name);
+
+    // Try to provision Xibo resources if config is available
+    const provisionError = await withXiboConfig(async (config) => {
+      const err = await provisionXiboResources(
+        config,
+        business.id,
+        name,
+      );
+      return new Response(err || "");
+    }).then((r) => r.text());
+
+    // If withXiboConfig redirected (no config), skip provisioning error
+    await logActivity(`Created business "${name}"`);
+
+    if (provisionError && !provisionError.includes("Configure Xibo")) {
+      return redirectWithSuccess(
+        "/admin/businesses",
+        `Business created, but Xibo provisioning failed: ${provisionError}`,
+      );
+    }
+
+    return redirectWithSuccess("/admin/businesses", "Business created successfully");
+  });
+
+/** Handle GET /admin/business/:id */
+const handleBusinessDetailGet = (
+  request: Request,
+  params: RouteParams,
+): Promise<Response> =>
+  requireManagerOrAbove(request, (session) =>
+    withEntity(getBusinessById, Number(params.id), "Business", (biz) => {
+      const msgs = getQueryMessages(request);
+      return renderBusinessDetail(biz, session, msgs.error, msgs.success);
+    }),
+  );
+
+/** Handle POST /admin/business/:id (update name) */
+const handleBusinessUpdatePost = (
+  request: Request,
+  params: RouteParams,
+): Promise<Response> =>
+  withManagerAuthForm(request, (session, form) =>
+    withEntity(getBusinessById, Number(params.id), "Business", async (biz) => {
+      const validation = validateBusinessFields(form);
+      if (!validation.valid) {
+        return renderBusinessDetail(biz, session, validation.error, undefined, 400);
+      }
+
+      await updateBusiness(biz.id, validation.values.name);
+      await logActivity(`Updated business ${biz.id}`);
+      return redirectWithSuccess(`/admin/business/${biz.id}`, "Business updated");
+    }),
+  );
+
+/** Handle POST /admin/business/:id/delete */
+const handleBusinessDeletePost = (
+  request: Request,
+  params: RouteParams,
+): Promise<Response> =>
+  withManagerAuthForm(request, (_session, _form) =>
+    withEntity(getBusinessById, Number(params.id), "Business", async (biz) => {
+      await deleteBusiness(biz.id);
+      await logActivity(`Deleted business ${biz.id}`);
+      return redirectWithSuccess("/admin/businesses", "Business deleted");
+    }),
+  );
+
+/** Common pattern: load business, parse user_id from form, run action */
+const withBusinessUser = (
+  request: Request,
+  params: RouteParams,
+  noUserError: string,
+  action: (businessId: number, userId: number) => Promise<Response>,
+): Promise<Response> =>
+  withManagerAuthForm(request, (_session, form) =>
+    withEntity(getBusinessById, Number(params.id), "Business", (biz) => {
+      const userId = Number(form.get("user_id"));
+      if (!userId) {
+        return Promise.resolve(
+          redirect(`/admin/business/${biz.id}?error=${encodeURIComponent(noUserError)}`),
+        );
+      }
+      return action(biz.id, userId);
+    }),
+  );
+
+/** Handle POST /admin/business/:id/assign-user */
+const handleAssignUser = (
+  request: Request,
+  params: RouteParams,
+): Promise<Response> =>
+  withBusinessUser(request, params, "Please select a user", async (businessId, userId) => {
+    const user = await getUserById(userId);
+    if (!user) {
+      return redirect(`/admin/business/${businessId}?error=${encodeURIComponent("User not found")}`);
+    }
+    const level = await decryptAdminLevel(user);
+    if (level !== "user") {
+      return redirect(`/admin/business/${businessId}?error=${encodeURIComponent("Only user-role users can be assigned")}`);
+    }
+
+    await assignUserToBusiness(businessId, userId);
+    await logActivity(`Assigned user ${userId} to business ${businessId}`);
+    return redirectWithSuccess(`/admin/business/${businessId}`, "User assigned");
+  });
+
+/** Handle POST /admin/business/:id/remove-user */
+const handleRemoveUser = (
+  request: Request,
+  params: RouteParams,
+): Promise<Response> =>
+  withBusinessUser(request, params, "Invalid user", async (businessId, userId) => {
+    await removeUserFromBusiness(businessId, userId);
+    await logActivity(`Removed user ${userId} from business ${businessId}`);
+    return redirectWithSuccess(`/admin/business/${businessId}`, "User removed");
+  });
+
+/** Business management routes */
+export const businessRoutes = defineRoutes({
+  "GET /admin/businesses": handleBusinessesGet,
+  "GET /admin/business/create": handleBusinessCreateGet,
+  "POST /admin/business/create": handleBusinessCreatePost,
+  "GET /admin/business/:id": handleBusinessDetailGet,
+  "POST /admin/business/:id": handleBusinessUpdatePost,
+  "POST /admin/business/:id/delete": handleBusinessDeletePost,
+  "POST /admin/business/:id/assign-user": handleAssignUser,
+  "POST /admin/business/:id/remove-user": handleRemoveUser,
+});

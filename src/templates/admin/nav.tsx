@@ -20,10 +20,23 @@ const isManagerOrAbove = (session?: AdminSession): boolean =>
  */
 export const AdminNav = ({ session }: AdminNavProps = {}): JSX.Element => (
   <nav>
+    {session?.impersonating && (
+      <div style="background: #dc3545; color: white; padding: 0.5rem 1rem; text-align: center;">
+        You are impersonating {session.impersonating.username} &mdash;{" "}
+        <a href="/admin/stop-impersonating" style="color: white; font-weight: bold;">
+          Stop Impersonating
+        </a>
+      </div>
+    )}
     <ul>
       <li>
         <a href="/admin/">Dashboard</a>
       </li>
+      {isManagerOrAbove(session) && (
+        <li>
+          <a href="/admin/businesses">Businesses</a>
+        </li>
+      )}
       {isManagerOrAbove(session) && (
         <li>
           <a href="/admin/menuboards">Menu Boards</a>
@@ -60,7 +73,9 @@ export const AdminNav = ({ session }: AdminNavProps = {}): JSX.Element => (
         </li>
       )}
       <li>
-        <a href="/admin/logout">Logout</a>
+        {session?.impersonating
+          ? <a href="/admin/stop-impersonating">Stop Impersonating</a>
+          : <a href="/admin/logout">Logout</a>}
       </li>
     </ul>
   </nav>
