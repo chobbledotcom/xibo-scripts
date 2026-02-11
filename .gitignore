@@ -1,16 +1,5 @@
 .claude
 .env
-.direnv
-Gemfile.lock
-.bundle/
-vendor/
-temp/*.jpg
-spec/examples.txt
-opencode.json
-tmp/*
-
-# Docker version tracking
-.docker-version
 
 # Deno/Node
 node_modules/
