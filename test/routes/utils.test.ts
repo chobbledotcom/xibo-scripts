@@ -1,7 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it } from "#test-compat";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  setSystemTime,
+  useFakeTimers,
+  useRealTimers,
+} from "#test-compat";
 import {
   createTestDbWithSetup,
   getCsrfTokenFromCookie,
+  loginAsAdmin,
   mockFormRequest,
   mockRequest,
   resetDb,
@@ -125,6 +135,118 @@ describe("routes/utils", () => {
         ),
       );
       expect(res.status).toBe(403);
+    });
+  });
+
+  describe("auth session cache", () => {
+    it("returns cached auth session within TTL window", async () => {
+      const { getAuthenticatedSession } =
+        await import("#routes/utils.ts");
+      const { getDb } = await import("#lib/db/client.ts");
+
+      const { cookie } = await loginAsAdmin();
+      const req = () =>
+        mockRequest("/admin", { headers: { cookie } });
+
+      // First call populates cache
+      const s1 = await getAuthenticatedSession(req());
+      expect(s1).not.toBeNull();
+      expect(s1!.adminLevel).toBe("owner");
+
+      // Delete user directly from DB (bypasses cache invalidation)
+      await getDb().execute({
+        sql: "DELETE FROM users WHERE id = ?",
+        args: [s1!.userId],
+      });
+
+      // Second call returns cached result despite user being gone from DB
+      const s2 = await getAuthenticatedSession(req());
+      expect(s2).not.toBeNull();
+      expect(s2!.userId).toBe(s1!.userId);
+      expect(s2!.adminLevel).toBe("owner");
+    });
+
+    it("expires auth session cache after TTL and re-validates", async () => {
+      const { getAuthenticatedSession, resetAuthSessionCache } =
+        await import("#routes/utils.ts");
+      const { resetSessionCache } = await import("#lib/db/sessions.ts");
+      const { getDb } = await import("#lib/db/client.ts");
+
+      // Login before activating fake timers (needs real crypto timing)
+      const { cookie } = await loginAsAdmin();
+      const req = () =>
+        mockRequest("/admin", { headers: { cookie } });
+
+      resetAuthSessionCache();
+      resetSessionCache();
+      useFakeTimers();
+      try {
+        const baseTime = Date.now();
+        setSystemTime(baseTime);
+
+        // First call populates cache
+        const s1 = await getAuthenticatedSession(req());
+        expect(s1).not.toBeNull();
+
+        // Delete user directly from DB
+        await getDb().execute({
+          sql: "DELETE FROM users WHERE id = ?",
+          args: [s1!.userId],
+        });
+
+        // Still within TTL — returns cached
+        setSystemTime(baseTime + 5_000);
+        const s2 = await getAuthenticatedSession(req());
+        expect(s2).not.toBeNull();
+        expect(s2!.userId).toBe(s1!.userId);
+
+        // Advance past TTL — cache expired, re-validates, user gone
+        setSystemTime(baseTime + 11_000);
+        const s3 = await getAuthenticatedSession(req());
+        expect(s3).toBeNull();
+      } finally {
+        useRealTimers();
+      }
+    });
+
+    it("clears auth session cache when session is deleted", async () => {
+      const { getAuthenticatedSession } = await import("#routes/utils.ts");
+      const { deleteSession } = await import("#lib/db/sessions.ts");
+
+      const { cookie } = await loginAsAdmin();
+      const req = () =>
+        mockRequest("/admin", { headers: { cookie } });
+
+      // First call populates cache
+      const s1 = await getAuthenticatedSession(req());
+      expect(s1).not.toBeNull();
+
+      // Delete session (triggers cache invalidation via listener)
+      await deleteSession(s1!.token);
+
+      // Cache cleared — goes to DB, session not found
+      const s2 = await getAuthenticatedSession(req());
+      expect(s2).toBeNull();
+    });
+
+    it("clears auth session cache when user is deleted", async () => {
+      const { getAuthenticatedSession } = await import("#routes/utils.ts");
+      const { deleteUser } = await import("#lib/db/users.ts");
+
+      const { cookie } = await loginAsAdmin();
+      const req = () =>
+        mockRequest("/admin", { headers: { cookie } });
+
+      // First call populates cache
+      const s1 = await getAuthenticatedSession(req());
+      expect(s1).not.toBeNull();
+
+      // Delete user (clears session caches via resetSessionCache)
+      await deleteUser(s1!.userId);
+
+      // Cache cleared — goes to DB, session not found
+      const s2 = await getAuthenticatedSession(req());
+      expect(s2).toBeNull();
     });
   });
 });

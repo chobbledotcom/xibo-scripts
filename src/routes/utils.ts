@@ -4,7 +4,11 @@
 
 import { compact, map, pipe, reduce } from "#fp";
 import { constantTimeEqual, generateSecureToken } from "#lib/crypto.ts";
-import { deleteSession, getSession } from "#lib/db/sessions.ts";
+import {
+  deleteSession,
+  getSession,
+  onSessionCacheInvalidation,
+} from "#lib/db/sessions.ts";
 import { decryptAdminLevel, getUserById } from "#lib/db/users.ts";
 import { ErrorCode, logError } from "#lib/logger.ts";
 import { nowMs } from "#lib/now.ts";
@@ -63,7 +67,26 @@ export type AuthSession = {
 };
 
 /**
- * Get authenticated session if valid
+ * Auth session cache with TTL (10 seconds).
+ * Caches the full authenticated session (including decrypted admin level)
+ * to avoid repeated user DB queries and decryption on every request.
+ */
+const AUTH_SESSION_CACHE_TTL_MS = 10_000;
+type AuthCacheEntry = { session: AuthSession; cachedAt: number };
+const authSessionCache = new Map<string, AuthCacheEntry>();
+
+// Keep auth cache in sync with session cache invalidation
+onSessionCacheInvalidation(() => authSessionCache.clear());
+
+/**
+ * Clear the auth session cache (for testing and external invalidation)
+ */
+export const resetAuthSessionCache = (): void => {
+  authSessionCache.clear();
+};
+
+/**
+ * Get authenticated session if valid (with 10s TTL cache)
  */
 export const getAuthenticatedSession = async (
   request: Request,
@@ -71,6 +94,15 @@ export const getAuthenticatedSession = async (
   const cookies = parseCookies(request);
   const token = cookies.get("__Host-session");
   if (!token) return null;
+
+  // Check auth session cache
+  const cached = authSessionCache.get(token);
+  if (cached) {
+    if (Date.now() - cached.cachedAt <= AUTH_SESSION_CACHE_TTL_MS) {
+      return cached.session;
+    }
+    authSessionCache.delete(token);
+  }
 
   const session = await getSession(token);
   if (!session) return null;
@@ -93,13 +125,17 @@ export const getAuthenticatedSession = async (
 
   const adminLevel = await decryptAdminLevel(user);
 
-  return {
+  const authSession: AuthSession = {
     token,
     csrfToken: session.csrf_token,
     wrappedDataKey: session.wrapped_data_key,
     userId: session.user_id,
     adminLevel,
   };
+
+  authSessionCache.set(token, { session: authSession, cachedAt: Date.now() });
+
+  return authSession;
 };
 
 /**
