@@ -17,6 +17,7 @@ import {
   requireOwnerOnly,
   withOwnerAuthForm,
 } from "#routes/utils.ts";
+import { getQueryMessages } from "#routes/admin/utils.ts";
 import {
   changePasswordFields,
   type ChangePasswordFormValues,
@@ -94,8 +95,7 @@ const handleSettingsGet = (request: Request): Promise<Response> =>
   requireOwnerOnly(request, async (session) => {
     const xiboUrl = await getXiboApiUrl();
     const xiboClientId = await getXiboClientId();
-    const url = new URL(request.url);
-    const success = url.searchParams.get("success") || undefined;
+    const { success } = getQueryMessages(request);
     return htmlResponse(
       settingsPage(session, xiboUrl, xiboClientId, undefined, success),
     );

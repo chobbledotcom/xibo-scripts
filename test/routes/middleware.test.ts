@@ -1,14 +1,10 @@
 import { beforeEach, describe, expect, it } from "#test-compat";
 import {
   createTestDbWithSetup,
+  handle,
   mockRequest,
   mockRequestWithHost,
 } from "#test-utils";
-
-const handle = async (req: Request): Promise<Response> => {
-  const { handleRequest } = await import("#routes");
-  return handleRequest(req);
-};
 
 describe("security middleware", () => {
   beforeEach(async () => {

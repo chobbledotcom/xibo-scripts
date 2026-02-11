@@ -3,17 +3,13 @@ import {
   createTestDb,
   createTestDbWithSetup,
   getSetupCsrfToken,
+  handle,
   mockFormRequest,
   mockRequest,
   mockSetupFormRequest,
   resetDb,
 } from "#test-utils";
 import { settingsApi } from "#lib/db/settings.ts";
-
-const handle = async (req: Request): Promise<Response> => {
-  const { handleRequest } = await import("#routes");
-  return handleRequest(req);
-};
 
 /** GET /setup and return the CSRF token from the set-cookie header */
 const getSetupPageCsrf = async (): Promise<string> => {

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "#test-compat";
 import {
   createTestDbWithSetup,
+  handle,
   loginAsAdmin,
   mockFormRequest,
   mockRequest,
@@ -8,11 +9,6 @@ import {
   TEST_ADMIN_PASSWORD,
   TEST_ADMIN_USERNAME,
 } from "#test-utils";
-
-const handle = async (req: Request): Promise<Response> => {
-  const { handleRequest } = await import("#routes");
-  return handleRequest(req);
-};
 
 /** Helper: attempt login with given credentials */
 const attemptLogin = (username: string, password: string): Promise<Response> =>

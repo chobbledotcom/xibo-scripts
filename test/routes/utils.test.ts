@@ -8,58 +8,24 @@ import {
   useFakeTimers,
   useRealTimers,
 } from "#test-compat";
-import type { AdminLevel } from "#lib/types.ts";
 import {
+  createActivateAndLogin,
   createTestDbWithSetup,
   getCsrfTokenFromCookie,
+  handle,
   loginAsAdmin,
   mockFormRequest,
   mockRequest,
   resetDb,
 } from "#test-utils";
 
-const handle = async (req: Request): Promise<Response> => {
-  const { handleRequest } = await import("#routes");
-  return handleRequest(req);
-};
-
-/** Create a user with a given role, activate, and log in — returns cookie */
-const createAndLoginRole = async (
-  username: string,
-  role: AdminLevel,
-  password: string,
-): Promise<string> => {
-  const { createInvitedUser, setUserPassword, activateUser, hashInviteCode } =
-    await import("#lib/db/users.ts");
-
-  const codeHash = await hashInviteCode(`${username}-invite`);
-  const user = await createInvitedUser(
-    username,
-    role,
-    codeHash,
-    new Date(Date.now() + 86400000).toISOString(),
-  );
-  const pwHash = await setUserPassword(user.id, password);
-  const dataKey = await crypto.subtle.generateKey(
-    { name: "AES-GCM", length: 256 },
-    true,
-    ["encrypt", "decrypt"],
-  );
-  await activateUser(user.id, dataKey, pwHash);
-
-  const loginRes = await handle(
-    mockFormRequest("/admin/login", { username, password }),
-  );
-  return loginRes.headers.get("set-cookie") || "";
-};
-
 /** Create a manager user, activate, and log in — returns cookie */
-const createAndLoginManager = (): Promise<string> =>
-  createAndLoginRole("manager_user", "manager", "managerpass1");
+const createAndLoginManager = async (): Promise<string> =>
+  (await createActivateAndLogin("manager_user", "manager", "managerpass1")).cookie;
 
 /** Create a user-role user, activate, and log in — returns cookie */
-const createAndLoginUser = (): Promise<string> =>
-  createAndLoginRole("basic_user", "user", "userpass123");
+const createAndLoginUser = async (): Promise<string> =>
+  (await createActivateAndLogin("basic_user", "user", "userpass123")).cookie;
 
 describe("routes/utils", () => {
   beforeEach(async () => {
