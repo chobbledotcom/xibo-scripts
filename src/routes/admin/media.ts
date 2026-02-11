@@ -5,50 +5,39 @@
  * through the Xibo CMS API.
  */
 
-import {
-  get,
-  getRaw,
-  loadXiboConfig,
-  postMultipart,
-} from "#xibo/client.ts";
+import { filter } from "#fp";
+import { getSharedFolderId } from "#lib/db/settings.ts";
 import type { AdminLevel } from "#lib/types.ts";
-import type { XiboConfig, XiboFolder, XiboMedia } from "#xibo/types.ts";
-import { defineRoutes } from "#routes/router.ts";
+import type { XiboConfig, XiboMedia } from "#xibo/types.ts";
 import {
-  getAuthenticatedSession,
-  htmlResponse,
-  redirect,
-  redirectWithSuccess,
-  validateCsrfToken,
-} from "#routes/utils.ts";
+  extractUploadName,
+  fetchAllMedia,
+  fetchFolders,
+  findMediaById,
+  getQueryMessages,
+  handleMultipartUpload,
+  proxyMediaPreview,
+  redirectWithError,
+  resolveAuthConfig,
+  uploadToXibo,
+  verifyAndDeleteMedia,
+} from "#xibo/media-ops.ts";
+import { defineRoutes } from "#routes/router.ts";
+import { htmlResponse } from "#routes/utils.ts";
 import {
   mediaDetailPage,
   mediaListPage,
   mediaUploadPage,
+  sharedMediaListPage,
+  sharedMediaUploadPage,
 } from "#templates/admin/media.tsx";
 import {
   deleteRoute,
   detailRoute,
   errorMessage,
   sessionRoute,
+  withXiboForm,
 } from "#routes/admin/utils.ts";
-
-/**
- * Fetch the folder list from Xibo. Returns empty array on error.
- */
-const fetchFolders = async (config: XiboConfig): Promise<XiboFolder[]> => {
-  try {
-    return await get<XiboFolder[]>(config, "folders");
-  } catch {
-    return [];
-  }
-};
-
-/**
- * Fetch all media from Xibo.
- */
-const fetchMedia = (config: XiboConfig): Promise<XiboMedia[]> =>
-  get<XiboMedia[]>(config, "library");
 
 /**
  * Render upload page with an error, fetching folders for the form.
@@ -64,36 +53,6 @@ const uploadError = async (
 };
 
 /**
- * Build upload FormData, send to Xibo, and handle success/error.
- */
-const performUpload = async (
-  session: { csrfToken: string; adminLevel: AdminLevel },
-  config: XiboConfig,
-  file: File,
-  name: string,
-  folderId: string,
-  successSuffix = "",
-): Promise<Response> => {
-  const uploadData = new FormData();
-  uploadData.append("files", file, file.name);
-  uploadData.append("name", name);
-  if (folderId) uploadData.append("folderId", folderId);
-  try {
-    await postMultipart<XiboMedia>(config, "library", uploadData);
-    return redirectWithSuccess(
-      "/admin/media",
-      `Uploaded "${name}"${successSuffix}`,
-    );
-  } catch (e) {
-    return uploadError(
-      session,
-      config,
-      `Upload failed: ${errorMessage(e)}`,
-    );
-  }
-};
-
-/**
  * GET /admin/media — list all media with optional filters
  */
 const handleMediaListGet = sessionRoute(async (session, config, request) => {
@@ -101,41 +60,24 @@ const handleMediaListGet = sessionRoute(async (session, config, request) => {
   const folderParam = params.get("folderId");
   const folderId = folderParam ? Number(folderParam) : undefined;
   const mediaType = params.get("type") || undefined;
-  const success = params.get("success") || undefined;
-  const error = params.get("error") || undefined;
+  const { success, error } = getQueryMessages(request);
 
-  let media: XiboMedia[];
-  let folders: XiboFolder[];
   try {
-    [media, folders] = await Promise.all([
-      fetchMedia(config),
+    const [media, folders] = await Promise.all([
+      fetchAllMedia(config),
       fetchFolders(config),
     ]);
+    return htmlResponse(
+      mediaListPage(session, media, folders, folderId, mediaType, success, error),
+    );
   } catch (e) {
     return htmlResponse(
       mediaListPage(
-        session,
-        [],
-        [],
-        undefined,
-        undefined,
-        undefined,
+        session, [], [], undefined, undefined, undefined,
         `Failed to load media: ${errorMessage(e)}`,
       ),
     );
   }
-
-  return htmlResponse(
-    mediaListPage(
-      session,
-      media,
-      folders,
-      folderId,
-      mediaType,
-      success,
-      error,
-    ),
-  );
 });
 
 /**
@@ -151,50 +93,21 @@ const handleMediaUploadGet = sessionRoute(
 /**
  * POST /admin/media/upload — multipart file upload.
  *
- * Parses multipart form data directly (rather than using withAuthForm which
- * reads the body as url-encoded) and validates the CSRF token manually.
+ * Uses handleMultipartUpload to resolve auth, parse multipart form,
+ * validate CSRF, extract file, and upload to Xibo.
  */
-const handleMediaUploadPost = async (
-  request: Request,
-): Promise<Response> => {
-  const session = await getAuthenticatedSession(request);
-  if (!session) return redirect("/admin");
-
-  const config = await loadXiboConfig();
-  if (!config) {
-    return redirect("/admin/settings?error=Xibo+API+not+configured");
-  }
-
-  let formData: FormData;
-  try {
-    formData = await request.formData();
-  } catch {
-    return uploadError(session, config, "Invalid form data", 400);
-  }
-
-  const csrfToken = formData.get("csrf_token");
-  if (
-    !csrfToken ||
-    typeof csrfToken !== "string" ||
-    !validateCsrfToken(session.csrfToken, csrfToken)
-  ) {
-    return htmlResponse("Invalid CSRF token", 403);
-  }
-
-  const file = formData.get("file");
-  if (!file || !(file instanceof File) || file.size === 0) {
-    return uploadError(
-      session,
-      config,
-      "Please select a file to upload",
-      400,
-    );
-  }
-
-  const name = (formData.get("name") as string) || file.name;
-  const folderId = (formData.get("folderId") as string) || "";
-  return performUpload(session, config, file, name, folderId);
-};
+const handleMediaUploadPost = (request: Request): Promise<Response> =>
+  handleMultipartUpload(
+    request,
+    () => resolveAuthConfig(request),
+    (ctx, msg) => uploadError(ctx.session, ctx.config, msg, 400),
+    (ctx) => uploadError(ctx.session, ctx.config, "Please select a file to upload", 400),
+    (ctx, file, formData) => {
+      const folderId = (formData.get("folderId") as string) || "";
+      return uploadToXibo(ctx.config, file, extractUploadName(formData, file), folderId, "/admin/media", (msg) =>
+        uploadError(ctx.session, ctx.config, msg));
+    },
+  );
 
 /**
  * POST /admin/media/upload-url — upload media from a URL
@@ -239,14 +152,8 @@ const handleMediaUploadUrl = sessionRoute(
     const filename = `${name}.${extension.split(".").pop() || "bin"}`;
     const fileObj = new File([blob], filename, { type: contentType });
 
-    return performUpload(
-      session,
-      config,
-      fileObj,
-      name,
-      folderId,
-      " from URL",
-    );
+    return uploadToXibo(config, fileObj, name, folderId, "/admin/media", (msg) =>
+      uploadError(session, config, msg));
   },
 );
 
@@ -255,14 +162,8 @@ const handleMediaUploadUrl = sessionRoute(
  */
 const handleMediaDetailGet = detailRoute(
   async (session, config, params) => {
-    const mediaId = Number(params.id);
-    const allMedia = await fetchMedia(config);
-    const media = allMedia.find((m) => m.mediaId === mediaId);
-
-    if (!media) {
-      return htmlResponse("<h1>Media Not Found</h1>", 404);
-    }
-
+    const media = await findMediaById(config, Number(params.id));
+    if (!media) return htmlResponse("<h1>Media Not Found</h1>", 404);
     return htmlResponse(mediaDetailPage(session, media));
   },
 );
@@ -271,28 +172,8 @@ const handleMediaDetailGet = detailRoute(
  * GET /admin/media/:id/preview — proxy image preview from Xibo CMS
  */
 const handleMediaPreviewGet = detailRoute(
-  async (_session, config, params) => {
-    const mediaId = params.id;
-
-    try {
-      const response = await getRaw(
-        config,
-        `library/download/${mediaId}`,
-      );
-      const contentType =
-        response.headers.get("content-type") || "application/octet-stream";
-      const body = await response.arrayBuffer();
-
-      return new Response(body, {
-        headers: {
-          "content-type": contentType,
-          "cache-control": "public, max-age=300",
-        },
-      });
-    } catch {
-      return htmlResponse("Failed to load preview", 500);
-    }
-  },
+  (_session, config, params) =>
+    proxyMediaPreview(config, params.id!),
 );
 
 /**
@@ -304,9 +185,111 @@ const handleMediaDeletePost = deleteRoute(
   "Media deleted",
 );
 
+// ─── Shared Photo Repository ─────────────────────────────────────────
+
+/**
+ * GET /admin/media/shared — browse shared photo repository
+ */
+const handleSharedMediaGet = sessionRoute(async (session, config, request) => {
+  const { success, error } = getQueryMessages(request);
+
+  const sharedFolderId = await getSharedFolderId();
+  if (sharedFolderId === null) {
+    return htmlResponse(
+      sharedMediaListPage(
+        session, [], success,
+        "Shared folder not configured. Set a shared folder ID in settings.",
+      ),
+    );
+  }
+
+  try {
+    const allMedia = await fetchAllMedia(config);
+    const sharedMedia = filter(
+      (m: XiboMedia) => m.folderId === sharedFolderId,
+    )(allMedia);
+    return htmlResponse(sharedMediaListPage(session, sharedMedia, success, error));
+  } catch (e) {
+    return htmlResponse(
+      sharedMediaListPage(
+        session, [], undefined,
+        `Failed to load shared photos: ${errorMessage(e)}`,
+      ),
+    );
+  }
+});
+
+/**
+ * GET /admin/media/shared/upload — shared photo upload form
+ */
+const handleSharedUploadGet = sessionRoute(
+  (session) =>
+    Promise.resolve(htmlResponse(sharedMediaUploadPage(session))),
+);
+
+/**
+ * POST /admin/media/shared/upload — upload PNG to shared folder.
+ * Uses handleMultipartUpload with extended context including sharedFolderId.
+ */
+const handleSharedUploadPost = async (request: Request): Promise<Response> => {
+  const result = await resolveAuthConfig(request);
+  if (result instanceof Response) return result;
+  return handleMultipartUpload(
+    request,
+    async () => {
+      const sharedFolderId = await getSharedFolderId();
+      if (sharedFolderId === null) {
+        return htmlResponse(sharedMediaUploadPage(result.session, "Shared folder not configured"), 400);
+      }
+      return { ...result, sharedFolderId };
+    },
+    (ctx, msg) => htmlResponse(sharedMediaUploadPage(ctx.session, msg), 400),
+    (ctx) => htmlResponse(sharedMediaUploadPage(ctx.session, "Please select a PNG file to upload"), 400),
+    (ctx, file, formData) => {
+      if (file.type !== "image/png" && !file.name.toLowerCase().endsWith(".png")) {
+        return Promise.resolve(htmlResponse(
+          sharedMediaUploadPage(ctx.session, "Only PNG files are accepted for shared photos"), 400,
+        ));
+      }
+      const name = (formData.get("name") as string) || file.name.replace(/\.png$/i, "");
+      return uploadToXibo(ctx.config, file, name, String(ctx.sharedFolderId), "/admin/media/shared",
+        (msg) => htmlResponse(sharedMediaUploadPage(ctx.session, msg)));
+    },
+  );
+};
+
+/**
+ * POST /admin/media/shared/:id/delete — delete from shared folder.
+ * Verifies media belongs to shared folder before deleting.
+ */
+const handleSharedDeletePost = (
+  request: Request,
+  params: Record<string, string | undefined>,
+): Promise<Response> =>
+  withXiboForm(request, async (_session, _form, config) => {
+    const sharedFolderId = await getSharedFolderId();
+    if (sharedFolderId === null) {
+      return redirectWithError("/admin/media/shared", "Shared folder not configured");
+    }
+    return verifyAndDeleteMedia(
+      config, Number(params.id), sharedFolderId,
+      "/admin/media/shared", "Shared photo deleted",
+      "/admin/media/shared",
+      "Media not found in shared folder",
+      "Media not found in shared folder",
+    );
+  });
+
 /** Media routes */
 export const mediaRoutes = defineRoutes({
   "GET /admin/media": (request) => handleMediaListGet(request),
+  "GET /admin/media/shared": (request) => handleSharedMediaGet(request),
+  "GET /admin/media/shared/upload": (request) =>
+    handleSharedUploadGet(request),
+  "POST /admin/media/shared/upload": (request) =>
+    handleSharedUploadPost(request),
+  "POST /admin/media/shared/:id/delete": (request, params) =>
+    handleSharedDeletePost(request, params),
   "GET /admin/media/upload": (request) => handleMediaUploadGet(request),
   "POST /admin/media/upload": (request) => handleMediaUploadPost(request),
   "POST /admin/media/upload-url": (request) => handleMediaUploadUrl(request),

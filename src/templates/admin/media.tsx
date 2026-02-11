@@ -204,6 +204,123 @@ export const mediaUploadPage = (
 };
 
 /**
+ * Shared photo repository list page — PNG images in the shared folder
+ */
+export const sharedMediaListPage = (
+  session: AdminSession,
+  media: XiboMedia[],
+  success?: string,
+  error?: string,
+): string =>
+  String(
+    <Layout title="Shared Photos">
+      <AdminNav session={session} />
+      <Breadcrumb href="/admin/media" label="Media Library" />
+      <h2>Shared Photos</h2>
+
+      {success && <div class="success">{success}</div>}
+      {error && <div class="error">{error}</div>}
+
+      <section>
+        <div>
+          <a href="/admin/media/shared/upload">
+            <button type="button">Upload Shared Photo</button>
+          </a>
+        </div>
+      </section>
+
+      <section>
+        {media.length === 0
+          ? <p>No shared photos found.</p>
+          : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Preview</th>
+                  <th>Name</th>
+                  <th>Size</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {media.map((m) => (
+                  <tr>
+                    <td>
+                      {isPreviewable(m.mediaType) && (
+                        <img
+                          src={`/admin/media/${m.mediaId}/preview`}
+                          alt={m.name}
+                          style="max-width:80px;max-height:60px"
+                        />
+                      )}
+                    </td>
+                    <td>{m.name}</td>
+                    <td>{formatFileSize(m.fileSize)}</td>
+                    <td>
+                      <form
+                        method="POST"
+                        action={`/admin/media/shared/${m.mediaId}/delete`}
+                        style="display:inline"
+                      >
+                        <input
+                          type="hidden"
+                          name="csrf_token"
+                          value={session.csrfToken}
+                        />
+                        <button type="submit" class="error">Delete</button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        <p>{media.length} item{media.length !== 1 ? "s" : ""}</p>
+      </section>
+    </Layout>,
+  );
+
+/**
+ * Shared photo upload form — PNG only
+ */
+export const sharedMediaUploadPage = (
+  session: AdminSession,
+  error?: string,
+): string =>
+  String(
+    <Layout title="Upload Shared Photo">
+      <AdminNav session={session} />
+      <Breadcrumb href="/admin/media/shared" label="Shared Photos" />
+      <h2>Upload Shared Photo</h2>
+
+      {error && <div class="error">{error}</div>}
+
+      <section>
+        <p>
+          Only PNG files are accepted for the shared photo repository.
+          The filename will be used as the product name.
+        </p>
+        <form
+          method="POST"
+          action="/admin/media/shared/upload"
+          enctype="multipart/form-data"
+        >
+          <input type="hidden" name="csrf_token" value={session.csrfToken} />
+          <label>
+            PNG File
+            <input type="file" name="file" accept=".png,image/png" required />
+          </label>
+          <label>
+            Name (optional, defaults to filename)
+            <input type="text" name="name" placeholder="Product name" />
+          </label>
+          <button type="submit">Upload</button>
+        </form>
+      </section>
+    </Layout>,
+  );
+
+/**
  * Media detail / view page
  */
 export const mediaDetailPage = (
