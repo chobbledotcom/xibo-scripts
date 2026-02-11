@@ -2,7 +2,6 @@
  * Admin menu board routes — CRUD for boards, categories, and products
  */
 
-import { groupBy, reduce } from "#fp";
 import { logActivity } from "#lib/db/activityLog.ts";
 import { get, post, put, del } from "#xibo/client.ts";
 import type {
@@ -48,40 +47,27 @@ import {
  */
 const fetchCategories = (
   config: XiboConfig,
-  boardId: number,
+  menuId: number,
 ): Promise<XiboCategory[]> =>
-  get<XiboCategory[]>(config, `menuboard/${boardId}/category`);
+  get<XiboCategory[]>(config, `menuboard/${menuId}/categories`);
 
 /**
  * Fetch products for a board grouped by category
  */
 const fetchProductsByCategory = async (
   config: XiboConfig,
-  boardId: number,
   categories: XiboCategory[],
 ): Promise<Record<number, XiboProduct[]>> => {
-  const products = await get<XiboProduct[]>(
-    config,
-    `menuboard/${boardId}/product`,
+  const grouped: Record<number, XiboProduct[]> = {};
+  await Promise.all(
+    categories.map(async (cat) => {
+      grouped[cat.menuCategoryId] = await get<XiboProduct[]>(
+        config,
+        `menuboard/${cat.menuCategoryId}/products`,
+      );
+    }),
   );
-  const byCategory = groupBy(
-    (p: XiboProduct) => String(p.menuCategoryId),
-  )(products);
-  // Seed with empty arrays for known categories, then overlay grouped products
-  const result = reduce(
-    (acc: Record<number, XiboProduct[]>, cat: XiboCategory) => {
-      acc[cat.menuCategoryId] =
-        byCategory[String(cat.menuCategoryId)] ?? [];
-      return acc;
-    },
-    {} as Record<number, XiboProduct[]>,
-  )(categories);
-  // Preserve products from unknown categories
-  for (const [key, prods] of Object.entries(byCategory)) {
-    const id = Number(key);
-    if (!result[id]) result[id] = prods;
-  }
-  return result;
+  return grouped;
 };
 
 /**
@@ -105,8 +91,8 @@ const withBoard = async (
   boardId: string,
   handler: (board: XiboMenuBoard) => Promise<Response>,
 ): Promise<Response> => {
-  const boards = await get<XiboMenuBoard[]>(config, "menuboard", {
-    menuBoardId: boardId,
+  const boards = await get<XiboMenuBoard[]>(config, "menuboards", {
+    menuId: boardId,
   });
   const board = boards[0];
   if (!board) return htmlResponse("Menu board not found", 404);
@@ -127,7 +113,7 @@ const withBoardCategory = (
   ) => Promise<Response>,
 ): Promise<Response> =>
   withBoard(config, boardId, async (board) => {
-    const categories = await fetchCategories(config, board.menuBoardId);
+    const categories = await fetchCategories(config, board.menuId);
     const category = categories.find(
       (c) => String(c.menuCategoryId) === categoryId,
     );
@@ -180,7 +166,7 @@ const deleteBoardChild = (
     async (_values, config, params) => {
       await del(
         config,
-        `menuboard/${params.boardId}/${subpath}/${params.id}`,
+        `menuboard/${params.id}/${subpath}`,
       );
       await logActivity(
         `Deleted ${entity} ${params.id} from board ${params.boardId}`,
@@ -247,7 +233,7 @@ const buildProductBody = (
 
 /** GET /admin/menuboards — list all boards */
 const handleBoardList = listRoute<XiboMenuBoard>(
-  "menuboard",
+  "menuboards",
   menuBoardListPage,
 );
 
@@ -268,7 +254,7 @@ const handleBoardCreate = formRouteP<MenuBoardFormValues>(
     );
     await logActivity(`Created menu board "${values.name}"`);
     return redirectWithSuccess(
-      `/admin/menuboard/${created.menuBoardId}`,
+      `/admin/menuboard/${created.menuId}`,
       "Menu board created",
     );
   },
@@ -283,10 +269,9 @@ const handleBoardDetail = boardRoute(
     let productsByCategory: Record<number, XiboProduct[]> = {};
     let error: string | undefined;
     try {
-      categories = await fetchCategories(config, board.menuBoardId);
+      categories = await fetchCategories(config, board.menuId);
       productsByCategory = await fetchProductsByCategory(
         config,
-        board.menuBoardId,
         categories,
       );
     } catch (e) {
@@ -329,8 +314,8 @@ const handleBoardUpdate = formRouteP<MenuBoardFormValues>(
 const handleBoardDelete = formRouteP<Record<string, never>>(
   [],
   async (_values, config, params) => {
-    const boards = await get<XiboMenuBoard[]>(config, "menuboard", {
-      menuBoardId: params.id!,
+    const boards = await get<XiboMenuBoard[]>(config, "menuboards", {
+      menuId: params.id!,
     });
     const name = boards[0]?.name ?? params.id;
     await del(config, `menuboard/${params.id}`);
@@ -346,7 +331,7 @@ const handleCategoryNew = boardRoute(
   "boardId",
   (session, _config, board) =>
     Promise.resolve(htmlResponse(
-      categoryFormPage(session, board.menuBoardId, board.name),
+      categoryFormPage(session, board.menuId, board.name),
     )),
 );
 
@@ -374,7 +359,7 @@ const handleCategoryEdit = boardCategoryRoute(
     Promise.resolve(htmlResponse(
       categoryFormPage(
         session,
-        board.menuBoardId,
+        board.menuId,
         board.name,
         category,
       ),
@@ -387,7 +372,7 @@ const handleCategoryUpdate = formRouteP<CategoryFormValues>(
   async (values, config, params) => {
     await put(
       config,
-      `menuboard/${params.boardId}/category/${params.id}`,
+      `menuboard/${params.id}/category`,
       buildCategoryBody(values),
     );
     return logAndRedirectToBoard(
@@ -410,7 +395,7 @@ const handleProductNew = boardCategoryRoute(
     Promise.resolve(htmlResponse(
       productFormPage(
         session,
-        board.menuBoardId,
+        board.menuId,
         board.name,
         category.menuCategoryId,
         category.name,
@@ -424,7 +409,7 @@ const handleProductCreate = formRouteP<ProductFormValues>(
   async (values, config, params) => {
     await post(
       config,
-      `menuboard/${params.boardId}/product`,
+      `menuboard/${params.catId}/product`,
       buildProductBody(params.catId!, values),
     );
     return logAndRedirectToBoard(
@@ -441,7 +426,6 @@ const handleProductEdit = boardCategoryRoute(
   async (session, config, board, category, categories, params) => {
     const productsByCategory = await fetchProductsByCategory(
       config,
-      board.menuBoardId,
       categories,
     );
     const product = findProduct(productsByCategory, params.id!);
@@ -450,7 +434,7 @@ const handleProductEdit = boardCategoryRoute(
     return htmlResponse(
       productFormPage(
         session,
-        board.menuBoardId,
+        board.menuId,
         board.name,
         category.menuCategoryId,
         category.name,
@@ -466,7 +450,7 @@ const handleProductUpdate = formRouteP<ProductFormValues>(
   async (values, config, params) => {
     await put(
       config,
-      `menuboard/${params.boardId}/product/${params.id}`,
+      `menuboard/${params.id}/product`,
       buildProductBody(params.catId!, values),
     );
     return logAndRedirectToBoard(

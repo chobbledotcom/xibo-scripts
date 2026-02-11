@@ -405,7 +405,7 @@ export const getDashboardStatus = async (
 
   // Fetch counts in parallel — each uses its own cache key
   const countEndpoints = [
-    "menuboard",
+    "menuboards",
     "library",
     "layout",
     "dataset",

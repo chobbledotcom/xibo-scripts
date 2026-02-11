@@ -55,16 +55,16 @@ export const menuBoardListPage = (
               {boards.map((board) => (
                 <tr>
                   <td>
-                    <a href={`/admin/menuboard/${board.menuBoardId}`}>
+                    <a href={`/admin/menuboard/${board.menuId}`}>
                       {board.name}
                     </a>
                   </td>
                   <td>{board.code || "—"}</td>
                   <td>{board.description || "—"}</td>
                   <td>
-                    <a href={`/admin/menuboard/${board.menuBoardId}`}>View</a>
+                    <a href={`/admin/menuboard/${board.menuId}`}>View</a>
                     {" | "}
-                    <a href={`/admin/menuboard/${board.menuBoardId}/edit`}>
+                    <a href={`/admin/menuboard/${board.menuId}/edit`}>
                       Edit
                     </a>
                   </td>
@@ -107,11 +107,11 @@ export const menuBoardDetailPage = (
             {board.description}{" | "}
           </span>
         )}
-        <a href={`/admin/menuboard/${board.menuBoardId}/edit`}>Edit Board</a>
+        <a href={`/admin/menuboard/${board.menuId}/edit`}>Edit Board</a>
         {" | "}
         <form
           method="POST"
-          action={`/admin/menuboard/${board.menuBoardId}/delete`}
+          action={`/admin/menuboard/${board.menuId}/delete`}
           style="display:inline"
         >
           <input type="hidden" name="csrf_token" value={session.csrfToken} />
@@ -121,7 +121,7 @@ export const menuBoardDetailPage = (
 
       <h3>Categories</h3>
       <p>
-        <a href={`/admin/menuboard/${board.menuBoardId}/category/new`}>
+        <a href={`/admin/menuboard/${board.menuId}/category/new`}>
           Add Category
         </a>
       </p>
@@ -138,14 +138,14 @@ export const menuBoardDetailPage = (
                 </h4>
                 <p>
                   <a
-                    href={`/admin/menuboard/${board.menuBoardId}/category/${cat.menuCategoryId}/edit`}
+                    href={`/admin/menuboard/${board.menuId}/category/${cat.menuCategoryId}/edit`}
                   >
                     Edit
                   </a>
                   {" | "}
                   <form
                     method="POST"
-                    action={`/admin/menuboard/${board.menuBoardId}/category/${cat.menuCategoryId}/delete`}
+                    action={`/admin/menuboard/${board.menuId}/category/${cat.menuCategoryId}/delete`}
                     style="display:inline"
                   >
                     <input
@@ -157,14 +157,14 @@ export const menuBoardDetailPage = (
                   </form>
                   {" | "}
                   <a
-                    href={`/admin/menuboard/${board.menuBoardId}/category/${cat.menuCategoryId}/product/new`}
+                    href={`/admin/menuboard/${board.menuId}/category/${cat.menuCategoryId}/product/new`}
                   >
                     Add Product
                   </a>
                 </p>
 
                 <ProductList
-                  boardId={board.menuBoardId}
+                  boardId={board.menuId}
                   categoryId={cat.menuCategoryId}
                   products={productsByCategory[cat.menuCategoryId] ?? []}
                   csrfToken={session.csrfToken}
@@ -256,7 +256,7 @@ export const menuBoardFormPage = (
   const isEdit = !!board;
   const title = isEdit ? `Edit ${board.name}` : "New Menu Board";
   const action = isEdit
-    ? `/admin/menuboard/${board.menuBoardId}`
+    ? `/admin/menuboard/${board.menuId}`
     : "/admin/menuboard";
 
   const values: FieldValues = board
@@ -269,7 +269,7 @@ export const menuBoardFormPage = (
       <Breadcrumb
         href={
           isEdit
-            ? `/admin/menuboard/${board.menuBoardId}`
+            ? `/admin/menuboard/${board.menuId}`
             : "/admin/menuboards"
         }
         label={isEdit ? board.name : "Menu Boards"}
