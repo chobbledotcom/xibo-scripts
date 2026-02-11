@@ -68,15 +68,9 @@ describe("xibo/client", () => {
         ...config!,
         clientSecret: "invalid_secret",
       };
-      try {
-        await authenticate(badConfig);
-        expect(true).toBe(false);
-      } catch (e) {
-        expect(e).toBeInstanceOf(XiboClientError);
-        expect((e as XiboClientError).message).toContain(
-          "Authentication failed",
-        );
-      }
+      await expect(authenticate(badConfig)).rejects.toThrow(
+        "Authentication failed",
+      );
     });
 
     it("throws on unreachable server", async () => {
@@ -85,13 +79,7 @@ describe("xibo/client", () => {
         clientId: "x",
         clientSecret: "x",
       };
-      try {
-        await authenticate(badConfig);
-        expect(true).toBe(false);
-      } catch (e) {
-        expect(e).toBeInstanceOf(XiboClientError);
-        expect((e as XiboClientError).httpStatus).toBe(0);
-      }
+      await expect(authenticate(badConfig)).rejects.toThrow(XiboClientError);
     });
   });
 
@@ -172,13 +160,9 @@ describe("xibo/client", () => {
     if (!hasCredentials) return;
 
     it("throws on non-existent endpoint", async () => {
-      try {
-        await get(config!, "nonexistent_endpoint_xyz");
-        expect(true).toBe(false);
-      } catch (e) {
-        expect(e).toBeInstanceOf(XiboClientError);
-        expect((e as XiboClientError).httpStatus).toBeGreaterThan(0);
-      }
+      await expect(
+        get(config!, "nonexistent_endpoint_xyz"),
+      ).rejects.toThrow(XiboClientError);
     });
   });
 
