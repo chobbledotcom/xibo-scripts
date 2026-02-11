@@ -94,15 +94,28 @@ export type XiboWidget = {
   displayOrder: number;
 };
 
+/** Dataset column definition */
+export type XiboDatasetColumn = {
+  dataSetColumnId: number;
+  heading: string;
+  dataTypeId: number;
+  dataSetColumnTypeId: number;
+  listContent: string;
+  columnOrder: number;
+};
+
 /** Dataset */
 export type XiboDataset = {
   dataSetId: number;
   dataSet: string;
   description: string;
   code: string;
-  columns: unknown[];
-  rows: unknown[];
+  columnCount: number;
+  columns: XiboDatasetColumn[];
 };
+
+/** Dataset row data — keyed by column heading */
+export type XiboDatasetRow = Record<string, string | number | null>;
 
 /** Display resolution */
 export type XiboResolution = {
