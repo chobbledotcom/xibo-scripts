@@ -39,10 +39,28 @@ const cacheSession = (token: string, session: Session | null): void => {
 };
 
 /**
+ * Listener for external caches to stay in sync with session cache invalidation.
+ * Called when any session cache entry is invalidated or the cache is cleared.
+ */
+type SessionCacheListener = () => void;
+let cacheListener: SessionCacheListener | null = null;
+
+/**
+ * Register a listener that fires when the session cache is invalidated.
+ * Used by higher-level caches (e.g., auth session cache) to stay in sync.
+ */
+export const onSessionCacheInvalidation = (
+  listener: SessionCacheListener | null,
+): void => {
+  cacheListener = listener;
+};
+
+/**
  * Invalidate a session from cache
  */
 const invalidateSessionCache = (token: string): void => {
   sessionCache.delete(token);
+  cacheListener?.();
 };
 
 /**
@@ -50,6 +68,7 @@ const invalidateSessionCache = (token: string): void => {
  */
 const clearSessionCache = (): void => {
   sessionCache.clear();
+  cacheListener?.();
 };
 
 /**

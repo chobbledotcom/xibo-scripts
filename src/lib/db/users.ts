@@ -13,6 +13,7 @@ import {
   wrapKey,
 } from "#lib/crypto.ts";
 import { getDb, queryOne } from "#lib/db/client.ts";
+import { resetSessionCache } from "#lib/db/sessions.ts";
 import { now } from "#lib/now.ts";
 import type { AdminLevel, User } from "#lib/types.ts";
 
@@ -217,6 +218,8 @@ export const deleteUser = async (userId: number): Promise<void> => {
     sql: "DELETE FROM users WHERE id = ?",
     args: [userId],
   });
+  // Clear session caches since sessions were deleted directly by user_id
+  resetSessionCache();
 };
 
 /**

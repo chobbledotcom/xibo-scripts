@@ -11,6 +11,7 @@ import {
   completeSetup,
   invalidateSettingsCache,
 } from "#lib/db/settings.ts";
+import { resetAuthSessionCache } from "#routes/utils.ts";
 
 // Re-export crypto helpers (no db dependency)
 export {
@@ -68,6 +69,7 @@ const prepareTestClient = async (): Promise<{ reused: boolean }> => {
   setupTestEncryptionKey();
   clearSetupCompleteCache();
   resetSessionCache();
+  resetAuthSessionCache();
 
   if (cachedClient && await isSchemaIntact(cachedClient)) {
     setDb(cachedClient);
@@ -150,6 +152,7 @@ export const resetDb = (): void => {
   clearSetupCompleteCache();
   invalidateSettingsCache();
   resetSessionCache();
+  resetAuthSessionCache();
 };
 
 /**
