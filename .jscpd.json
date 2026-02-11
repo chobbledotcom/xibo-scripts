@@ -9,8 +9,7 @@
 		"**/deno.lock",
 		"bunny-script.ts",
 		"src/fp/index.ts",
-		"src/lib/crypto.ts",
-		"src/routes/admin/**"
+		"src/lib/crypto.ts"
 	],
 	"format": ["typescript", "json"],
 	"absolute": false,
