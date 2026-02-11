@@ -8,6 +8,7 @@ import {
   useFakeTimers,
   useRealTimers,
 } from "#test-compat";
+import type { AdminLevel } from "#lib/types.ts";
 import {
   createTestDbWithSetup,
   getCsrfTokenFromCookie,
@@ -22,19 +23,23 @@ const handle = async (req: Request): Promise<Response> => {
   return handleRequest(req);
 };
 
-/** Create a manager user, activate, and log in — returns cookie */
-const createAndLoginManager = async (): Promise<string> => {
+/** Create a user with a given role, activate, and log in — returns cookie */
+const createAndLoginRole = async (
+  username: string,
+  role: AdminLevel,
+  password: string,
+): Promise<string> => {
   const { createInvitedUser, setUserPassword, activateUser, hashInviteCode } =
     await import("#lib/db/users.ts");
 
-  const codeHash = await hashInviteCode("mgr-invite");
+  const codeHash = await hashInviteCode(`${username}-invite`);
   const user = await createInvitedUser(
-    "manager_user",
-    "manager",
+    username,
+    role,
     codeHash,
     new Date(Date.now() + 86400000).toISOString(),
   );
-  const pwHash = await setUserPassword(user.id, "managerpass1");
+  const pwHash = await setUserPassword(user.id, password);
   const dataKey = await crypto.subtle.generateKey(
     { name: "AES-GCM", length: 256 },
     true,
@@ -43,13 +48,18 @@ const createAndLoginManager = async (): Promise<string> => {
   await activateUser(user.id, dataKey, pwHash);
 
   const loginRes = await handle(
-    mockFormRequest("/admin/login", {
-      username: "manager_user",
-      password: "managerpass1",
-    }),
+    mockFormRequest("/admin/login", { username, password }),
   );
   return loginRes.headers.get("set-cookie") || "";
 };
+
+/** Create a manager user, activate, and log in — returns cookie */
+const createAndLoginManager = (): Promise<string> =>
+  createAndLoginRole("manager_user", "manager", "managerpass1");
+
+/** Create a user-role user, activate, and log in — returns cookie */
+const createAndLoginUser = (): Promise<string> =>
+  createAndLoginRole("basic_user", "user", "userpass123");
 
 describe("routes/utils", () => {
   beforeEach(async () => {
@@ -107,7 +117,7 @@ describe("routes/utils", () => {
     });
   });
 
-  describe("requireOwnerRole", () => {
+  describe("requireOwnerOnly", () => {
     it("returns 403 for non-owner user accessing owner-only route", async () => {
       const mgrCookie = await createAndLoginManager();
       const res = await handle(
@@ -132,6 +142,40 @@ describe("routes/utils", () => {
             xibo_client_secret: "b",
           },
           mgrCookie,
+        ),
+      );
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("requireManagerOrAbove", () => {
+    it("returns 403 for user role accessing manager-or-above route", async () => {
+      const userCookie = await createAndLoginUser();
+      const res = await handle(
+        mockRequest("/admin/users", { headers: { cookie: userCookie } }),
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("allows manager to access manager-or-above route", async () => {
+      const mgrCookie = await createAndLoginManager();
+      const res = await handle(
+        mockRequest("/admin/users", { headers: { cookie: mgrCookie } }),
+      );
+      expect(res.status).toBe(200);
+    });
+  });
+
+  describe("withManagerAuthForm", () => {
+    it("returns 403 for user role POSTing to manager-or-above form", async () => {
+      const userCookie = await createAndLoginUser();
+      const csrf = await getCsrfTokenFromCookie(userCookie);
+
+      const res = await handle(
+        mockFormRequest(
+          "/admin/users",
+          { username: "newuser", admin_level: "user", csrf_token: csrf! },
+          userCookie,
         ),
       );
       expect(res.status).toBe(403);

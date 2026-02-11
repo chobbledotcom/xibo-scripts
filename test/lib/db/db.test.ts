@@ -51,11 +51,14 @@ describe("database layer", () => {
   });
 
   describe("migrations", () => {
-    it("initDb creates all tables", async () => {
+    it("initDb creates all tables including multi-tenant tables", async () => {
       await createTestDb();
       const { getDb } = await import("#lib/db/client.ts");
-      // Verify key tables exist by querying them
-      for (const table of ["settings", "sessions", "users", "activity_log", "cache", "login_attempts"]) {
+      // Verify all tables exist by querying them
+      for (const table of [
+        "settings", "sessions", "users", "activity_log", "cache",
+        "login_attempts", "businesses", "business_users", "screens", "menu_screens",
+      ]) {
         const result = await getDb().execute(`SELECT COUNT(*) as cnt FROM ${table}`);
         expect(result.rows.length).toBe(1);
       }
@@ -73,6 +76,135 @@ describe("database layer", () => {
       const { initDb } = await import("#lib/db/migrations/index.ts");
       // Second call skips because latest_db_update is already set
       await initDb();
+    });
+  });
+
+  describe("multi-tenant tables", () => {
+    beforeEach(async () => {
+      await createTestDb();
+    });
+
+    it("businesses table supports insert and query", async () => {
+      const { getDb } = await import("#lib/db/client.ts");
+      await getDb().execute({
+        sql: "INSERT INTO businesses (name, xibo_folder_id, folder_name, xibo_dataset_id, created_at) VALUES (?, ?, ?, ?, ?)",
+        args: ["enc:test-biz", 10, "enc:biz-abc", 20, "enc:2025-01-01T00:00:00Z"],
+      });
+      const result = await getDb().execute("SELECT * FROM businesses WHERE id = 1");
+      expect(result.rows.length).toBe(1);
+      expect(result.rows[0]!.name).toBe("enc:test-biz");
+      expect(Number(result.rows[0]!.xibo_folder_id)).toBe(10);
+      expect(Number(result.rows[0]!.xibo_dataset_id)).toBe(20);
+    });
+
+    it("businesses table auto-increments id", async () => {
+      const { getDb } = await import("#lib/db/client.ts");
+      await getDb().execute({
+        sql: "INSERT INTO businesses (name, created_at) VALUES (?, ?)",
+        args: ["enc:biz1", "enc:2025-01-01"],
+      });
+      await getDb().execute({
+        sql: "INSERT INTO businesses (name, created_at) VALUES (?, ?)",
+        args: ["enc:biz2", "enc:2025-01-02"],
+      });
+      const result = await getDb().execute("SELECT id FROM businesses ORDER BY id");
+      expect(result.rows.length).toBe(2);
+      expect(Number(result.rows[0]!.id)).toBe(1);
+      expect(Number(result.rows[1]!.id)).toBe(2);
+    });
+
+    it("business_users table enforces composite primary key", async () => {
+      const { getDb } = await import("#lib/db/client.ts");
+      // Create parent records for FK constraints
+      await getDb().execute({
+        sql: "INSERT INTO users (username_hash, username_index, password_hash, admin_level) VALUES (?, ?, ?, ?)",
+        args: ["u1", "idx1", "", "user"],
+      });
+      await getDb().execute({
+        sql: "INSERT INTO businesses (name, created_at) VALUES (?, ?)",
+        args: ["enc:biz", "enc:now"],
+      });
+      await getDb().execute({
+        sql: "INSERT INTO business_users (business_id, user_id) VALUES (?, ?)",
+        args: [1, 1],
+      });
+      // Duplicate should fail
+      let threw = false;
+      try {
+        await getDb().execute({
+          sql: "INSERT INTO business_users (business_id, user_id) VALUES (?, ?)",
+          args: [1, 1],
+        });
+      } catch {
+        threw = true;
+      }
+      expect(threw).toBe(true);
+    });
+
+    it("business_users allows multiple users per business", async () => {
+      const { getDb } = await import("#lib/db/client.ts");
+      // Create parent records for FK constraints
+      await getDb().execute({
+        sql: "INSERT INTO users (username_hash, username_index, password_hash, admin_level) VALUES (?, ?, ?, ?)",
+        args: ["u1", "idx1", "", "user"],
+      });
+      await getDb().execute({
+        sql: "INSERT INTO users (username_hash, username_index, password_hash, admin_level) VALUES (?, ?, ?, ?)",
+        args: ["u2", "idx2", "", "user"],
+      });
+      await getDb().execute({
+        sql: "INSERT INTO businesses (name, created_at) VALUES (?, ?)",
+        args: ["enc:biz", "enc:now"],
+      });
+      await getDb().execute({
+        sql: "INSERT INTO business_users (business_id, user_id) VALUES (?, ?)",
+        args: [1, 1],
+      });
+      await getDb().execute({
+        sql: "INSERT INTO business_users (business_id, user_id) VALUES (?, ?)",
+        args: [1, 2],
+      });
+      const result = await getDb().execute("SELECT * FROM business_users WHERE business_id = 1");
+      expect(result.rows.length).toBe(2);
+    });
+
+    it("screens table supports insert with business_id", async () => {
+      const { getDb } = await import("#lib/db/client.ts");
+      await getDb().execute({
+        sql: "INSERT INTO businesses (name, created_at) VALUES (?, ?)",
+        args: ["enc:biz", "enc:now"],
+      });
+      await getDb().execute({
+        sql: "INSERT INTO screens (name, business_id, xibo_display_id, created_at) VALUES (?, ?, ?, ?)",
+        args: ["enc:screen1", 1, 42, "enc:2025-01-01"],
+      });
+      const result = await getDb().execute("SELECT * FROM screens WHERE id = 1");
+      expect(result.rows.length).toBe(1);
+      expect(Number(result.rows[0]!.business_id)).toBe(1);
+      expect(Number(result.rows[0]!.xibo_display_id)).toBe(42);
+    });
+
+    it("menu_screens table supports insert with all fields", async () => {
+      const { getDb } = await import("#lib/db/client.ts");
+      await getDb().execute({
+        sql: "INSERT INTO businesses (name, created_at) VALUES (?, ?)",
+        args: ["enc:biz", "enc:now"],
+      });
+      await getDb().execute({
+        sql: "INSERT INTO screens (name, business_id, created_at) VALUES (?, ?, ?)",
+        args: ["enc:screen", 1, "enc:now"],
+      });
+      await getDb().execute({
+        sql: "INSERT INTO menu_screens (name, screen_id, template_id, display_time, sort_order, xibo_layout_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        args: ["enc:menu1", 1, "tmpl-v1", 30, 1, 99, "enc:2025-01-01"],
+      });
+      const result = await getDb().execute("SELECT * FROM menu_screens WHERE id = 1");
+      expect(result.rows.length).toBe(1);
+      expect(Number(result.rows[0]!.screen_id)).toBe(1);
+      expect(result.rows[0]!.template_id).toBe("tmpl-v1");
+      expect(Number(result.rows[0]!.display_time)).toBe(30);
+      expect(Number(result.rows[0]!.sort_order)).toBe(1);
+      expect(Number(result.rows[0]!.xibo_layout_id)).toBe(99);
     });
   });
 

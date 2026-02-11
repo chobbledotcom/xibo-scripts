@@ -8,9 +8,15 @@ interface AdminNavProps {
   session?: AdminSession;
 }
 
+/** Check if session role is manager or above */
+const isManagerOrAbove = (session?: AdminSession): boolean =>
+  session?.adminLevel === "owner" || session?.adminLevel === "manager";
+
 /**
  * Universal admin navigation - shown at top of all admin pages
- * Users, Settings, and Sessions links only shown to owners
+ * - Owner: all links
+ * - Manager: all except Settings and Sessions
+ * - User: Dashboard and Logout only
  */
 export const AdminNav = ({ session }: AdminNavProps = {}): JSX.Element => (
   <nav>
@@ -18,19 +24,27 @@ export const AdminNav = ({ session }: AdminNavProps = {}): JSX.Element => (
       <li>
         <a href="/admin/">Dashboard</a>
       </li>
-      <li>
-        <a href="/admin/menuboards">Menu Boards</a>
-      </li>
-      <li>
-        <a href="/admin/media">Media</a>
-      </li>
-      <li>
-        <a href="/admin/layouts">Layouts</a>
-      </li>
-      <li>
-        <a href="/admin/datasets">Datasets</a>
-      </li>
-      {session?.adminLevel === "owner" && (
+      {isManagerOrAbove(session) && (
+        <li>
+          <a href="/admin/menuboards">Menu Boards</a>
+        </li>
+      )}
+      {isManagerOrAbove(session) && (
+        <li>
+          <a href="/admin/media">Media</a>
+        </li>
+      )}
+      {isManagerOrAbove(session) && (
+        <li>
+          <a href="/admin/layouts">Layouts</a>
+        </li>
+      )}
+      {isManagerOrAbove(session) && (
+        <li>
+          <a href="/admin/datasets">Datasets</a>
+        </li>
+      )}
+      {isManagerOrAbove(session) && (
         <li>
           <a href="/admin/users">Users</a>
         </li>

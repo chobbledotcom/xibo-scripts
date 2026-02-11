@@ -14,7 +14,7 @@ import { defineRoutes } from "#routes/router.ts";
 import {
   htmlResponse,
   redirectWithSuccess,
-  requireOwnerOr,
+  requireOwnerOnly,
   withOwnerAuthForm,
 } from "#routes/utils.ts";
 import {
@@ -91,7 +91,7 @@ const settingsPage = (
  * Handle GET /admin/settings
  */
 const handleSettingsGet = (request: Request): Promise<Response> =>
-  requireOwnerOr(request, async (session) => {
+  requireOwnerOnly(request, async (session) => {
     const xiboUrl = await getXiboApiUrl();
     const xiboClientId = await getXiboClientId();
     const url = new URL(request.url);

@@ -35,6 +35,7 @@ import {
 
 const ownerSession: AdminSession = { csrfToken: "csrf-123", adminLevel: "owner" };
 const managerSession: AdminSession = { csrfToken: "csrf-456", adminLevel: "manager" };
+const userSession: AdminSession = { csrfToken: "csrf-789", adminLevel: "user" };
 
 describe("Layout", () => {
   it("includes DOCTYPE", () => {
@@ -74,21 +75,35 @@ describe("AdminNav", () => {
     expect(html).toContain("/admin/users");
   });
 
-  it("hides Settings/Sessions/Users links for manager", () => {
+  it("hides Settings/Sessions links for manager but shows Users", () => {
     const html = String(AdminNav({ session: managerSession }));
     expect(html).not.toContain("/admin/settings");
     expect(html).not.toContain("/admin/sessions");
-    expect(html).not.toContain("/admin/users");
+    expect(html).toContain("/admin/users");
   });
 
-  it("always shows Dashboard, Menu Boards, Media, Layouts, Datasets, Logout", () => {
+  it("shows Dashboard, Menu Boards, Media, Layouts, Datasets, Users, Logout for manager", () => {
     const html = String(AdminNav({ session: managerSession }));
     expect(html).toContain("/admin/");
     expect(html).toContain("/admin/menuboards");
     expect(html).toContain("/admin/media");
     expect(html).toContain("/admin/layouts");
     expect(html).toContain("/admin/datasets");
+    expect(html).toContain("/admin/users");
     expect(html).toContain("/admin/logout");
+  });
+
+  it("shows only Dashboard and Logout for user role", () => {
+    const html = String(AdminNav({ session: userSession }));
+    expect(html).toContain("/admin/");
+    expect(html).toContain("/admin/logout");
+    expect(html).not.toContain("/admin/menuboards");
+    expect(html).not.toContain("/admin/media");
+    expect(html).not.toContain("/admin/layouts");
+    expect(html).not.toContain("/admin/datasets");
+    expect(html).not.toContain("/admin/users");
+    expect(html).not.toContain("/admin/settings");
+    expect(html).not.toContain("/admin/sessions");
   });
 });
 

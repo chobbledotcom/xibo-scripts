@@ -1,22 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it } from "#test-compat";
+import { getAllActivityLog } from "#lib/db/activityLog.ts";
 import { getDb } from "#lib/db/client.ts";
 import { createSession } from "#lib/db/sessions.ts";
 import {
+  activateUser,
   createInvitedUser,
   decryptAdminLevel,
   decryptUsername,
   getAllUsers,
   getUserByUsername,
+  hashInviteCode,
   hasPassword,
   isInviteValid,
+  setUserPassword,
   verifyUserPassword,
 } from "#lib/db/users.ts";
-import { setUserPassword } from "#lib/db/users.ts";
 import { encrypt, hashPassword } from "#lib/crypto.ts";
+import type { AdminLevel } from "#lib/types.ts";
 import {
   awaitTestRequest,
   createTestDbWithSetup,
   expectAdminRedirect,
+  getCsrfTokenFromCookie,
   loginAsAdmin,
   mockFormRequest,
   mockRequest,
@@ -28,6 +33,35 @@ import {
 const handle = async (req: Request): Promise<Response> => {
   const { handleRequest } = await import("#routes");
   return handleRequest(req);
+};
+
+/** Create a user with a given role, activate, log in, and return cookie + csrf */
+const createActivateAndLogin = async (
+  username: string,
+  role: AdminLevel,
+  password: string,
+): Promise<{ cookie: string; csrfToken: string }> => {
+  const codeHash = await hashInviteCode(`${username}-code`);
+  const user = await createInvitedUser(
+    username,
+    role,
+    codeHash,
+    new Date(Date.now() + 86400000).toISOString(),
+  );
+  const pwHash = await setUserPassword(user.id, password);
+  const dataKey = await crypto.subtle.generateKey(
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt", "decrypt"],
+  );
+  await activateUser(user.id, dataKey, pwHash);
+
+  const loginRes = await handle(
+    mockFormRequest("/admin/login", { username, password }),
+  );
+  const cookie = loginRes.headers.get("set-cookie") || "";
+  const csrfToken = (await getCsrfTokenFromCookie(cookie))!;
+  return { cookie, csrfToken };
 };
 
 describe("admin users management", () => {
@@ -134,7 +168,7 @@ describe("admin users management", () => {
   });
 
   describe("role enforcement", () => {
-    it("manager user cannot access users page", async () => {
+    it("manager user can access users page", async () => {
       const hash = await hashPassword("managerpass");
       const encHash = await encrypt(hash);
       await getDb().execute({
@@ -154,6 +188,32 @@ describe("admin users management", () => {
 
       const usersResponse = await awaitTestRequest("/admin/users", {
         cookie: "__Host-session=manager-token",
+      });
+      expect(usersResponse.status).toBe(200);
+      const html = await usersResponse.text();
+      expect(html).toContain("Users");
+    });
+
+    it("user role cannot access users page", async () => {
+      const hash = await hashPassword("userpass");
+      const encHash = await encrypt(hash);
+      await getDb().execute({
+        sql: `INSERT INTO users (username_hash, username_index, password_hash, wrapped_data_key, admin_level)
+              VALUES (?, ?, ?, ?, ?)`,
+        args: [
+          await encrypt("basicuser"),
+          "user-idx-unique",
+          encHash,
+          (await getUserByUsername(TEST_ADMIN_USERNAME))!.wrapped_data_key,
+          await encrypt("user"),
+        ],
+      });
+
+      const userId = 2;
+      await createSession("user-token", "user-csrf", Date.now() + 3600000, null, userId);
+
+      const usersResponse = await awaitTestRequest("/admin/users", {
+        cookie: "__Host-session=user-token",
       });
       expect(usersResponse.status).toBe(403);
     });
@@ -542,6 +602,143 @@ describe("admin users management", () => {
       const user = await getUserByUsername("empty-expiry-user");
       const valid = await isInviteValid(user!);
       expect(valid).toBe(false);
+    });
+  });
+
+  describe("manager role hierarchy", () => {
+    it("manager can invite a user-role user", async () => {
+      const mgr = await createActivateAndLogin("mgr1", "manager", "mgrpass123");
+
+      const response = await handle(
+        mockFormRequest(
+          "/admin/users",
+          { username: "newuser1", admin_level: "user", csrf_token: mgr.csrfToken },
+          mgr.cookie,
+        ),
+      );
+      expect(response.status).toBe(302);
+      const location = response.headers.get("location")!;
+      expect(decodeURIComponent(location)).toContain("/join/");
+    });
+
+    it("manager cannot invite a manager-role user", async () => {
+      const mgr = await createActivateAndLogin("mgr2", "manager", "mgrpass123");
+
+      const response = await handle(
+        mockFormRequest(
+          "/admin/users",
+          { username: "newmgr", admin_level: "manager", csrf_token: mgr.csrfToken },
+          mgr.cookie,
+        ),
+      );
+      expect(response.status).toBe(403);
+      const html = await response.text();
+      expect(html).toContain("Managers can only create users");
+    });
+
+    it("manager cannot invite an owner-role user", async () => {
+      const mgr = await createActivateAndLogin("mgr3", "manager", "mgrpass123");
+
+      const response = await handle(
+        mockFormRequest(
+          "/admin/users",
+          { username: "newowner", admin_level: "owner", csrf_token: mgr.csrfToken },
+          mgr.cookie,
+        ),
+      );
+      expect(response.status).toBe(403);
+      const html = await response.text();
+      expect(html).toContain("Managers can only create users");
+    });
+
+    it("owner can invite a user-role user", async () => {
+      const response = await handle(
+        mockFormRequest(
+          "/admin/users",
+          { username: "owneruser", admin_level: "user", csrf_token: csrfToken },
+          cookie,
+        ),
+      );
+      expect(response.status).toBe(302);
+      const location = response.headers.get("location")!;
+      expect(decodeURIComponent(location)).toContain("/join/");
+    });
+
+    it("owner can invite a manager-role user", async () => {
+      const response = await handle(
+        mockFormRequest(
+          "/admin/users",
+          { username: "ownermgr", admin_level: "manager", csrf_token: csrfToken },
+          cookie,
+        ),
+      );
+      expect(response.status).toBe(302);
+      const location = response.headers.get("location")!;
+      expect(decodeURIComponent(location)).toContain("/join/");
+    });
+  });
+
+  describe("audit logging", () => {
+    it("logs activity when user is invited", async () => {
+      await handle(
+        mockFormRequest(
+          "/admin/users",
+          { username: "audituser", admin_level: "manager", csrf_token: csrfToken },
+          cookie,
+        ),
+      );
+
+      const logs = await getAllActivityLog();
+      expect(logs.length).toBeGreaterThan(0);
+      expect(logs[0]!.message).toContain("Invited user");
+      expect(logs[0]!.message).toContain("audituser");
+    });
+
+    it("logs activity when user is activated", async () => {
+      await handle(
+        mockFormRequest(
+          "/admin/users",
+          { username: "activateaudit", admin_level: "manager", csrf_token: csrfToken },
+          cookie,
+        ),
+      );
+      await setUserPassword(2, "newpassword123");
+
+      await handle(
+        mockFormRequest(
+          "/admin/users/2/activate",
+          { csrf_token: csrfToken },
+          cookie,
+        ),
+      );
+
+      const logs = await getAllActivityLog();
+      const activateLog = logs.find((l) => l.message.includes("Activated"));
+      expect(activateLog).not.toBeNull();
+      expect(activateLog!.message).toContain("Activated user 2");
+    });
+
+    it("logs activity when user is deleted", async () => {
+      await handle(
+        mockFormRequest(
+          "/admin/users",
+          { username: "deleteaudit", admin_level: "manager", csrf_token: csrfToken },
+          cookie,
+        ),
+      );
+
+      await handle(
+        mockFormRequest(
+          "/admin/users/2/delete",
+          { csrf_token: csrfToken },
+          cookie,
+        ),
+      );
+
+      const logs = await getAllActivityLog();
+      const deleteLog = logs.find((l) => l.message.includes("Deleted"));
+      expect(deleteLog).not.toBeNull();
+      expect(deleteLog!.message).toContain("Deleted user 2");
     });
   });
 

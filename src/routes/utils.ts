@@ -244,14 +244,23 @@ export const requireSessionOr = (
   handler: (session: AuthSession) => Response | Promise<Response>,
 ): Promise<Response> => withSession(request, handler, () => redirect("/admin"));
 
-/** Check owner role, return 403 if not owner */
-const requireOwnerRole = (
+/** Role check function type */
+type RoleCheck = (session: AuthSession) => boolean;
+
+/** Check if session is owner */
+const isOwner: RoleCheck = (session) => session.adminLevel === "owner";
+
+/** Check if session is manager or above */
+const isManagerOrAbove: RoleCheck = (session) =>
+  session.adminLevel === "owner" || session.adminLevel === "manager";
+
+/** Generic role guard: return 403 if check fails */
+const requireRole = (
+  check: RoleCheck,
   session: AuthSession,
   handler: (session: AuthSession) => Response | Promise<Response>,
 ): Response | Promise<Response> =>
-  session.adminLevel === "owner"
-    ? handler(session)
-    : htmlResponse("Forbidden", 403);
+  check(session) ? handler(session) : htmlResponse("Forbidden", 403);
 
 /** CSRF form result type */
 export type CsrfFormResult =
@@ -324,12 +333,12 @@ type SessionHandler = (session: AuthSession) => Response | Promise<Response>;
 /** Unwrap an AuthFormResult, optionally checking role */
 const handleAuthForm = async (
   request: Request,
-  requiredRole: AdminLevel | null,
+  roleCheck: RoleCheck | null,
   handler: FormHandler,
 ): Promise<Response> => {
   const auth = await requireAuthForm(request);
   if (!auth.ok) return auth.response;
-  if (requiredRole && auth.session.adminLevel !== requiredRole) {
+  if (roleCheck && !roleCheck(auth.session)) {
     return htmlResponse("Forbidden", 403);
   }
   return handler(auth.session, auth.form);
@@ -341,18 +350,29 @@ export const withAuthForm = (
   handler: FormHandler,
 ): Promise<Response> => handleAuthForm(request, null, handler);
 
+/** Create a session-guarded route that also checks a role predicate */
+const sessionWithRole = (check: RoleCheck) =>
+  (request: Request, handler: SessionHandler): Promise<Response> =>
+    requireSessionOr(request, (session) =>
+      requireRole(check, session, handler));
+
 /** Require owner role - returns 403 if not owner, redirect if not authenticated */
-export const requireOwnerOr = (
-  request: Request,
-  handler: SessionHandler,
-): Promise<Response> =>
-  requireSessionOr(request, (session) => requireOwnerRole(session, handler));
+export const requireOwnerOnly = sessionWithRole(isOwner);
+
+/** Require manager or above - returns 403 if user role, redirect if not authenticated */
+export const requireManagerOrAbove = sessionWithRole(isManagerOrAbove);
 
 /** Handle request with owner auth form - requires owner role + CSRF validation */
 export const withOwnerAuthForm = (
   request: Request,
   handler: FormHandler,
-): Promise<Response> => handleAuthForm(request, "owner", handler);
+): Promise<Response> => handleAuthForm(request, isOwner, handler);
+
+/** Handle request with manager-or-above auth form - requires manager or owner role + CSRF validation */
+export const withManagerAuthForm = (
+  request: Request,
+  handler: FormHandler,
+): Promise<Response> => handleAuthForm(request, isManagerOrAbove, handler);
 
 /**
  * Get search param from request URL

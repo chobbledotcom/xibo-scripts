@@ -190,27 +190,42 @@ export const xiboCredentialsFields: Field[] = [
   },
 ];
 
+/** All role options for the invite form */
+const ALL_ROLE_OPTIONS = [
+  { value: "user", label: "User" },
+  { value: "manager", label: "Manager" },
+  { value: "owner", label: "Owner" },
+] as const;
+
+/** Role options visible to a manager (user only) */
+const MANAGER_ROLE_OPTIONS = [
+  { value: "user", label: "User" },
+] as const;
+
+/** Username field shared by invite form */
+const inviteUsernameField: Field = {
+  name: "username",
+  label: "Username",
+  type: "text",
+  required: true,
+  hint: "Letters, numbers, hyphens, underscores (2-32 chars)",
+  validate: validateUsername,
+};
+
 /**
- * Invite user form field definitions
+ * Invite user form field definitions — filtered by the actor's role.
+ * Managers see only "User" option; owners see all roles.
  */
-export const inviteUserFields: Field[] = [
-  {
-    name: "username",
-    label: "Username",
-    type: "text",
-    required: true,
-    hint: "Letters, numbers, hyphens, underscores (2-32 chars)",
-    validate: validateUsername,
-  },
+export const inviteUserFields = (actorRole: AdminLevel): Field[] => [
+  inviteUsernameField,
   {
     name: "admin_level",
     label: "Role",
     type: "select",
     required: true,
-    options: [
-      { value: "manager", label: "Manager" },
-      { value: "owner", label: "Owner" },
-    ],
+    options: actorRole === "owner"
+      ? [...ALL_ROLE_OPTIONS]
+      : [...MANAGER_ROLE_OPTIONS],
   },
 ];
 
