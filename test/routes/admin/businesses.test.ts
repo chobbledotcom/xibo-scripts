@@ -225,7 +225,7 @@ describe("admin businesses management", () => {
       expect(response.headers.get("location")).toBe("/admin");
     });
 
-    it("creates a business and redirects on success", async () => {
+    it("redirects to settings when Xibo is not configured", async () => {
       const response = await handle(
         mockFormRequest(
           "/admin/business/create",
@@ -235,10 +235,11 @@ describe("admin businesses management", () => {
       );
       expect(response.status).toBe(302);
       const location = response.headers.get("location")!;
-      expect(decodeURIComponent(location)).toContain("Business created");
+      expect(location).toContain("/admin/settings");
 
+      // Business should NOT be created without Xibo config
       const businesses = await getAllBusinesses();
-      expect(businesses.length).toBe(1);
+      expect(businesses.length).toBe(0);
     });
 
     it("rejects missing name", async () => {
@@ -253,6 +254,21 @@ describe("admin businesses management", () => {
     });
 
     it("logs activity on business creation", async () => {
+      await updateXiboCredentials(XIBO_URL, "test-id", "test-secret");
+      clearToken();
+      await cacheInvalidateAll();
+
+      globalThis.fetch = createMockFetch({
+        "/api/folder": () =>
+          jsonResponse({ folderId: 10, text: "test-folder", parentId: null, children: [] }),
+        "/api/dataset": (url) => {
+          if (url.includes("/column")) {
+            return jsonResponse({ dataSetColumnId: 1, heading: "col" });
+          }
+          return jsonResponse({ dataSetId: 20, dataSet: "test-ds", description: "", code: "", columnCount: 0 });
+        },
+      });
+
       await handle(
         mockFormRequest(
           "/admin/business/create",
@@ -593,7 +609,7 @@ describe("admin businesses management", () => {
       expect(businesses[0]!.xibo_dataset_id).toBe(20);
     });
 
-    it("creates business with provisioning error message when Xibo API fails", async () => {
+    it("does not create business when Xibo API fails", async () => {
       await updateXiboCredentials(XIBO_URL, "test-id", "test-secret");
       clearToken();
       await cacheInvalidateAll();
@@ -613,10 +629,11 @@ describe("admin businesses management", () => {
       expect(response.status).toBe(302);
       const location = response.headers.get("location")!;
       expect(decodeURIComponent(location)).toContain("Xibo provisioning failed");
+      expect(location).toContain("error=");
 
-      // Business should still be created
+      // Business should NOT be created when provisioning fails
       const businesses = await getAllBusinesses();
-      expect(businesses.length).toBe(1);
+      expect(businesses.length).toBe(0);
     });
   });
 

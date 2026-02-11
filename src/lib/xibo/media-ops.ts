@@ -12,6 +12,7 @@ import {
   getAuthenticatedSession,
   htmlResponse,
   redirect,
+  redirectWithError,
   redirectWithSuccess,
 } from "#routes/utils.ts";
 import { errorMessage } from "#routes/admin/utils.ts";
@@ -196,15 +197,6 @@ export const handleMultipartUpload = async <C extends UploadContext>(
 
   return onFile(result, file, parsed.formData);
 };
-
-/**
- * Build a redirect URL with an error query parameter.
- */
-export const redirectWithError = (baseUrl: string, message: string): Response =>
-  new Response(null, {
-    status: 302,
-    headers: { location: `${baseUrl}?error=${encodeURIComponent(message)}` },
-  });
 
 /**
  * Verify media belongs to a specific folder, then delete it.
