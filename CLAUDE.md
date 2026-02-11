@@ -213,3 +213,70 @@ import { cacheGet, cacheSet, cacheInvalidateAll } from "#xibo/cache.ts";
 ## Domain Context
 
 This tool manages a Xibo CMS that drives digital signage layouts. The primary entities are **layouts** (the main display format), **media** (images/videos in the library), and **datasets** (structured data). Menu boards were originally planned but the CMS module may not be available — layouts are the core entity we work with. Always base new work on the existing codebase patterns and code, not on assumptions.
+
+## Codebase Rules
+
+These rules reflect patterns consistently followed across the codebase. Follow them when adding or modifying code.
+
+### Architecture & Structure
+
+- **Domain-based layering** — `lib/` for business logic & infrastructure, `routes/` for HTTP handlers, `templates/` for JSX views. Routes never contain business logic directly; they delegate to `lib/`.
+- **Lazy loading for routes** — Top-level route modules use `once()` + dynamic `import()` to defer loading until first request, keeping cold-start fast on the edge.
+- **Cross-runtime compatibility** — All code must work on both Bunny Edge Scripting (production) and Deno (dev/test). Environment access goes through `getEnv()` from `#lib/env.ts`, never `Deno.env` or `process.env` directly.
+
+### Routing
+
+- **Declarative route maps** — Routes are plain objects keyed by `"METHOD /path"` strings (e.g., `"GET /admin/login"`), spread-merged from sub-modules, then passed to `createRouter()`.
+- **Route handler signature** — Always `(request: Request, params: RouteParams, server?: ServerContext) => Response | Promise<Response>`. Params ending in `Id` or named `id` auto-match digits only.
+- **Higher-order route wrappers** — Common concerns (session auth, Xibo config, CSRF validation) are composed via HOFs like `sessionRoute()`, `detailRoute()`, `listRoute()`, and `withXiboSession()` rather than middleware chains.
+
+### Functional Programming
+
+- **Curried FP utilities over imperative loops** — Use `pipe`, `map`, `filter`, `reduce`, `compact`, `unique` from `#fp` instead of `for` loops or method chains. For side effects, `for...of` is acceptable.
+- **`lazyRef()` for resettable singletons** — Database connections, caches, and other stateful singletons use `lazyRef()` which returns a `[getter, setter]` tuple. Setting to `null` resets the lazy initializer — critical for test isolation.
+- **`Result<T>` type for fallible operations** — Functions that can fail with an HTTP response return `Result<T> = { ok: true; value: T } | { ok: false; response: Response }` instead of throwing.
+- **`bracket()` for resource management** — Acquire/use/release pattern for resources that need cleanup, ensuring `finally` semantics.
+
+### Security
+
+- **All sensitive data encrypted at rest** — Usernames, API credentials, admin levels, and data keys are encrypted before database storage. Use `encrypt()`/`decrypt()` from `#lib/crypto.ts`.
+- **Constant-time comparison for secrets** — Always use `constantTimeEqual()` for tokens, hashes, and any secret comparison. Never use `===`.
+- **`__Host-` prefixed cookies** — Session cookies use `__Host-session` with `HttpOnly; Secure; SameSite=Strict` flags. No exceptions.
+- **Double-submit CSRF protection** — All mutation forms include a `csrf_token` hidden field validated against the cookie value via `requireCsrfForm()`.
+- **Login rate limiting + timing attack prevention** — Failed logins are tracked per IP via `isLoginRateLimited()`, and all login attempts include a random delay via `randomDelay()`.
+
+### Database
+
+- **`queryOne<T>()` returns `T | null`** — Single-row queries go through `queryOne()`, never raw `execute()`. Multi-row queries use `execute()` directly. Batch reads use `queryBatch()`.
+- **Idempotent migrations** — Migration functions use try/catch to silently skip already-applied changes. A `latest_db_update` settings key tracks the current schema version.
+- **In-memory cache with short TTL** — Settings and Xibo API responses are cached with TTLs (5s for settings, 30s for API). Mutations invalidate relevant cache prefixes.
+
+### HTTP Responses
+
+- **Helper functions, not raw `new Response()`** — Use `htmlResponse()`, `redirect()`, `redirectWithSuccess()`, `notFoundResponse()`, `withCookie()`, `htmlResponseWithCookie()` from `#routes/utils.ts`.
+- **Security headers on every response** — `getSecurityHeaders()` adds `X-Content-Type-Options`, `Referrer-Policy`, `X-Robots-Tag`, `X-Frame-Options`, and a strict CSP header.
+
+### Templates
+
+- **JSX for HTML generation** — Templates are `.tsx` files using React JSX syntax (custom `#jsx` runtime). They return `string` via `String(<Component />)`. No template literals for HTML.
+- **Declarative form field definitions** — Forms are defined as `Field[]` arrays in `templates/fields.ts` and rendered by the form framework, not hand-coded HTML.
+
+### Testing
+
+- **Jest-like API via `#test-compat`** — Import `describe`, `it`, `expect`, `beforeEach`, `afterEach`, `jest.fn()`, `spyOn()` from `#test-compat`, not from Deno's stdlib.
+- **Shared test utilities from `#test-utils`** — Use `mockRequest()`, `mockFormRequest()`, `createTestDb()`, `createTestDbWithSetup()`, `loginAsAdmin()`, `resetDb()`. Never define local duplicates.
+- **`resetDb()` in every `afterEach`** — Tests must clean up database state. The `lazyRef` pattern makes `setDb(null)` reset the connection.
+
+### Error Handling
+
+- **Classified error codes** — All errors use codes from `ErrorCode` in `#lib/logger.ts` (e.g., `E_DB_CONNECTION`, `E_XIBO_API_AUTH`). Log via `logError({ code, detail })`, never raw `console.error`.
+- **Privacy-safe logging** — Never log PII, tokens, or passwords. Error details describe the *situation*, not the *data*.
+- **Xibo client errors** — API failures throw `XiboClientError` with an `httpStatus` property. 401s trigger one automatic re-auth + retry before failing.
+
+### Naming Conventions
+
+- **Functions**: verb-first — `handleAdminLogin()`, `createRouter()`, `getDb()`, `isValidDomain()`, `loadXiboConfig()`
+- **Constants**: `SCREAMING_SNAKE_CASE` — `LATEST_UPDATE`, `SETTINGS_CACHE_TTL_MS`, `TOKEN_EXPIRY_MARGIN_MS`
+- **Constants grouped in objects**: `CONFIG_KEYS.SETUP_COMPLETE`, `ErrorCode.AUTH_INVALID_SESSION`
+- **Files**: kebab-case — `login-attempts.ts`, `test-compat.ts`
+- **Types**: PascalCase — `AdminSession`, `RouteParams`, `ValidationResult<T>`
