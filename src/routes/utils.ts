@@ -317,3 +317,14 @@ export const withOwnerAuthForm = (
   request: Request,
   handler: FormHandler,
 ): Promise<Response> => handleAuthForm(request, "owner", handler);
+
+/**
+ * Get search param from request URL
+ */
+export const getSearchParam = (
+  request: Request,
+  key: string,
+): string | null => {
+  const url = new URL(request.url);
+  return url.searchParams.get(key);
+};
