@@ -371,6 +371,16 @@ export const testConnection = async (
   }
 };
 
+/** Default dashboard status when Xibo is not connected */
+export const DISCONNECTED_STATUS: DashboardStatus = {
+  connected: false,
+  version: null,
+  menuBoardCount: null,
+  mediaCount: null,
+  layoutCount: null,
+  datasetCount: null,
+};
+
 /**
  * Fetch dashboard summary: connection status + entity counts.
  * Uses the cache aggressively — each count is cached individually.
@@ -378,19 +388,10 @@ export const testConnection = async (
 export const getDashboardStatus = async (
   config: XiboConfig,
 ): Promise<DashboardStatus> => {
-  const empty: DashboardStatus = {
-    connected: false,
-    version: null,
-    menuBoardCount: null,
-    mediaCount: null,
-    layoutCount: null,
-    datasetCount: null,
-  };
-
   try {
     await ensureToken(config);
   } catch {
-    return empty;
+    return DISCONNECTED_STATUS;
   }
 
   // Fetch version
@@ -399,7 +400,7 @@ export const getDashboardStatus = async (
     const about = await get<XiboAbout>(config, "about");
     version = about.version;
   } catch {
-    return empty;
+    return DISCONNECTED_STATUS;
   }
 
   // Fetch counts in parallel — each uses its own cache key

@@ -10,7 +10,7 @@
 		"bunny-script.ts",
 		"src/fp/index.ts",
 		"src/lib/crypto.ts",
-		"src/routes/admin/**"
+		"src/routes/admin/users.ts"
 	],
 	"format": ["typescript", "json"],
 	"absolute": false,

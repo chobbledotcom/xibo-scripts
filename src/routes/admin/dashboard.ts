@@ -6,22 +6,15 @@ import { defineRoutes } from "#routes/router.ts";
 import { htmlResponse, withSession } from "#routes/utils.ts";
 import { adminDashboardPage } from "#templates/admin/dashboard.tsx";
 import { adminLoginPage } from "#templates/admin/login.tsx";
-import { getDashboardStatus, loadXiboConfig } from "#xibo/client.ts";
-import type { DashboardStatus } from "#xibo/types.ts";
+import {
+  DISCONNECTED_STATUS,
+  getDashboardStatus,
+  loadXiboConfig,
+} from "#xibo/client.ts";
 
 /** Login page response helper */
 export const loginResponse = (error?: string, status = 200) =>
   htmlResponse(adminLoginPage(error), status);
-
-/** Disconnected dashboard status */
-const DISCONNECTED_STATUS: DashboardStatus = {
-  connected: false,
-  version: null,
-  menuBoardCount: null,
-  mediaCount: null,
-  layoutCount: null,
-  datasetCount: null,
-};
 
 /**
  * Handle GET /admin/

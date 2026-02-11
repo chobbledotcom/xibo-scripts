@@ -20,6 +20,7 @@ import { getAllowedDomain } from "#lib/config.ts";
 import { nowMs } from "#lib/now.ts";
 import { defineRoutes } from "#routes/router.ts";
 import type { RouteParams } from "#routes/router.ts";
+import type { AuthSession } from "#routes/utils.ts";
 import {
   generateSecureToken,
   getSearchParam,
@@ -139,23 +140,38 @@ const handleUsersPost = (request: Request): Promise<Response> =>
   });
 
 /**
- * Handle POST /admin/users/:id/activate
+ * Owner form handler that looks up a user by params.id.
+ * Returns 404 if user not found.
  */
-const handleUserActivate = (
+const withOwnerUser = (
   request: Request,
   params: RouteParams,
+  handler: (
+    session: AuthSession,
+    user: User,
+    userId: number,
+  ) => Promise<Response>,
 ): Promise<Response> =>
   withOwnerAuthForm(request, async (session) => {
     const userId = Number(params.id);
     const user = await getUserById(userId);
-
     if (!user) {
       return htmlResponse(
         await renderUsersPage(session, undefined, "User not found"),
         404,
       );
     }
+    return handler(session, user, userId);
+  });
 
+/**
+ * Handle POST /admin/users/:id/activate
+ */
+const handleUserActivate = (
+  request: Request,
+  params: RouteParams,
+): Promise<Response> =>
+  withOwnerUser(request, params, async (session, user, userId) => {
     // User must have a password set
     const userHasPassword = await hasPassword(user);
     if (!userHasPassword) {
@@ -214,17 +230,7 @@ const handleUserDelete = (
   request: Request,
   params: RouteParams,
 ): Promise<Response> =>
-  withOwnerAuthForm(request, async (session) => {
-    const userId = Number(params.id);
-    const user = await getUserById(userId);
-
-    if (!user) {
-      return htmlResponse(
-        await renderUsersPage(session, undefined, "User not found"),
-        404,
-      );
-    }
-
+  withOwnerUser(request, params, async (session, user, userId) => {
     // Cannot delete the owner who is performing the action
     const adminLevel = await decryptAdminLevel(user);
     if (adminLevel === "owner" && user.id === session.userId) {
