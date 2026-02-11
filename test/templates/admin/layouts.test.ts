@@ -79,11 +79,11 @@ describe("layoutListPage", () => {
 describe("layoutCreatePage", () => {
   const boards: XiboMenuBoard[] = [
     {
-      menuBoardId: 1,
+      menuId: 1,
       name: "Main Menu",
       code: "main",
       description: "",
-      modifiedDt: "2024-01-01",
+      modifiedDt: 1704067200,
     },
   ];
 

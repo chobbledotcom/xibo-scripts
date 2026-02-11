@@ -16,11 +16,11 @@ import type {
 } from "#xibo/types.ts";
 
 const BOARD: XiboMenuBoard = {
-  menuBoardId: 1,
+  menuId: 1,
   name: "Test Board",
   code: "TB",
   description: "A test board",
-  modifiedDt: "2025-01-01",
+  modifiedDt: 1735689600,
 };
 
 const CATEGORY: XiboCategory = {
@@ -241,7 +241,7 @@ describe("admin/menuboards routes", () => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
         if (url.includes("/api/menuboard") && init?.method === "POST")
-          return jsonResponse({ ...BOARD, menuBoardId: 5 });
+          return jsonResponse({ ...BOARD, menuId: 5 });
         return null;
       });
       try {
@@ -289,9 +289,9 @@ describe("admin/menuboards routes", () => {
       const mock = mockXiboFetch((url) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/category"))
+        if (url.includes("/api/menuboard/1/categor"))
           return jsonResponse([CATEGORY]);
-        if (url.includes("/api/menuboard/1/product"))
+        if (url.includes("/api/menuboard/10/products"))
           return jsonResponse([PRODUCT]);
         if (url.includes("/api/menuboard"))
           return jsonResponse([BOARD]);
@@ -337,7 +337,7 @@ describe("admin/menuboards routes", () => {
       const mock = mockXiboFetch((url) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/"))
+        if (url.includes("/api/menuboard/1/categor"))
           return jsonResponse([]);
         if (url.includes("/api/menuboard"))
           return jsonResponse([BOARD]);
@@ -535,7 +535,7 @@ describe("admin/menuboards routes", () => {
       const mock = mockXiboFetch((url) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/category"))
+        if (url.includes("/api/menuboard/1/categories"))
           return jsonResponse([CATEGORY]);
         if (url.includes("/api/menuboard"))
           return jsonResponse([BOARD]);
@@ -561,7 +561,7 @@ describe("admin/menuboards routes", () => {
       const mock = mockXiboFetch((url, init) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/category/10") && init?.method === "PUT")
+        if (url.includes("/api/menuboard/10/category") && init?.method === "PUT")
           return jsonResponse(CATEGORY);
         return null;
       });
@@ -589,7 +589,7 @@ describe("admin/menuboards routes", () => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
         if (
-          url.includes("/api/menuboard/1/category/10") &&
+          url.includes("/api/menuboard/10/category") &&
           init?.method === "DELETE"
         )
           return new Response(null, { status: 204 });
@@ -652,7 +652,7 @@ describe("admin/menuboards routes", () => {
       const mock = mockXiboFetch((url) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/category"))
+        if (url.includes("/api/menuboard/1/categories"))
           return jsonResponse([]);
         if (url.includes("/api/menuboard"))
           return jsonResponse([BOARD]);
@@ -678,7 +678,7 @@ describe("admin/menuboards routes", () => {
       const mock = mockXiboFetch((url) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/category"))
+        if (url.includes("/api/menuboard/1/categories"))
           return jsonResponse([CATEGORY]);
         if (url.includes("/api/menuboard"))
           return jsonResponse([BOARD]);
@@ -707,7 +707,7 @@ describe("admin/menuboards routes", () => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
         if (
-          url.includes("/api/menuboard/1/product") &&
+          url.includes("/api/menuboard/10/product") &&
           init?.method === "POST"
         )
           return jsonResponse(PRODUCT);
@@ -740,9 +740,9 @@ describe("admin/menuboards routes", () => {
       const mock = mockXiboFetch((url) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/category"))
+        if (url.includes("/api/menuboard/1/categor"))
           return jsonResponse([CATEGORY]);
-        if (url.includes("/api/menuboard/1/product"))
+        if (url.includes("/api/menuboard/10/products"))
           return jsonResponse([PRODUCT]);
         if (url.includes("/api/menuboard"))
           return jsonResponse([BOARD]);
@@ -770,7 +770,7 @@ describe("admin/menuboards routes", () => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
         if (
-          url.includes("/api/menuboard/1/product/100") &&
+          url.includes("/api/menuboard/100/product") &&
           init?.method === "PUT"
         )
           return jsonResponse(PRODUCT);
@@ -804,7 +804,7 @@ describe("admin/menuboards routes", () => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
         if (
-          url.includes("/api/menuboard/1/product/100") &&
+          url.includes("/api/menuboard/100/product") &&
           init?.method === "DELETE"
         )
           return new Response(null, { status: 204 });
@@ -859,9 +859,9 @@ describe("admin/menuboards routes", () => {
       const mock = mockXiboFetch((url) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/category"))
+        if (url.includes("/api/menuboard/1/categor"))
           return jsonResponse([CATEGORY]);
-        if (url.includes("/api/menuboard/1/product"))
+        if (url.includes("/api/menuboard/10/products"))
           return jsonResponse([]);
         if (url.includes("/api/menuboard"))
           return jsonResponse([BOARD]);
@@ -886,7 +886,7 @@ describe("admin/menuboards routes", () => {
       const mock = mockXiboFetch((url) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/category"))
+        if (url.includes("/api/menuboard/1/categories"))
           return jsonResponse([]);
         if (url.includes("/api/menuboard"))
           return jsonResponse([BOARD]);
@@ -1043,22 +1043,16 @@ describe("admin/menuboards uncovered branches", () => {
     resetDb();
   });
 
-  describe("product grouped by unknown category (line 91)", () => {
-    it("groups a product whose menuCategoryId is not in categories", async () => {
+  describe("product fetched per category", () => {
+    it("fetches products for each category separately", async () => {
       await setupXiboCredentials();
-      const orphanProduct: XiboProduct = {
-        ...PRODUCT,
-        menuProductId: 200,
-        menuCategoryId: 999,
-        name: "Orphan",
-      };
       const mock = mockXiboFetch((url) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/category"))
+        if (url.includes("/api/menuboard/1/categor"))
           return jsonResponse([CATEGORY]);
-        if (url.includes("/api/menuboard/1/product"))
-          return jsonResponse([PRODUCT, orphanProduct]);
+        if (url.includes("/api/menuboard/10/products"))
+          return jsonResponse([PRODUCT]);
         if (url.includes("/api/menuboard"))
           return jsonResponse([BOARD]);
         return null;
@@ -1112,7 +1106,7 @@ describe("admin/menuboards uncovered branches", () => {
           return tokenResponse();
         if (url.includes("/api/menuboard") && init?.method === "POST") {
           capturedBody = init.body as string;
-          return jsonResponse({ ...BOARD, menuBoardId: 7 });
+          return jsonResponse({ ...BOARD, menuId: 7 });
         }
         return null;
       });
@@ -1142,7 +1136,7 @@ describe("admin/menuboards uncovered branches", () => {
       const mock = mockXiboFetch((url) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/category"))
+        if (url.includes("/api/menuboard/1/categories"))
           throw new Error("Category fetch failed");
         if (url.includes("/api/menuboard"))
           return jsonResponse([BOARD]);
@@ -1168,7 +1162,7 @@ describe("admin/menuboards uncovered branches", () => {
       const mock = mockXiboFetch((url) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/category"))
+        if (url.includes("/api/menuboard/1/categories"))
           return jsonResponse({ message: "Internal Error" }, 500);
         if (url.includes("/api/menuboard"))
           return jsonResponse([BOARD]);
@@ -1356,7 +1350,7 @@ describe("admin/menuboards uncovered branches", () => {
       const mock = mockXiboFetch((url, init) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/category/10") && init?.method === "PUT") {
+        if (url.includes("/api/menuboard/10/category") && init?.method === "PUT") {
           capturedBody = init.body as string;
           return jsonResponse(CATEGORY);
         }
@@ -1386,7 +1380,7 @@ describe("admin/menuboards uncovered branches", () => {
       const mock = mockXiboFetch((url, init) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/category/10") && init?.method === "PUT")
+        if (url.includes("/api/menuboard/10/category") && init?.method === "PUT")
           return jsonResponse(CATEGORY);
         return null;
       });
@@ -1441,7 +1435,7 @@ describe("admin/menuboards uncovered branches", () => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
         if (
-          url.includes("/api/menuboard/1/product") &&
+          url.includes("/api/menuboard/10/product") &&
           init?.method === "POST"
         ) {
           capturedBody = init.body as string;
@@ -1479,7 +1473,7 @@ describe("admin/menuboards uncovered branches", () => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
         if (
-          url.includes("/api/menuboard/1/product") &&
+          url.includes("/api/menuboard/10/product") &&
           init?.method === "POST"
         )
           return jsonResponse(PRODUCT);
@@ -1533,7 +1527,7 @@ describe("admin/menuboards uncovered branches", () => {
       const mock = mockXiboFetch((url) => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
-        if (url.includes("/api/menuboard/1/category"))
+        if (url.includes("/api/menuboard/1/categories"))
           return jsonResponse([]);
         if (url.includes("/api/menuboard"))
           return jsonResponse([BOARD]);
@@ -1579,7 +1573,7 @@ describe("admin/menuboards uncovered branches", () => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
         if (
-          url.includes("/api/menuboard/1/product/100") &&
+          url.includes("/api/menuboard/100/product") &&
           init?.method === "PUT"
         ) {
           capturedBody = init.body as string;
@@ -1617,7 +1611,7 @@ describe("admin/menuboards uncovered branches", () => {
         if (url.includes("/api/authorize/access_token"))
           return tokenResponse();
         if (
-          url.includes("/api/menuboard/1/product/100") &&
+          url.includes("/api/menuboard/100/product") &&
           init?.method === "PUT"
         )
           return jsonResponse(PRODUCT);

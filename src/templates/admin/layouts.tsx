@@ -108,10 +108,10 @@ export const layoutCreatePage = (
             <select name="category" required>
               <option value="">Select a category...</option>
               {boards.map((board) => {
-                const cats = categoriesByBoard[board.menuBoardId] ?? [];
+                const cats = categoriesByBoard[board.menuId] ?? [];
                 return cats.map((cat) => (
                   <option
-                    value={`${board.menuBoardId}:${cat.menuCategoryId}`}
+                    value={`${board.menuId}:${cat.menuCategoryId}`}
                   >
                     {board.name} &rarr; {cat.name}
                   </option>

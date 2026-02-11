@@ -56,11 +56,11 @@ const sampleLayouts: XiboLayout[] = [
 
 const sampleBoards: XiboMenuBoard[] = [
   {
-    menuBoardId: 1,
+    menuId: 1,
     name: "Main Menu",
     code: "main",
     description: "Primary menu",
-    modifiedDt: "2024-01-01",
+    modifiedDt: 1704067200,
   },
 ];
 
@@ -246,8 +246,8 @@ describe("layout routes", () => {
 
     test("renders create form with boards and categories", async () => {
       globalThis.fetch = createMockFetch({
-        "/api/menuboard/1/category": () => jsonResponse(sampleCategories),
-        "/api/menuboard": () => jsonResponse(sampleBoards),
+        "/api/menuboard/1/categories": () => jsonResponse(sampleCategories),
+        "/api/menuboards": () => jsonResponse(sampleBoards),
       });
       const response = await handleRequest(
         mockRequest("/admin/layout/create", { headers: { cookie } }),
@@ -261,7 +261,7 @@ describe("layout routes", () => {
 
     test("shows error when API fails", async () => {
       globalThis.fetch = createMockFetch({
-        "/api/menuboard": () => new Response("Error", { status: 500 }),
+        "/api/menuboards": () => new Response("Error", { status: 500 }),
       });
       const response = await handleRequest(
         mockRequest("/admin/layout/create", { headers: { cookie } }),
@@ -296,7 +296,7 @@ describe("layout routes", () => {
 
     test("redirects when category not found", async () => {
       globalThis.fetch = createMockFetch({
-        "/api/menuboard/1/category": () => jsonResponse([]),
+        "/api/menuboard/1/categories": () => jsonResponse([]),
       });
       const response = await handleRequest(
         mockFormRequest(
@@ -331,8 +331,8 @@ describe("layout routes", () => {
       };
 
       globalThis.fetch = createMockFetch({
-        "/api/menuboard/1/category": () => jsonResponse(sampleCategories),
-        "/api/menuboard/1/product": () => jsonResponse(sampleProducts),
+        "/api/menuboard/1/categories": () => jsonResponse(sampleCategories),
+        "/api/menuboard/10/products": () => jsonResponse(sampleProducts),
         "/api/resolution": (_url, init) => {
           if (init?.method === "POST") {
             return jsonResponse(sampleResolutions[0]);
@@ -390,8 +390,8 @@ describe("layout routes", () => {
       };
 
       globalThis.fetch = createMockFetch({
-        "/api/menuboard/1/category": () => jsonResponse(sampleCategories),
-        "/api/menuboard/1/product": () => jsonResponse(sampleProducts),
+        "/api/menuboard/1/categories": () => jsonResponse(sampleCategories),
+        "/api/menuboard/10/products": () => jsonResponse(sampleProducts),
         "/api/resolution": (_url, init) => {
           if (init?.method === "POST") return jsonResponse(newResolution);
           // Return empty list to force creation
