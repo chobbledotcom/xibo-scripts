@@ -22,6 +22,7 @@ import { htmlResponse, redirectWithSuccess } from "#routes/utils.ts";
 import { requireManagerOrAbove, withManagerAuthForm } from "#routes/utils.ts";
 import {
   errorMessage,
+  getQueryMessages,
   toAdminSession,
   withXiboConfig,
 } from "#routes/admin/utils.ts";
@@ -146,14 +147,14 @@ const handleScreenDetailGet = (
     const loaded = await loadScreenForBusiness(Number(params.businessId), Number(params.id));
     if (loaded instanceof Response) return loaded;
 
-    const url = new URL(request.url);
+    const { success } = getQueryMessages(request);
     return htmlResponse(
       adminScreenDetailPage(
         await toDisplayBusiness(loaded.business!),
         await toDisplayScreen(loaded.screen!),
         toAdminSession(session),
         undefined,
-        url.searchParams.get("success") || undefined,
+        success,
       ),
     );
   });

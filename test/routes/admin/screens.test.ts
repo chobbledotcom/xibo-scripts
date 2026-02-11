@@ -14,63 +14,18 @@ import { clearToken } from "#xibo/client.ts";
 import { cacheInvalidateAll } from "#xibo/cache.ts";
 import {
   awaitTestRequest,
+  createMockFetch,
   createTestDbWithSetup,
+  handle,
+  jsonResponse,
   loginAsAdmin,
   mockFormRequest,
   mockRequest,
   resetDb,
+  restoreFetch,
 } from "#test-utils";
 
 const XIBO_URL = "https://xibo.test";
-
-/** Original fetch for restore */
-const originalFetch = globalThis.fetch;
-
-/** JSON response helper */
-const jsonResponse = (data: unknown): Response =>
-  new Response(JSON.stringify(data), {
-    headers: { "content-type": "application/json" },
-  });
-
-/**
- * Create a mock fetch that intercepts Xibo API calls.
- */
-const createMockFetch = (
-  handlers: Record<
-    string,
-    (url: string, init?: RequestInit) => Response | Promise<Response>
-  >,
-): typeof globalThis.fetch =>
-  ((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const url = typeof input === "string"
-      ? input
-      : input instanceof URL
-      ? input.toString()
-      : input.url;
-
-    if (url.includes("/api/authorize/access_token")) {
-      return Promise.resolve(
-        jsonResponse({
-          access_token: "test-token",
-          token_type: "Bearer",
-          expires_in: 3600,
-        }),
-      );
-    }
-
-    for (const [pattern, handler] of Object.entries(handlers)) {
-      if (url.includes(pattern)) {
-        return Promise.resolve(handler(url, init));
-      }
-    }
-
-    return originalFetch(input, init);
-  }) as typeof globalThis.fetch;
-
-const handle = async (req: Request): Promise<Response> => {
-  const { handleRequest } = await import("#routes");
-  return handleRequest(req);
-};
 
 describe("admin screens management", () => {
   let cookie: string;
@@ -89,7 +44,7 @@ describe("admin screens management", () => {
   });
 
   afterEach(() => {
-    globalThis.fetch = originalFetch;
+    restoreFetch();
     clearToken();
     resetDb();
   });

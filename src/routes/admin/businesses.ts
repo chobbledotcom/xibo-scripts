@@ -37,6 +37,7 @@ import {
 } from "#routes/utils.ts";
 import {
   errorMessage,
+  getQueryMessages,
   toAdminSession,
   withEntity,
   withXiboConfig,
@@ -178,15 +179,6 @@ const renderBusinessDetail = async (
     ),
     status,
   );
-};
-
-/** Extract error and success query parameters from a request */
-const getQueryMessages = (request: Request) => {
-  const url = new URL(request.url);
-  return {
-    error: url.searchParams.get("error") || undefined,
-    success: url.searchParams.get("success") || undefined,
-  };
 };
 
 /**

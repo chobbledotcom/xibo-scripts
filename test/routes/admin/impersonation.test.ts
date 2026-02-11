@@ -2,78 +2,16 @@ import { afterEach, beforeEach, describe, expect, it } from "#test-compat";
 import { getAllActivityLog } from "#lib/db/activityLog.ts";
 import { createSession } from "#lib/db/sessions.ts";
 import {
-  activateUser,
-  createInvitedUser,
-  hashInviteCode,
-  setUserPassword,
-} from "#lib/db/users.ts";
-import type { AdminLevel } from "#lib/types.ts";
-import {
   awaitTestRequest,
+  createActivateAndLogin,
+  createActivatedUser,
   createTestDbWithSetup,
-  getCsrfTokenFromCookie,
+  handle,
   loginAsAdmin,
   mockFormRequest,
   mockRequest,
   resetDb,
 } from "#test-utils";
-
-const handle = async (req: Request): Promise<Response> => {
-  const { handleRequest } = await import("#routes");
-  return handleRequest(req);
-};
-
-/** Create a user with a given role, activate, log in, and return cookie + csrf */
-const createActivateAndLogin = async (
-  username: string,
-  role: AdminLevel,
-  password: string,
-): Promise<{ cookie: string; csrfToken: string; userId: number }> => {
-  const codeHash = await hashInviteCode(`${username}-code`);
-  const user = await createInvitedUser(
-    username,
-    role,
-    codeHash,
-    new Date(Date.now() + 86400000).toISOString(),
-  );
-  const pwHash = await setUserPassword(user.id, password);
-  const dataKey = await crypto.subtle.generateKey(
-    { name: "AES-GCM", length: 256 },
-    true,
-    ["encrypt", "decrypt"],
-  );
-  await activateUser(user.id, dataKey, pwHash);
-
-  const loginRes = await handle(
-    mockFormRequest("/admin/login", { username, password }),
-  );
-  const cookie = loginRes.headers.get("set-cookie") || "";
-  const csrfToken = (await getCsrfTokenFromCookie(cookie))!;
-  return { cookie, csrfToken, userId: user.id };
-};
-
-/** Create an activated user without logging in */
-const createActivatedUser = async (
-  username: string,
-  role: AdminLevel,
-  password: string,
-): Promise<number> => {
-  const codeHash = await hashInviteCode(`${username}-code`);
-  const user = await createInvitedUser(
-    username,
-    role,
-    codeHash,
-    new Date(Date.now() + 86400000).toISOString(),
-  );
-  const pwHash = await setUserPassword(user.id, password);
-  const dataKey = await crypto.subtle.generateKey(
-    { name: "AES-GCM", length: 256 },
-    true,
-    ["encrypt", "decrypt"],
-  );
-  await activateUser(user.id, dataKey, pwHash);
-  return user.id;
-};
 
 describe("admin impersonation", () => {
   let cookie: string;

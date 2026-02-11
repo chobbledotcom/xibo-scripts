@@ -3,25 +3,23 @@ import { getAllActivityLog } from "#lib/db/activityLog.ts";
 import { getDb } from "#lib/db/client.ts";
 import { createSession } from "#lib/db/sessions.ts";
 import {
-  activateUser,
   createInvitedUser,
   decryptAdminLevel,
   decryptUsername,
   getAllUsers,
   getUserByUsername,
-  hashInviteCode,
   hasPassword,
   isInviteValid,
   setUserPassword,
   verifyUserPassword,
 } from "#lib/db/users.ts";
 import { encrypt, hashPassword } from "#lib/crypto.ts";
-import type { AdminLevel } from "#lib/types.ts";
 import {
   awaitTestRequest,
+  createActivateAndLogin,
   createTestDbWithSetup,
   expectAdminRedirect,
-  getCsrfTokenFromCookie,
+  handle,
   loginAsAdmin,
   mockFormRequest,
   mockRequest,
@@ -29,40 +27,6 @@ import {
   TEST_ADMIN_PASSWORD,
   TEST_ADMIN_USERNAME,
 } from "#test-utils";
-
-const handle = async (req: Request): Promise<Response> => {
-  const { handleRequest } = await import("#routes");
-  return handleRequest(req);
-};
-
-/** Create a user with a given role, activate, log in, and return cookie + csrf */
-const createActivateAndLogin = async (
-  username: string,
-  role: AdminLevel,
-  password: string,
-): Promise<{ cookie: string; csrfToken: string }> => {
-  const codeHash = await hashInviteCode(`${username}-code`);
-  const user = await createInvitedUser(
-    username,
-    role,
-    codeHash,
-    new Date(Date.now() + 86400000).toISOString(),
-  );
-  const pwHash = await setUserPassword(user.id, password);
-  const dataKey = await crypto.subtle.generateKey(
-    { name: "AES-GCM", length: 256 },
-    true,
-    ["encrypt", "decrypt"],
-  );
-  await activateUser(user.id, dataKey, pwHash);
-
-  const loginRes = await handle(
-    mockFormRequest("/admin/login", { username, password }),
-  );
-  const cookie = loginRes.headers.get("set-cookie") || "";
-  const csrfToken = (await getCsrfTokenFromCookie(cookie))!;
-  return { cookie, csrfToken };
-};
 
 describe("admin users management", () => {
   let cookie: string;

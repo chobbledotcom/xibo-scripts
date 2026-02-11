@@ -353,6 +353,78 @@ export const withMocks = async <
   }
 };
 
+import {
+  activateUser,
+  createInvitedUser,
+  hashInviteCode,
+  setUserPassword,
+} from "#lib/db/users.ts";
+import type { AdminLevel } from "#lib/types.ts";
+
+/**
+ * Route the request through the full handler stack.
+ * Uses dynamic import so route modules are lazily loaded per test suite.
+ */
+export const handle = async (req: Request): Promise<Response> => {
+  const { handleRequest } = await import("#routes");
+  return handleRequest(req);
+};
+
+/** One day in milliseconds */
+const ONE_DAY_MS = 86400000;
+
+/**
+ * Create an activated user without logging in. Returns the user ID.
+ */
+export const createActivatedUser = async (
+  username: string,
+  role: AdminLevel,
+  password: string,
+): Promise<number> => {
+  const codeHash = await hashInviteCode(`${username}-code`);
+  const user = await createInvitedUser(
+    username,
+    role,
+    codeHash,
+    new Date(Date.now() + ONE_DAY_MS).toISOString(),
+  );
+  const pwHash = await setUserPassword(user.id, password);
+  const dataKey = await crypto.subtle.generateKey(
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt", "decrypt"],
+  );
+  await activateUser(user.id, dataKey, pwHash);
+  return user.id;
+};
+
+/**
+ * Create a user, set password, activate, log in, and return session cookie + CSRF token.
+ */
+export const createActivateAndLogin = async (
+  username: string,
+  role: AdminLevel,
+  password: string,
+): Promise<{ cookie: string; csrfToken: string; userId: number }> => {
+  const userId = await createActivatedUser(username, role, password);
+
+  const loginRes = await handle(
+    mockFormRequest("/admin/login", { username, password }),
+  );
+  const cookie = loginRes.headers.get("set-cookie") || "";
+  const csrfToken = (await getCsrfTokenFromCookie(cookie))!;
+  return { cookie, csrfToken, userId };
+};
+
+// Re-export Xibo fetch mocking helpers
+export {
+  createMockFetch,
+  jsonResponse,
+  mockXiboFetch,
+  restoreFetch,
+  tokenResponse,
+} from "#test-utils/xibo-fetch.ts";
+
 import { expect } from "#test-compat";
 
 /** Assert a Response has the given status code. */

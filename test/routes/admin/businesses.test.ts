@@ -14,107 +14,26 @@ import {
   updateBusinessXiboIds,
 } from "#lib/db/businesses.ts";
 import { createScreen, getScreensForBusiness } from "#lib/db/screens.ts";
-import {
-  activateUser,
-  createInvitedUser,
-  hashInviteCode,
-  setUserPassword,
-} from "#lib/db/users.ts";
 import { encrypt } from "#lib/crypto.ts";
 import { getDb } from "#lib/db/client.ts";
 import { updateXiboCredentials } from "#lib/db/settings.ts";
 import { clearToken } from "#xibo/client.ts";
 import { cacheInvalidateAll } from "#xibo/cache.ts";
-import type { AdminLevel } from "#lib/types.ts";
 import {
   awaitTestRequest,
+  createActivateAndLogin,
+  createMockFetch,
   createTestDbWithSetup,
-  getCsrfTokenFromCookie,
+  handle,
+  jsonResponse,
   loginAsAdmin,
   mockFormRequest,
   mockRequest,
   resetDb,
+  restoreFetch,
 } from "#test-utils";
 
 const XIBO_URL = "https://xibo.test";
-
-/** Original fetch for restore */
-const originalFetch = globalThis.fetch;
-
-/** JSON response helper */
-const jsonResponse = (data: unknown): Response =>
-  new Response(JSON.stringify(data), {
-    headers: { "content-type": "application/json" },
-  });
-
-/**
- * Create a mock fetch that intercepts Xibo API calls.
- */
-const createMockFetch = (
-  handlers: Record<
-    string,
-    (url: string, init?: RequestInit) => Response | Promise<Response>
-  >,
-): typeof globalThis.fetch =>
-  ((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const url = typeof input === "string"
-      ? input
-      : input instanceof URL
-      ? input.toString()
-      : input.url;
-
-    if (url.includes("/api/authorize/access_token")) {
-      return Promise.resolve(
-        jsonResponse({
-          access_token: "test-token",
-          token_type: "Bearer",
-          expires_in: 3600,
-        }),
-      );
-    }
-
-    for (const [pattern, handler] of Object.entries(handlers)) {
-      if (url.includes(pattern)) {
-        return Promise.resolve(handler(url, init));
-      }
-    }
-
-    return originalFetch(input, init);
-  }) as typeof globalThis.fetch;
-
-const handle = async (req: Request): Promise<Response> => {
-  const { handleRequest } = await import("#routes");
-  return handleRequest(req);
-};
-
-/** Create a user with a given role, activate, log in, and return cookie + csrf */
-const createActivateAndLogin = async (
-  username: string,
-  role: AdminLevel,
-  password: string,
-): Promise<{ cookie: string; csrfToken: string; userId: number }> => {
-  const codeHash = await hashInviteCode(`${username}-code`);
-  const user = await createInvitedUser(
-    username,
-    role,
-    codeHash,
-    new Date(Date.now() + 86400000).toISOString(),
-  );
-  const pwHash = await setUserPassword(user.id, password);
-  const dataKey = await crypto.subtle.generateKey(
-    { name: "AES-GCM", length: 256 },
-    true,
-    ["encrypt", "decrypt"],
-  );
-  await activateUser(user.id, dataKey, pwHash);
-
-  const loginRes = await handle(
-    mockFormRequest("/admin/login", { username, password }),
-  );
-  const cookie = loginRes.headers.get("set-cookie") || "";
-  const csrfToken = (await getCsrfTokenFromCookie(cookie))!;
-  return { cookie, csrfToken, userId: user.id };
-};
 
 describe("admin businesses management", () => {
   let cookie: string;
@@ -129,7 +48,7 @@ describe("admin businesses management", () => {
   });
 
   afterEach(() => {
-    globalThis.fetch = originalFetch;
+    restoreFetch();
     clearToken();
     resetDb();
   });

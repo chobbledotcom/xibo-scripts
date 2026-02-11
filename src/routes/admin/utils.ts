@@ -56,6 +56,17 @@ export const errorMessage = (e: unknown): string =>
 export const getSuccessParam = (request: Request): string | undefined =>
   new URL(request.url).searchParams.get("success") || undefined;
 
+/** Extract `?error=` and `?success=` query parameters from a request. */
+export const getQueryMessages = (
+  request: Request,
+): { error: string | undefined; success: string | undefined } => {
+  const url = new URL(request.url);
+  return {
+    error: url.searchParams.get("error") || undefined,
+    success: url.searchParams.get("success") || undefined,
+  };
+};
+
 /**
  * Fetch a list of entities from the Xibo API, catching errors.
  * Returns `{ items, error }` so callers can render error state.

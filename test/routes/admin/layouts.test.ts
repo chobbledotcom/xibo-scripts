@@ -10,11 +10,14 @@ import {
   test,
 } from "#test-compat";
 import {
+  createMockFetch,
   createTestDbWithSetup,
+  jsonResponse,
   loginAsAdmin,
   mockFormRequest,
   mockRequest,
   resetDb,
+  restoreFetch,
 } from "#test-utils";
 import {
   invalidateSettingsCache,
@@ -86,52 +89,6 @@ const sampleResolutions: XiboResolution[] = [
   { resolutionId: 1, resolution: "1080x1920", width: 1080, height: 1920 },
 ];
 
-/** Original fetch for restore */
-const originalFetch = globalThis.fetch;
-
-/**
- * Create a mock fetch that intercepts Xibo API calls.
- */
-const createMockFetch = (
-  handlers: Record<
-    string,
-    (url: string, init?: RequestInit) => Response | Promise<Response>
-  >,
-): typeof globalThis.fetch =>
-  (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const url = typeof input === "string"
-      ? input
-      : input instanceof URL
-      ? input.toString()
-      : input.url;
-
-    if (url.includes("/api/authorize/access_token")) {
-      return Promise.resolve(
-        new Response(
-          JSON.stringify({
-            access_token: "test-token",
-            token_type: "Bearer",
-            expires_in: 3600,
-          }),
-          { headers: { "content-type": "application/json" } },
-        ),
-      );
-    }
-
-    for (const [pattern, handler] of Object.entries(handlers)) {
-      if (url.includes(pattern)) {
-        return Promise.resolve(handler(url, init));
-      }
-    }
-
-    return originalFetch(input, init);
-  };
-
-const jsonResponse = (data: unknown): Response =>
-  new Response(JSON.stringify(data), {
-    headers: { "content-type": "application/json" },
-  });
-
 describe("layout routes", () => {
   let cookie: string;
   let csrfToken: string;
@@ -149,7 +106,7 @@ describe("layout routes", () => {
   });
 
   afterEach(() => {
-    globalThis.fetch = originalFetch;
+    restoreFetch();
     clearToken();
     resetDb();
   });

@@ -1,49 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it } from "#test-compat";
 import {
   createTestDbWithSetup,
+  handle,
+  jsonResponse,
   loginAsAdmin,
   mockRequest,
+  mockXiboFetch,
   resetDb,
+  tokenResponse,
 } from "#test-utils";
 import { clearToken } from "#xibo/client.ts";
 import { cacheInvalidateAll } from "#xibo/cache.ts";
 import { updateXiboCredentials } from "#lib/db/settings.ts";
 import { createSession } from "#lib/db/sessions.ts";
-
-const handle = async (req: Request): Promise<Response> => {
-  const { handleRequest } = await import("#routes");
-  return handleRequest(req);
-};
-
-/** Mock fetch to intercept Xibo API calls */
-const mockXiboFetch = (
-  handler: (url: string) => Response | null,
-): { restore: () => void } => {
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = ((
-    input: RequestInfo | URL,
-    init?: RequestInit,
-  ): Promise<Response> => {
-    const url = typeof input === "string"
-      ? input
-      : input instanceof URL
-      ? input.toString()
-      : input.url;
-    const result = handler(url);
-    if (result) return Promise.resolve(result);
-    return originalFetch(input, init);
-  }) as typeof globalThis.fetch;
-  return { restore: () => { globalThis.fetch = originalFetch; } };
-};
-
-const jsonResponse = (data: unknown, status = 200): Response =>
-  new Response(JSON.stringify(data), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
-
-const tokenResponse = (): Response =>
-  jsonResponse({ access_token: "test-tok", token_type: "Bearer", expires_in: 3600 });
 
 describe("dashboard", () => {
   let cookie: string;

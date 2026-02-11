@@ -13,11 +13,15 @@ import {
   test,
 } from "#test-compat";
 import {
+  createMockFetch,
   createTestDbWithSetup,
+  handle,
+  jsonResponse,
   loginAsAdmin,
   mockFormRequest,
   mockRequest,
   resetDb,
+  restoreFetch,
 } from "#test-utils";
 import {
   invalidateSettingsCache,
@@ -59,61 +63,6 @@ const sampleFolders = [
   { folderId: 2, text: "Videos", parentId: null, children: [] },
 ];
 
-/** Original fetch for restore */
-const originalFetch = globalThis.fetch;
-
-/**
- * Create a mock fetch that intercepts Xibo API calls.
- * Non-Xibo requests pass through to the original.
- */
-const createMockFetch = (
-  handlers: Record<
-    string,
-    (url: string, init?: RequestInit) => Response | Promise<Response>
-  >,
-): typeof globalThis.fetch => {
-  return (
-    input: RequestInfo | URL,
-    init?: RequestInit,
-  ): Promise<Response> => {
-    const url = typeof input === "string"
-      ? input
-      : input instanceof URL
-      ? input.toString()
-      : input.url;
-
-    // Handle Xibo OAuth token request
-    if (url.includes("/api/authorize/access_token")) {
-      return Promise.resolve(
-        new Response(
-          JSON.stringify({
-            access_token: "test-token",
-            token_type: "Bearer",
-            expires_in: 3600,
-          }),
-          { headers: { "content-type": "application/json" } },
-        ),
-      );
-    }
-
-    // Check registered handlers for API endpoints
-    for (const [pattern, handler] of Object.entries(handlers)) {
-      if (url.includes(pattern)) {
-        return Promise.resolve(handler(url, init));
-      }
-    }
-
-    // Pass through non-Xibo requests
-    return originalFetch(input, init);
-  };
-};
-
-/** JSON response helper */
-const jsonResponse = (data: unknown): Response =>
-  new Response(JSON.stringify(data), {
-    headers: { "content-type": "application/json" },
-  });
-
 /** Create a multipart form request for file upload */
 const mockMultipartRequest = (
   path: string,
@@ -153,16 +102,10 @@ describe("media routes", () => {
   });
 
   afterEach(() => {
-    // Restore original fetch
-    globalThis.fetch = originalFetch;
+    restoreFetch();
     clearToken();
     resetDb();
   });
-
-  const handleRequest = async (request: Request): Promise<Response> => {
-    const { handleRequest: handler } = await import("#routes");
-    return handler(request);
-  };
 
   /** Clear Xibo credentials so loadXiboConfig returns null */
   const clearXiboConfig = async (): Promise<void> => {
@@ -173,7 +116,7 @@ describe("media routes", () => {
 
   describe("GET /admin/media", () => {
     test("redirects to login when not authenticated", async () => {
-      const response = await handleRequest(mockRequest("/admin/media"));
+      const response = await handle(mockRequest("/admin/media"));
       expect(response.status).toBe(302);
       expect(response.headers.get("location")).toBe("/admin");
     });
@@ -181,7 +124,7 @@ describe("media routes", () => {
     test("redirects to settings when Xibo not configured", async () => {
       await clearXiboConfig();
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media", { headers: { cookie } }),
       );
       expect(response.status).toBe(302);
@@ -194,7 +137,7 @@ describe("media routes", () => {
         "/api/folders": foldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media", { headers: { cookie } }),
       );
       expect(response.status).toBe(200);
@@ -210,7 +153,7 @@ describe("media routes", () => {
         "/api/folders": emptyFoldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media", { headers: { cookie } }),
       );
       expect(response.status).toBe(200);
@@ -224,7 +167,7 @@ describe("media routes", () => {
         "/api/folders": emptyFoldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media", { headers: { cookie } }),
       );
       expect(response.status).toBe(200);
@@ -238,7 +181,7 @@ describe("media routes", () => {
         "/api/folders": emptyFoldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media?success=File+uploaded", {
           headers: { cookie },
         }),
@@ -254,7 +197,7 @@ describe("media routes", () => {
         "/api/folders": emptyFoldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media?error=Something+went+wrong", {
           headers: { cookie },
         }),
@@ -270,7 +213,7 @@ describe("media routes", () => {
         "/api/folders": foldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media?folderId=1&type=image", {
           headers: { cookie },
         }),
@@ -284,7 +227,7 @@ describe("media routes", () => {
 
   describe("GET /admin/media/upload", () => {
     test("redirects to login when not authenticated", async () => {
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/upload"),
       );
       expect(response.status).toBe(302);
@@ -294,7 +237,7 @@ describe("media routes", () => {
     test("redirects to settings when Xibo not configured", async () => {
       await clearXiboConfig();
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/upload", { headers: { cookie } }),
       );
       expect(response.status).toBe(302);
@@ -306,7 +249,7 @@ describe("media routes", () => {
         "/api/folders": foldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/upload", { headers: { cookie } }),
       );
       expect(response.status).toBe(200);
@@ -321,7 +264,7 @@ describe("media routes", () => {
         "/api/folders": () => new Response("Error", { status: 500 }),
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/upload", { headers: { cookie } }),
       );
       expect(response.status).toBe(200);
@@ -334,7 +277,7 @@ describe("media routes", () => {
     test("redirects to login when not authenticated", async () => {
       const formData = new FormData();
       formData.append("csrf_token", "bad");
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/upload", formData, ""),
       );
       expect(response.status).toBe(302);
@@ -346,7 +289,7 @@ describe("media routes", () => {
 
       const formData = new FormData();
       formData.append("csrf_token", csrfToken);
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/upload", formData, cookie),
       );
       expect(response.status).toBe(302);
@@ -365,7 +308,7 @@ describe("media routes", () => {
         new File(["content"], "test.jpg", { type: "image/jpeg" }),
       );
 
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/upload", formData, cookie),
       );
       expect(response.status).toBe(403);
@@ -379,7 +322,7 @@ describe("media routes", () => {
       const formData = new FormData();
       formData.append("csrf_token", csrfToken);
 
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/upload", formData, cookie),
       );
       expect(response.status).toBe(400);
@@ -399,7 +342,7 @@ describe("media routes", () => {
         new File([], "empty.jpg", { type: "image/jpeg" }),
       );
 
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/upload", formData, cookie),
       );
       expect(response.status).toBe(400);
@@ -422,7 +365,7 @@ describe("media routes", () => {
       formData.append("name", "My Image");
       formData.append("folderId", "1");
 
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/upload", formData, cookie),
       );
       expect(response.status).toBe(302);
@@ -445,7 +388,7 @@ describe("media routes", () => {
         new File(["image data"], "photo.png", { type: "image/png" }),
       );
 
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/upload", formData, cookie),
       );
       expect(response.status).toBe(302);
@@ -467,7 +410,7 @@ describe("media routes", () => {
       );
       formData.append("name", "Test");
 
-      const response = await handleRequest(
+      const response = await handle(
         mockMultipartRequest("/admin/media/upload", formData, cookie),
       );
       expect(response.status).toBe(200);
@@ -480,7 +423,7 @@ describe("media routes", () => {
         "/api/folders": emptyFoldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         new Request("http://localhost/admin/media/upload", {
           method: "POST",
           headers: {
@@ -499,7 +442,7 @@ describe("media routes", () => {
 
   describe("POST /admin/media/upload-url", () => {
     test("redirects to login when not authenticated", async () => {
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest("/admin/media/upload-url", { csrf_token: "bad" }),
       );
       expect(response.status).toBe(302);
@@ -509,7 +452,7 @@ describe("media routes", () => {
     test("redirects to settings when Xibo not configured", async () => {
       await clearXiboConfig();
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/upload-url",
           {
@@ -529,7 +472,7 @@ describe("media routes", () => {
         "/api/folders": emptyFoldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/upload-url",
           { csrf_token: csrfToken, url: "", name: "test" },
@@ -546,7 +489,7 @@ describe("media routes", () => {
         "/api/folders": emptyFoldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/upload-url",
           {
@@ -572,7 +515,7 @@ describe("media routes", () => {
         "/api/folders": emptyFoldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/upload-url",
           {
@@ -599,7 +542,7 @@ describe("media routes", () => {
         "/api/folders": emptyFoldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/upload-url",
           {
@@ -622,7 +565,7 @@ describe("media routes", () => {
         "/api/folders": emptyFoldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/upload-url",
           {
@@ -649,7 +592,7 @@ describe("media routes", () => {
         "/api/folders": emptyFoldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/upload-url",
           {
@@ -677,7 +620,7 @@ describe("media routes", () => {
         "/api/folders": emptyFoldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/upload-url",
           {
@@ -705,7 +648,7 @@ describe("media routes", () => {
         "/api/folders": emptyFoldersHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/upload-url",
           {
@@ -724,7 +667,7 @@ describe("media routes", () => {
 
   describe("GET /admin/media/:id", () => {
     test("redirects to login when not authenticated", async () => {
-      const response = await handleRequest(mockRequest("/admin/media/1"));
+      const response = await handle(mockRequest("/admin/media/1"));
       expect(response.status).toBe(302);
       expect(response.headers.get("location")).toBe("/admin");
     });
@@ -732,7 +675,7 @@ describe("media routes", () => {
     test("redirects to settings when Xibo not configured", async () => {
       await clearXiboConfig();
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/1", { headers: { cookie } }),
       );
       expect(response.status).toBe(302);
@@ -744,7 +687,7 @@ describe("media routes", () => {
         "/api/library": libraryHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/1", { headers: { cookie } }),
       );
       expect(response.status).toBe(200);
@@ -759,7 +702,7 @@ describe("media routes", () => {
         "/api/library": libraryHandler,
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/999", { headers: { cookie } }),
       );
       expect(response.status).toBe(404);
@@ -768,7 +711,7 @@ describe("media routes", () => {
 
   describe("GET /admin/media/:id/preview", () => {
     test("redirects to login when not authenticated", async () => {
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/1/preview"),
       );
       expect(response.status).toBe(302);
@@ -784,7 +727,7 @@ describe("media routes", () => {
           }),
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/1/preview", { headers: { cookie } }),
       );
       expect(response.status).toBe(200);
@@ -798,7 +741,7 @@ describe("media routes", () => {
         "/api/library/download/1": () => new Response(imageData),
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/1/preview", { headers: { cookie } }),
       );
       expect(response.status).toBe(200);
@@ -813,7 +756,7 @@ describe("media routes", () => {
           new Response("Not Found", { status: 404 }),
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockRequest("/admin/media/1/preview", { headers: { cookie } }),
       );
       expect(response.status).toBe(500);
@@ -822,7 +765,7 @@ describe("media routes", () => {
 
   describe("POST /admin/media/:id/delete", () => {
     test("redirects to login when not authenticated", async () => {
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest("/admin/media/1/delete", { csrf_token: "bad" }),
       );
       expect(response.status).toBe(302);
@@ -834,7 +777,7 @@ describe("media routes", () => {
         "/api/library/1": () => new Response(null, { status: 204 }),
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/1/delete",
           { csrf_token: csrfToken },
@@ -853,7 +796,7 @@ describe("media routes", () => {
           new Response("Server Error", { status: 500 }),
       });
 
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/1/delete",
           { csrf_token: csrfToken },
@@ -867,7 +810,7 @@ describe("media routes", () => {
     });
 
     test("returns 403 for invalid CSRF token", async () => {
-      const response = await handleRequest(
+      const response = await handle(
         mockFormRequest(
           "/admin/media/1/delete",
           { csrf_token: "wrong-token" },
