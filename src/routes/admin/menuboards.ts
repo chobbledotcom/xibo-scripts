@@ -55,8 +55,8 @@ const fetchBoard = async (
   config: XiboConfig,
   boardId: string,
 ): Promise<XiboMenuBoard | null> => {
-  const boards = await get<XiboMenuBoard[]>(config, "menuboard", {
-    menuBoardId: boardId,
+  const boards = await get<XiboMenuBoard[]>(config, "menuboards", {
+    menuId: boardId,
   });
   return boards[0] ?? null;
 };
@@ -66,31 +66,26 @@ const fetchBoard = async (
  */
 const fetchCategories = (
   config: XiboConfig,
-  boardId: number,
+  menuId: number,
 ): Promise<XiboCategory[]> =>
-  get<XiboCategory[]>(config, `menuboard/${boardId}/category`);
+  get<XiboCategory[]>(config, `menuboard/${menuId}/categories`);
 
 /**
  * Fetch products for a board grouped by category
  */
 const fetchProductsByCategory = async (
   config: XiboConfig,
-  boardId: number,
   categories: XiboCategory[],
 ): Promise<Record<number, XiboProduct[]>> => {
-  const products = await get<XiboProduct[]>(
-    config,
-    `menuboard/${boardId}/product`,
-  );
   const grouped: Record<number, XiboProduct[]> = {};
-  for (const cat of categories) {
-    grouped[cat.menuCategoryId] = [];
-  }
-  for (const product of products) {
-    const catId = product.menuCategoryId;
-    if (!grouped[catId]) grouped[catId] = [];
-    grouped[catId].push(product);
-  }
+  await Promise.all(
+    categories.map(async (cat) => {
+      grouped[cat.menuCategoryId] = await get<XiboProduct[]>(
+        config,
+        `menuboard/${cat.menuCategoryId}/products`,
+      );
+    }),
+  );
   return grouped;
 };
 
@@ -130,7 +125,7 @@ const handleBoardList = (request: Request): Promise<Response> =>
       let boards: XiboMenuBoard[] = [];
       let error: string | undefined;
       try {
-        boards = await get<XiboMenuBoard[]>(config, "menuboard");
+        boards = await get<XiboMenuBoard[]>(config, "menuboards");
       } catch (e) {
         error = (e as Error).message;
       }
@@ -166,7 +161,7 @@ const handleBoardCreate = (request: Request): Promise<Response> =>
       });
       await logActivity(`Created menu board "${name}"`);
       return redirectWithSuccess(
-        `/admin/menuboard/${created.menuBoardId}`,
+        `/admin/menuboard/${created.menuId}`,
         "Menu board created",
       );
     }),
@@ -190,10 +185,9 @@ const handleBoardDetail = (
       let productsByCategory: Record<number, XiboProduct[]> = {};
       let error: string | undefined;
       try {
-        categories = await fetchCategories(config, board.menuBoardId);
+        categories = await fetchCategories(config, board.menuId);
         productsByCategory = await fetchProductsByCategory(
           config,
-          board.menuBoardId,
           categories,
         );
       } catch (e) {
@@ -287,7 +281,7 @@ const handleCategoryNew = (
       const board = await fetchBoard(config, params.boardId!);
       if (!board) return htmlResponse("Menu board not found", 404);
       return htmlResponse(
-        categoryFormPage(session, board.menuBoardId, board.name),
+        categoryFormPage(session, board.menuId, board.name),
       );
     }),
   );
@@ -334,12 +328,12 @@ const handleCategoryEdit = (
       const board = await fetchBoard(config, params.boardId!);
       if (!board) return htmlResponse("Menu board not found", 404);
 
-      const categories = await fetchCategories(config, board.menuBoardId);
+      const categories = await fetchCategories(config, board.menuId);
       const category = findCategory(categories, params.id!);
       if (!category) return htmlResponse("Category not found", 404);
 
       return htmlResponse(
-        categoryFormPage(session, board.menuBoardId, board.name, category),
+        categoryFormPage(session, board.menuId, board.name, category),
       );
     }),
   );
@@ -367,7 +361,7 @@ const handleCategoryUpdate = (
       if (media_id) body.mediaId = media_id;
       await put(
         config,
-        `menuboard/${params.boardId}/category/${params.id}`,
+        `menuboard/${params.id}/category`,
         body,
       );
       await logActivity(
@@ -391,7 +385,7 @@ const handleCategoryDelete = (
     withXiboConfig(async (config) => {
       await del(
         config,
-        `menuboard/${params.boardId}/category/${params.id}`,
+        `menuboard/${params.id}/category`,
       );
       await logActivity(
         `Deleted category ${params.id} from board ${params.boardId}`,
@@ -417,14 +411,14 @@ const handleProductNew = (
       const board = await fetchBoard(config, params.boardId!);
       if (!board) return htmlResponse("Menu board not found", 404);
 
-      const categories = await fetchCategories(config, board.menuBoardId);
+      const categories = await fetchCategories(config, board.menuId);
       const category = findCategory(categories, params.catId!);
       if (!category) return htmlResponse("Category not found", 404);
 
       return htmlResponse(
         productFormPage(
           session,
-          board.menuBoardId,
+          board.menuId,
           board.name,
           category.menuCategoryId,
           category.name,
@@ -460,7 +454,7 @@ const handleProductCreate = (
         availability: availability ?? 1,
       };
       if (media_id) body.mediaId = media_id;
-      await post(config, `menuboard/${params.boardId}/product`, body);
+      await post(config, `menuboard/${params.catId}/product`, body);
       await logActivity(
         `Created product "${name}" in category ${params.catId}`,
       );
@@ -483,13 +477,12 @@ const handleProductEdit = (
       const board = await fetchBoard(config, params.boardId!);
       if (!board) return htmlResponse("Menu board not found", 404);
 
-      const categories = await fetchCategories(config, board.menuBoardId);
+      const categories = await fetchCategories(config, board.menuId);
       const category = findCategory(categories, params.catId!);
       if (!category) return htmlResponse("Category not found", 404);
 
       const productsByCategory = await fetchProductsByCategory(
         config,
-        board.menuBoardId,
         categories,
       );
       const product = findProduct(productsByCategory, params.id!);
@@ -498,7 +491,7 @@ const handleProductEdit = (
       return htmlResponse(
         productFormPage(
           session,
-          board.menuBoardId,
+          board.menuId,
           board.name,
           category.menuCategoryId,
           category.name,
@@ -537,7 +530,7 @@ const handleProductUpdate = (
       if (media_id) body.mediaId = media_id;
       await put(
         config,
-        `menuboard/${params.boardId}/product/${params.id}`,
+        `menuboard/${params.id}/product`,
         body,
       );
       await logActivity(
@@ -561,7 +554,7 @@ const handleProductDelete = (
     withXiboConfig(async (config) => {
       await del(
         config,
-        `menuboard/${params.boardId}/product/${params.id}`,
+        `menuboard/${params.id}/product`,
       );
       await logActivity(
         `Deleted product ${params.id} from board ${params.boardId}`,

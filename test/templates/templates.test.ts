@@ -271,8 +271,8 @@ describe("menuBoardListPage", () => {
 
   it("renders board list with board names", () => {
     const boards: XiboMenuBoard[] = [
-      { menuBoardId: 1, name: "Lunch Menu", code: "LM", description: "Lunch items", modifiedDt: "2024-01-01" },
-      { menuBoardId: 2, name: "Dinner Menu", code: "DM", description: "Dinner items", modifiedDt: "2024-01-02" },
+      { menuId: 1, name: "Lunch Menu", code: "LM", description: "Lunch items", modifiedDt: 1704067200 },
+      { menuId: 2, name: "Dinner Menu", code: "DM", description: "Dinner items", modifiedDt: 1704153600 },
     ];
     const html = menuBoardListPage(ownerSession, boards);
     expect(html).toContain("Lunch Menu");
@@ -299,11 +299,11 @@ describe("menuBoardListPage", () => {
 describe("menuBoardDetailPage", () => {
   it("renders board detail with categories and products", () => {
     const board: XiboMenuBoard = {
-      menuBoardId: 10,
+      menuId: 10,
       name: "Brunch Board",
       code: "BB",
       description: "Weekend brunch",
-      modifiedDt: "2024-03-15",
+      modifiedDt: 1710460800,
     };
     const categories: XiboCategory[] = [
       { menuCategoryId: 100, menuId: 10, name: "Beverages", code: "BEV", mediaId: null },
@@ -354,11 +354,11 @@ describe("menuBoardFormPage", () => {
 
   it("renders edit form with board data", () => {
     const board: XiboMenuBoard = {
-      menuBoardId: 5,
+      menuId: 5,
       name: "Test Board",
       code: "TB",
       description: "A test",
-      modifiedDt: "2024-01-01",
+      modifiedDt: 1704067200,
     };
     const html = menuBoardFormPage(ownerSession, board);
     expect(html).toContain("Edit Test Board");

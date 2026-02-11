@@ -76,11 +76,11 @@ const handleLayoutCreateGet = (request: Request): Promise<Response> =>
       let error: string | undefined;
 
       try {
-        boards = await get<XiboMenuBoard[]>(config, "menuboard");
+        boards = await get<XiboMenuBoard[]>(config, "menuboards");
         for (const board of boards) {
-          categoriesByBoard[board.menuBoardId] = await get<XiboCategory[]>(
+          categoriesByBoard[board.menuId] = await get<XiboCategory[]>(
             config,
-            `menuboard/${board.menuBoardId}/category`,
+            `menuboard/${board.menuId}/categories`,
           );
         }
       } catch (e) {
@@ -114,7 +114,7 @@ const handleLayoutCreatePost = (request: Request): Promise<Response> =>
       // Fetch the category name
       const categories = await get<XiboCategory[]>(
         config,
-        `menuboard/${boardId}/category`,
+        `menuboard/${boardId}/categories`,
       );
       const category = categories.find((c) => c.menuCategoryId === catId);
       if (!category) {
@@ -124,13 +124,12 @@ const handleLayoutCreatePost = (request: Request): Promise<Response> =>
         );
       }
 
-      // Fetch products for the board, filter by category
-      const allProducts = await get<XiboProduct[]>(
+      // Fetch products for the category
+      const categoryProducts = await get<XiboProduct[]>(
         config,
-        `menuboard/${boardId}/product`,
+        `menuboard/${catId}/products`,
       );
-      const products = allProducts
-        .filter((p) => p.menuCategoryId === catId)
+      const products = categoryProducts
         .map((p) => ({ name: p.name, price: p.price }));
 
       const layout = await createMenuLayout(
