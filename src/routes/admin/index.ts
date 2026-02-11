@@ -4,6 +4,8 @@
 
 import { authRoutes } from "#routes/admin/auth.ts";
 import { dashboardRoutes } from "#routes/admin/dashboard.ts";
+import { datasetRoutes } from "#routes/admin/datasets.ts";
+import { layoutRoutes } from "#routes/admin/layouts.ts";
 import { mediaRoutes } from "#routes/admin/media.ts";
 import { menuBoardRoutes } from "#routes/admin/menuboards.ts";
 import { sessionsRoutes } from "#routes/admin/sessions.tsx";
@@ -18,6 +20,8 @@ const adminRoutes = {
   ...sessionsRoutes,
   ...mediaRoutes,
   ...menuBoardRoutes,
+  ...layoutRoutes,
+  ...datasetRoutes,
 };
 
 /** Route admin requests using declarative router */
