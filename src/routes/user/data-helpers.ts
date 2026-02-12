@@ -13,9 +13,9 @@ import type { DatasetProduct, XiboConfig, XiboDatasetRow } from "#xibo/types.ts"
 export const COL = {
   NAME: "name",
   PRICE: "price",
-  MEDIA_ID: "image_id",
+  MEDIA_ID: "mediaId",
   AVAILABLE: "available",
-  SORT_ORDER: "sort_order",
+  SORT_ORDER: "sortOrder",
 } as const;
 
 /** Parse a Xibo dataset row into a typed DatasetProduct */

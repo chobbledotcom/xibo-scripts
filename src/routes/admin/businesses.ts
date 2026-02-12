@@ -71,9 +71,9 @@ const XIBO_NUMBER_TYPE = 2;
 const DATASET_COLUMNS = [
   { heading: "name", dataTypeId: XIBO_STRING_TYPE, columnOrder: 1 },
   { heading: "price", dataTypeId: XIBO_STRING_TYPE, columnOrder: 2 },
-  { heading: "image_id", dataTypeId: XIBO_NUMBER_TYPE, columnOrder: 3 },
+  { heading: "mediaId", dataTypeId: XIBO_NUMBER_TYPE, columnOrder: 3 },
   { heading: "available", dataTypeId: XIBO_NUMBER_TYPE, columnOrder: 4 },
-  { heading: "sort_order", dataTypeId: XIBO_NUMBER_TYPE, columnOrder: 5 },
+  { heading: "sortOrder", dataTypeId: XIBO_NUMBER_TYPE, columnOrder: 5 },
 ] as const;
 
 /** Convert a User record to a BusinessUser for display */
