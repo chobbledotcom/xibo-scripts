@@ -259,7 +259,7 @@ describe("admin businesses management", () => {
       await cacheInvalidateAll();
 
       globalThis.fetch = createMockFetch({
-        "/api/folder": () =>
+        "/api/folders": () =>
           jsonResponse({ folderId: 10, text: "test-folder", parentId: null, children: [] }),
         "/api/dataset": (url) => {
           if (url.includes("/column")) {
@@ -575,7 +575,7 @@ describe("admin businesses management", () => {
       let columnsCreated = 0;
 
       globalThis.fetch = createMockFetch({
-        "/api/folder": () => {
+        "/api/folders": () => {
           folderCreated = true;
           return jsonResponse({ folderId: 10, text: "test-folder", parentId: null, children: [] });
         },
@@ -615,7 +615,7 @@ describe("admin businesses management", () => {
       await cacheInvalidateAll();
 
       globalThis.fetch = createMockFetch({
-        "/api/folder": () =>
+        "/api/folders": () =>
           new Response("Server Error", { status: 500 }),
       });
 
