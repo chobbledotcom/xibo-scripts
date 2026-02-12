@@ -5,14 +5,8 @@
 import { lazyRef } from "#fp";
 import {
   decrypt,
-  deriveKEK,
   encrypt,
-  encryptWithKey,
-  generateDataKey,
-  generateKeyPair,
   hashPassword,
-  unwrapKey,
-  wrapKey,
 } from "#lib/crypto.ts";
 import { getDb } from "#lib/db/client.ts";
 import { nowMs } from "#lib/now.ts";
@@ -25,9 +19,6 @@ import type { Settings } from "#lib/types.ts";
  */
 export const CONFIG_KEYS = {
   SETUP_COMPLETE: "setup_complete",
-  // Encryption key hierarchy
-  WRAPPED_PRIVATE_KEY: "wrapped_private_key",
-  PUBLIC_KEY: "public_key",
   // Xibo API configuration (encrypted)
   XIBO_API_URL: "xibo_api_url",
   XIBO_CLIENT_ID: "xibo_client_id",
@@ -148,13 +139,8 @@ export const clearSetupCompleteCache = (): void => {
 };
 
 /**
- * Complete initial setup by storing all configuration
- * Generates the encryption key hierarchy:
- * - DATA_KEY: random symmetric key for encrypting private key
- * - RSA key pair: public key encrypts, private key decrypts
- * - KEK: derived from password hash + DB_ENCRYPTION_KEY, wraps DATA_KEY
- * Creates the first owner user row instead of storing credentials in settings.
- * Stores Xibo API credentials encrypted.
+ * Complete initial setup by storing all configuration.
+ * Creates the first owner user row and stores Xibo API credentials encrypted.
  */
 export const completeSetup = async (
   username: string,
@@ -163,30 +149,9 @@ export const completeSetup = async (
   xiboClientId: string,
   xiboClientSecret: string,
 ): Promise<void> => {
-  // Hash the password
   const hashedPassword = await hashPassword(adminPassword);
 
-  // Generate DATA_KEY (random symmetric key)
-  const dataKey = await generateDataKey();
-
-  // Generate RSA key pair for asymmetric encryption
-  const { publicKey, privateKey } = await generateKeyPair();
-
-  // Derive KEK from password hash + DB_ENCRYPTION_KEY
-  const kek = await deriveKEK(hashedPassword);
-
-  // Wrap DATA_KEY with KEK
-  const wrappedDataKey = await wrapKey(dataKey, kek);
-
-  // Create the owner user row with wrapped data key
-  await createUser(username, hashedPassword, wrappedDataKey, "owner");
-
-  // Encrypt private key with DATA_KEY
-  const encryptedPrivateKey = await encryptWithKey(privateKey, dataKey);
-  await setSetting(CONFIG_KEYS.WRAPPED_PRIVATE_KEY, encryptedPrivateKey);
-
-  // Store public key (plaintext - it's meant to be public)
-  await setSetting(CONFIG_KEYS.PUBLIC_KEY, publicKey);
+  await createUser(username, hashedPassword, "owner");
 
   // Store Xibo API credentials (encrypted at rest)
   if (xiboApiUrl) {
@@ -203,20 +168,6 @@ export const completeSetup = async (
   }
 
   await setSetting(CONFIG_KEYS.SETUP_COMPLETE, "true");
-};
-
-/**
- * Get the public key for encryption
- */
-export const getPublicKey = (): Promise<string | null> => {
-  return getSetting(CONFIG_KEYS.PUBLIC_KEY);
-};
-
-/**
- * Get the wrapped private key (needs DATA_KEY to decrypt)
- */
-export const getWrappedPrivateKey = (): Promise<string | null> => {
-  return getSetting(CONFIG_KEYS.WRAPPED_PRIVATE_KEY);
 };
 
 /**
@@ -263,42 +214,22 @@ export const updateXiboCredentials = async (
 };
 
 /**
- * Update a user's password and re-wrap DATA_KEY with new KEK
+ * Update a user's password
  */
 export const updateUserPassword = async (
   userId: number,
-  oldPasswordHash: string,
-  oldWrappedDataKey: string,
   newPassword: string,
-): Promise<boolean> => {
-  // Unwrap DATA_KEY with old KEK
-  const oldKek = await deriveKEK(oldPasswordHash);
-  let dataKey: CryptoKey;
-  try {
-    dataKey = await unwrapKey(oldWrappedDataKey, oldKek);
-  } catch {
-    return false;
-  }
-
-  // Hash the new password
+): Promise<void> => {
   const newHash = await hashPassword(newPassword);
   const encryptedNewHash = await encrypt(newHash);
 
-  // Derive new KEK and re-wrap DATA_KEY
-  const newKek = await deriveKEK(newHash);
-  const newWrappedDataKey = await wrapKey(dataKey, newKek);
-
-  // Update user row
   await getDb().execute({
-    sql:
-      "UPDATE users SET password_hash = ?, wrapped_data_key = ? WHERE id = ?",
-    args: [encryptedNewHash, newWrappedDataKey, userId],
+    sql: "UPDATE users SET password_hash = ? WHERE id = ?",
+    args: [encryptedNewHash, userId],
   });
 
   // Invalidate all sessions (force re-login with new password)
   await deleteAllSessions();
-
-  return true;
 };
 
 /**
@@ -330,8 +261,6 @@ export const settingsApi = {
   invalidateSettingsCache,
   isSetupComplete,
   clearSetupCompleteCache,
-  getPublicKey,
-  getWrappedPrivateKey,
   updateUserPassword,
   getXiboApiUrl,
   getXiboClientId,

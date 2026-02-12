@@ -140,23 +140,6 @@ describe("admin impersonation", () => {
       expect(response.headers.get("location")).toBe("/admin");
     });
 
-    it("returns 500 when session lacks data key", async () => {
-      const targetId = await createActivatedUser("nodk", "user", "pass123");
-
-      // Create a session without wrapped_data_key
-      await createSession("no-dk-token", "no-dk-csrf", Date.now() + 3600000, null, 1);
-
-      const response = await handle(
-        mockFormRequest(
-          `/admin/users/${targetId}/impersonate`,
-          { csrf_token: "no-dk-csrf" },
-          "__Host-session=no-dk-token",
-        ),
-      );
-      expect(response.status).toBe(500);
-      const html = await response.text();
-      expect(html).toContain("session lacks data key");
-    });
   });
 
   describe("GET /admin/stop-impersonating", () => {
@@ -213,7 +196,7 @@ describe("admin impersonation", () => {
 
     it("clears cookies when admin session expired", async () => {
       // Create an expired admin session
-      await createSession("expired-admin", "expired-csrf", Date.now() - 1000, null, 1);
+      await createSession("expired-admin", "expired-csrf", Date.now() - 1000, 1);
 
       const response = await handle(
         new Request("http://localhost/admin/stop-impersonating", {

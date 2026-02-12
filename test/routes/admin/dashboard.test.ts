@@ -114,7 +114,7 @@ describe("dashboard", () => {
     it("returns login page when session token is expired", async () => {
       // Create a session that's already expired
       const expiredToken = "expired-session-token-123";
-      await createSession(expiredToken, "csrf", Date.now() - 1000, null, 1);
+      await createSession(expiredToken, "csrf", Date.now() - 1000, 1);
 
       const { hashSessionToken } = await import("#lib/crypto.ts");
       const _hash = await hashSessionToken(expiredToken);
@@ -133,7 +133,7 @@ describe("dashboard", () => {
     it("returns login page when session's user no longer exists", async () => {
       // Create session for non-existent user ID
       const orphanToken = "orphan-session-token-456";
-      await createSession(orphanToken, "csrf", Date.now() + 86400000, null, 99999);
+      await createSession(orphanToken, "csrf", Date.now() + 86400000, 99999);
 
       const res = await handle(
         mockRequest("/admin", {
