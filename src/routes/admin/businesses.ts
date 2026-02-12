@@ -122,7 +122,7 @@ const provisionXiboResources = async (
 ): Promise<ProvisionedResources> => {
   const folderName = `${businessName}-${randomSuffix()}`;
 
-  const folder = await post<XiboFolder>(config, "folder", {
+  const folder = await post<XiboFolder>(config, "folders", {
     text: folderName,
   });
 
