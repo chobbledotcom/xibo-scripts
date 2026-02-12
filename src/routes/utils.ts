@@ -21,6 +21,7 @@ import {
 import { ErrorCode, logError } from "#lib/logger.ts";
 import { nowMs } from "#lib/now.ts";
 import type { AdminLevel, ImpersonationInfo } from "#lib/types.ts";
+import { ok, err, type Result } from "#fp";
 import type { ServerContext } from "#routes/types.ts";
 
 // Re-export for use by other route modules
@@ -307,9 +308,7 @@ const requireRole = (
   check(session) ? handler(session) : htmlResponse("Forbidden", 403);
 
 /** CSRF form result type */
-export type CsrfFormResult =
-  | { ok: true; form: URLSearchParams }
-  | { ok: false; response: Response };
+export type CsrfFormResult = Result<URLSearchParams>;
 
 /** Default cookie name for CSRF tokens */
 const DEFAULT_CSRF_COOKIE = "csrf_token";
@@ -340,16 +339,14 @@ export const requireCsrfForm = async (
 
   if (!cookieCsrf || !formCsrf || !validateCsrfToken(cookieCsrf, formCsrf)) {
     const newToken = generateSecureToken();
-    return { ok: false, response: onInvalid(newToken) };
+    return err(onInvalid(newToken));
   }
 
-  return { ok: true, form };
+  return ok(form);
 };
 
 /** Auth form result type */
-export type AuthFormResult =
-  | { ok: true; session: AuthSession; form: URLSearchParams }
-  | { ok: false; response: Response };
+export type AuthFormResult = Result<{ session: AuthSession; form: URLSearchParams }>;
 
 /**
  * Require authenticated session with parsed form and validated CSRF
@@ -359,16 +356,16 @@ export const requireAuthForm = async (
 ): Promise<AuthFormResult> => {
   const session = await getAuthenticatedSession(request);
   if (!session) {
-    return { ok: false, response: redirect("/admin") };
+    return err(redirect("/admin"));
   }
 
   const form = await parseFormData(request);
   const csrfToken = form.get("csrf_token") || "";
   if (!validateCsrfToken(session.csrfToken, csrfToken)) {
-    return { ok: false, response: htmlResponse("Invalid CSRF token", 403) };
+    return err(htmlResponse("Invalid CSRF token", 403));
   }
 
-  return { ok: true, session, form };
+  return ok({ session, form });
 };
 
 type FormHandler = (
@@ -385,10 +382,10 @@ const handleAuthForm = async (
 ): Promise<Response> => {
   const auth = await requireAuthForm(request);
   if (!auth.ok) return auth.response;
-  if (roleCheck && !roleCheck(auth.session)) {
+  if (roleCheck && !roleCheck(auth.value.session)) {
     return htmlResponse("Forbidden", 403);
   }
-  return handler(auth.session, auth.form);
+  return handler(auth.value.session, auth.value.form);
 };
 
 /** Handle request with auth form - unwrap AuthFormResult */

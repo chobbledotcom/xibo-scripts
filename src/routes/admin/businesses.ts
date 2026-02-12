@@ -2,7 +2,7 @@
  * Admin business management routes - manager or above
  */
 
-import { filter } from "#fp";
+import { filter, mapAsync } from "#fp";
 import { logActivity } from "#lib/db/activity-log.ts";
 import {
   assignUserToBusiness,
@@ -130,14 +130,14 @@ const provisionXiboResources = async (
     description: `Product data for ${businessName}`,
   });
 
-  for (const col of DATASET_COLUMNS) {
-    await post(config, `dataset/${dataset.dataSetId}/column`, {
+  await mapAsync((col: typeof DATASET_COLUMNS[number]) =>
+    post(config, `dataset/${dataset.dataSetId}/column`, {
       heading: col.heading,
       dataTypeId: col.dataTypeId,
       dataSetColumnTypeId: 1, // Value column
       columnOrder: col.columnOrder,
-    });
-  }
+    })
+  )([...DATASET_COLUMNS]);
 
   return { folderId: folder.folderId, folderName, datasetId: dataset.dataSetId };
 };

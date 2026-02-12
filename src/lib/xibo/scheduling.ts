@@ -7,7 +7,7 @@
  * 3. Schedules the campaign on the screen's Xibo display
  */
 
-import { filter, pipe, reduce } from "#fp";
+import { filter, mapAsync, pipe, reduce } from "#fp";
 import { del, get, post, put } from "#xibo/client.ts";
 import type { XiboCampaign, XiboConfig, XiboSchedule } from "#xibo/types.ts";
 import { ErrorCode, logError } from "#lib/logger.ts";
@@ -27,12 +27,12 @@ const assignLayouts = async (opts: {
   campaignId: number;
   layouts: CampaignLayoutAssignment[];
 }): Promise<void> => {
-  for (const layout of opts.layouts) {
-    await post(opts.config, `campaign/${opts.campaignId}/layout/assign`, {
+  await mapAsync((layout: CampaignLayoutAssignment) =>
+    post(opts.config, `campaign/${opts.campaignId}/layout/assign`, {
       layoutId: [layout.layoutId],
       displayOrder: [layout.displayOrder],
-    });
-  }
+    })
+  )(opts.layouts);
 };
 
 /**

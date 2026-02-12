@@ -5,6 +5,7 @@
  * Delegates to pure Xibo operations in lib/xibo/media-ops.ts.
  */
 
+import { ok, err, type Result } from "#fp";
 import { loadXiboConfig } from "#xibo/client.ts";
 import { errorMessage } from "#lib/logger.ts";
 import {
@@ -78,15 +79,12 @@ export const proxyMediaPreview = async (
 export const parseMultipartWithCsrf = async (
   request: Request,
   sessionCsrfToken: string,
-): Promise<
-  | { ok: true; formData: FormData }
-  | { ok: false; response: Response }
-> => {
+): Promise<Result<FormData>> => {
   let formData: FormData;
   try {
     formData = await request.formData();
   } catch {
-    return { ok: false, response: htmlResponse("Invalid form data", 400) };
+    return err(htmlResponse("Invalid form data", 400));
   }
 
   const csrfToken = formData.get("csrf_token");
@@ -95,13 +93,10 @@ export const parseMultipartWithCsrf = async (
     typeof csrfToken !== "string" ||
     !validateCsrfToken(sessionCsrfToken, csrfToken)
   ) {
-    return {
-      ok: false,
-      response: htmlResponse("Invalid CSRF token", 403),
-    };
+    return err(htmlResponse("Invalid CSRF token", 403));
   }
 
-  return { ok: true, formData };
+  return ok(formData);
 };
 
 /** Authenticated session + config for upload handlers */
@@ -147,10 +142,10 @@ export const handleMultipartUpload = async <C extends UploadContext>(
       : parsed.response;
   }
 
-  const file = extractFile(parsed.formData);
+  const file = extractFile(parsed.value);
   if (!file) return onNoFile(result);
 
-  return onFile(result, file, parsed.formData);
+  return onFile(result, file, parsed.value);
 };
 
 /** Options for verifyAndDeleteMedia */
