@@ -14,13 +14,6 @@ import {
 } from "#lib/db/entity-helpers.ts";
 import type { MenuScreen, MenuScreenItem } from "#lib/types.ts";
 
-/**
- * Decrypted menu screen for display.
- * Structurally identical to MenuScreen — the alias documents that
- * `name` and `created_at` have been decrypted for safe rendering.
- */
-export type DisplayMenuScreen = MenuScreen;
-
 /** Fields selected in all menu_screens queries */
 const MENU_SCREEN_COLS =
   "id, name, screen_id, template_id, display_time, sort_order, xibo_layout_id, xibo_campaign_id, created_at";
@@ -152,4 +145,4 @@ export const setMenuScreenItems = async (
  */
 export const toDisplayMenuScreen = (
   ms: MenuScreen,
-): Promise<DisplayMenuScreen> => decryptEntity(ms);
+): Promise<MenuScreen> => decryptEntity(ms);

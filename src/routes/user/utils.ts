@@ -11,7 +11,7 @@ import {
   getBusinessUserIds,
   toDisplayBusiness,
 } from "#lib/db/businesses.ts";
-import type { DisplayBusiness } from "#lib/db/businesses.ts";
+import type { Business } from "#lib/types.ts";
 import type { XiboConfig } from "#xibo/types.ts";
 import type { AuthSession } from "#routes/utils.ts";
 import { htmlResponse } from "#routes/utils.ts";
@@ -28,8 +28,8 @@ type ParamHandler = (request: Request, params: Params) => Promise<Response>;
 
 /** Business context available to user route handlers */
 export type UserBusinessContext = {
-  activeBusiness: DisplayBusiness;
-  allBusinesses: DisplayBusiness[];
+  activeBusiness: Business;
+  allBusinesses: Business[];
 };
 
 /**
@@ -110,12 +110,12 @@ export const userBusinessDetailRoute = (
 
 /**
  * Verify a user has access to a specific business by ID.
- * Returns the decrypted DisplayBusiness on success, or a 403/404 Response on failure.
+ * Returns the decrypted Business on success, or a 403/404 Response on failure.
  */
 export const withUserBusiness = async (
   userId: number,
   businessId: number,
-): Promise<DisplayBusiness | Response> => {
+): Promise<Business | Response> => {
   const business = await getBusinessById(businessId);
   if (!business) {
     return htmlResponse("<h1>Business not found</h1>", 404);

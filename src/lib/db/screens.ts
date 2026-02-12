@@ -11,13 +11,6 @@ import {
 import type { Screen } from "#lib/types.ts";
 
 /**
- * Decrypted screen for display.
- * Structurally identical to Screen — the alias documents that
- * `name` and `created_at` have been decrypted for safe rendering.
- */
-export type DisplayScreen = Screen;
-
-/**
  * Create a new screen with encrypted fields
  */
 export const createScreen = async (
@@ -83,4 +76,4 @@ export const getAssignedDisplayIds = async (): Promise<number[]> => {
  */
 export const toDisplayScreen = (
   screen: Screen,
-): Promise<DisplayScreen> => decryptEntity(screen);
+): Promise<Screen> => decryptEntity(screen);

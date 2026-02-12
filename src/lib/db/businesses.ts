@@ -12,16 +12,6 @@ import {
 } from "#lib/db/entity-helpers.ts";
 import type { Business } from "#lib/types.ts";
 
-/** Decrypted business for display */
-export interface DisplayBusiness {
-  id: number;
-  name: string;
-  xibo_folder_id: number | null;
-  folder_name: string | null;
-  xibo_dataset_id: number | null;
-  created_at: string;
-}
-
 /**
  * Create a new business with encrypted fields
  */
@@ -161,7 +151,7 @@ export const getBusinessUserIds = async (
  */
 export const toDisplayBusiness = async (
   business: Business,
-): Promise<DisplayBusiness> => ({
+): Promise<Business> => ({
   ...(await decryptEntity(business)),
   folder_name: business.folder_name
     ? await decrypt(business.folder_name)

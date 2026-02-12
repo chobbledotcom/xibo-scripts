@@ -14,10 +14,7 @@ import {
   userMenuScreenEditPage,
   userMenuScreenListPage,
 } from "#templates/user/menu-screens.tsx";
-import type { AdminSession } from "#lib/types.ts";
-import type { DisplayBusiness } from "#lib/db/businesses.ts";
-import type { DisplayScreen } from "#lib/db/screens.ts";
-import type { DisplayMenuScreen } from "#lib/db/menu-screens.ts";
+import type { AdminSession, Business, MenuScreen, Screen } from "#lib/types.ts";
 import { TEMPLATES } from "#lib/templates/index.ts";
 
 const session: AdminSession = {
@@ -25,7 +22,7 @@ const session: AdminSession = {
   adminLevel: "user",
 };
 
-const business: DisplayBusiness = {
+const business: Business = {
   id: 1,
   name: "Test Cafe",
   xibo_folder_id: 100,
@@ -34,7 +31,7 @@ const business: DisplayBusiness = {
   created_at: "2024-01-01",
 };
 
-const screen: DisplayScreen = {
+const screen: Screen = {
   id: 10,
   name: "Main Display",
   business_id: 1,
@@ -42,7 +39,7 @@ const screen: DisplayScreen = {
   created_at: "2024-01-01",
 };
 
-const sampleMenuScreens: DisplayMenuScreen[] = [
+const sampleMenuScreens: MenuScreen[] = [
   {
     id: 1,
     name: "Morning Menu",

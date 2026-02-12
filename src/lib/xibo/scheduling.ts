@@ -10,7 +10,7 @@
 import { filter, pipe, reduce } from "#fp";
 import { del, get, post, put } from "#xibo/client.ts";
 import type { XiboCampaign, XiboConfig, XiboSchedule } from "#xibo/types.ts";
-import type { DisplayMenuScreen } from "#lib/db/menu-screens.ts";
+import type { MenuScreen } from "#lib/types.ts";
 
 /** Campaign layout assignment body */
 type CampaignLayoutAssignment = {
@@ -123,11 +123,11 @@ export const deleteScheduleEvent = async (
  * Only includes menu screens that have a valid Xibo layout ID.
  */
 export const buildCampaignLayouts = (
-  menuScreens: DisplayMenuScreen[],
+  menuScreens: MenuScreen[],
 ): CampaignLayoutAssignment[] =>
   pipe(
-    filter((ms: DisplayMenuScreen) => ms.xibo_layout_id !== null),
-    reduce((acc: CampaignLayoutAssignment[], ms: DisplayMenuScreen) => {
+    filter((ms: MenuScreen) => ms.xibo_layout_id !== null),
+    reduce((acc: CampaignLayoutAssignment[], ms: MenuScreen) => {
       acc.push({ layoutId: ms.xibo_layout_id!, displayOrder: acc.length + 1 });
       return acc;
     }, [] as CampaignLayoutAssignment[]),
@@ -142,7 +142,7 @@ export const buildCampaignLayouts = (
  */
 export const rebuildScreenSchedule = async (
   config: XiboConfig,
-  menuScreens: DisplayMenuScreen[],
+  menuScreens: MenuScreen[],
   screenName: string,
   displayId: number,
   existingCampaignId: number | null,

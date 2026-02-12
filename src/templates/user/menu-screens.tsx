@@ -8,10 +8,7 @@
 
 import { renderError, renderFields } from "#lib/forms.tsx";
 import { Raw } from "#lib/jsx/jsx-runtime.ts";
-import type { AdminSession } from "#lib/types.ts";
-import type { DisplayBusiness } from "#lib/db/businesses.ts";
-import type { DisplayScreen } from "#lib/db/screens.ts";
-import type { DisplayMenuScreen } from "#lib/db/menu-screens.ts";
+import type { AdminSession, Business, MenuScreen, Screen } from "#lib/types.ts";
 import type { DatasetProduct } from "#xibo/types.ts";
 import type { LayoutTemplate } from "#lib/templates/index.ts";
 import { menuScreenFields } from "#templates/fields.ts";
@@ -33,9 +30,9 @@ const MenuBreadcrumb = (
  */
 export const userMenuScreenListPage = (
   session: AdminSession,
-  business: DisplayBusiness,
-  screen: DisplayScreen,
-  menuScreens: DisplayMenuScreen[],
+  business: Business,
+  screen: Screen,
+  menuScreens: MenuScreen[],
   success?: string,
   error?: string,
 ): string =>
@@ -179,8 +176,8 @@ const renderProductPicker = (
  */
 export const userMenuScreenCreatePage = (
   session: AdminSession,
-  business: DisplayBusiness,
-  screen: DisplayScreen,
+  business: Business,
+  screen: Screen,
   templates: LayoutTemplate[],
   products: DatasetProduct[],
   error?: string,
@@ -211,9 +208,9 @@ export const userMenuScreenCreatePage = (
  */
 export const userMenuScreenEditPage = (
   session: AdminSession,
-  business: DisplayBusiness,
-  screen: DisplayScreen,
-  menuScreen: DisplayMenuScreen,
+  business: Business,
+  screen: Screen,
+  menuScreen: MenuScreen,
   templates: LayoutTemplate[],
   products: DatasetProduct[],
   selectedProductIds: number[],

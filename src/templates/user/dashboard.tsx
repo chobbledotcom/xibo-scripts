@@ -5,14 +5,13 @@
  * screen count, product count, and quick links.
  */
 
-import type { AdminSession } from "#lib/types.ts";
-import type { DisplayBusiness } from "#lib/db/businesses.ts";
+import type { AdminSession, Business } from "#lib/types.ts";
 import { Layout } from "#templates/layout.tsx";
 import { UserNav } from "#templates/user/nav.tsx";
 
 /** Summary data for a single business on the dashboard */
 export interface BusinessSummary {
-  business: DisplayBusiness;
+  business: Business;
   screenCount: number;
   productCount: number;
 }
@@ -22,7 +21,7 @@ export interface BusinessSummary {
  */
 export const userDashboardPage = (
   session: AdminSession,
-  businesses: DisplayBusiness[],
+  businesses: Business[],
 ): string =>
   String(
     <Layout title="Dashboard">

@@ -22,7 +22,7 @@ import {
   scheduleCampaign,
   updateCampaign,
 } from "#xibo/scheduling.ts";
-import type { DisplayMenuScreen } from "#lib/db/menu-screens.ts";
+import type { MenuScreen } from "#lib/types.ts";
 import type { XiboConfig } from "#xibo/types.ts";
 import { clearToken } from "#xibo/client.ts";
 import { cacheInvalidateAll } from "#xibo/cache.ts";
@@ -43,9 +43,9 @@ const config: XiboConfig = {
   clientSecret: "test-secret",
 };
 
-const makeDisplayMenuScreen = (
-  overrides: Partial<DisplayMenuScreen> = {},
-): DisplayMenuScreen => ({
+const makeMenuScreen = (
+  overrides: Partial<MenuScreen> = {},
+): MenuScreen => ({
   id: 1,
   name: "Test Menu",
   screen_id: 1,
@@ -76,9 +76,9 @@ describe("display scheduling", () => {
   describe("buildCampaignLayouts", () => {
     test("builds layout assignments from menu screens with layout IDs", () => {
       const menuScreens = [
-        makeDisplayMenuScreen({ id: 1, xibo_layout_id: 10, sort_order: 0 }),
-        makeDisplayMenuScreen({ id: 2, xibo_layout_id: 20, sort_order: 1 }),
-        makeDisplayMenuScreen({ id: 3, xibo_layout_id: 30, sort_order: 2 }),
+        makeMenuScreen({ id: 1, xibo_layout_id: 10, sort_order: 0 }),
+        makeMenuScreen({ id: 2, xibo_layout_id: 20, sort_order: 1 }),
+        makeMenuScreen({ id: 3, xibo_layout_id: 30, sort_order: 2 }),
       ];
 
       const layouts = buildCampaignLayouts(menuScreens);
@@ -93,9 +93,9 @@ describe("display scheduling", () => {
 
     test("excludes menu screens without layout IDs", () => {
       const menuScreens = [
-        makeDisplayMenuScreen({ id: 1, xibo_layout_id: 10 }),
-        makeDisplayMenuScreen({ id: 2, xibo_layout_id: null }),
-        makeDisplayMenuScreen({ id: 3, xibo_layout_id: 30 }),
+        makeMenuScreen({ id: 1, xibo_layout_id: 10 }),
+        makeMenuScreen({ id: 2, xibo_layout_id: null }),
+        makeMenuScreen({ id: 3, xibo_layout_id: 30 }),
       ];
 
       const layouts = buildCampaignLayouts(menuScreens);
@@ -106,7 +106,7 @@ describe("display scheduling", () => {
 
     test("returns empty array when no menu screens have layouts", () => {
       const menuScreens = [
-        makeDisplayMenuScreen({ xibo_layout_id: null }),
+        makeMenuScreen({ xibo_layout_id: null }),
       ];
 
       const layouts = buildCampaignLayouts(menuScreens);
@@ -310,7 +310,7 @@ describe("display scheduling", () => {
       });
 
       const menuScreens = [
-        makeDisplayMenuScreen({ id: 1, xibo_layout_id: 10, sort_order: 0 }),
+        makeMenuScreen({ id: 1, xibo_layout_id: 10, sort_order: 0 }),
       ];
 
       const result = await rebuildScreenSchedule(config, menuScreens, "Test", 5, null);
@@ -336,8 +336,8 @@ describe("display scheduling", () => {
       });
 
       const menuScreens = [
-        makeDisplayMenuScreen({ id: 1, xibo_layout_id: 10 }),
-        makeDisplayMenuScreen({ id: 2, xibo_layout_id: 20 }),
+        makeMenuScreen({ id: 1, xibo_layout_id: 10 }),
+        makeMenuScreen({ id: 2, xibo_layout_id: 20 }),
       ];
 
       const result = await rebuildScreenSchedule(config, menuScreens, "Test", 5, 60);

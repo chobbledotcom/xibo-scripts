@@ -7,8 +7,7 @@
 
 import { renderError, renderFields } from "#lib/forms.tsx";
 import { Raw } from "#lib/jsx/jsx-runtime.ts";
-import type { AdminSession } from "#lib/types.ts";
-import type { DisplayBusiness } from "#lib/db/businesses.ts";
+import type { AdminSession, Business } from "#lib/types.ts";
 import type { DatasetProduct } from "#xibo/types.ts";
 import { datasetProductFields } from "#templates/fields.ts";
 import { Layout } from "#templates/layout.tsx";
@@ -23,7 +22,7 @@ const availabilityLabel = (available: number): string =>
  */
 export const userProductListPage = (
   session: AdminSession,
-  business: DisplayBusiness,
+  business: Business,
   products: DatasetProduct[],
   success?: string,
   error?: string,
@@ -154,7 +153,7 @@ const renderImagePicker = (
  */
 export const userProductCreatePage = (
   session: AdminSession,
-  business: DisplayBusiness,
+  business: Business,
   media: MediaOption[],
   error?: string,
 ): string =>
@@ -196,7 +195,7 @@ export const userProductCreatePage = (
  */
 export const userProductEditPage = (
   session: AdminSession,
-  business: DisplayBusiness,
+  business: Business,
   product: DatasetProduct,
   media: MediaOption[],
   error?: string,

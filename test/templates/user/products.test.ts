@@ -3,8 +3,7 @@
  */
 
 import { describe, expect, test } from "#test-compat";
-import type { AdminSession } from "#lib/types.ts";
-import type { DisplayBusiness } from "#lib/db/businesses.ts";
+import type { AdminSession, Business } from "#lib/types.ts";
 import type { DatasetProduct } from "#xibo/types.ts";
 import {
   userProductCreatePage,
@@ -17,7 +16,7 @@ const session: AdminSession = {
   adminLevel: "user",
 };
 
-const business: DisplayBusiness = {
+const business: Business = {
   id: 1,
   name: "Ice Cream Van",
   xibo_folder_id: 100,

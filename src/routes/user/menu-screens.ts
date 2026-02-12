@@ -6,9 +6,7 @@
  * generates Xibo layouts, campaigns, and schedules automatically.
  */
 
-import type { DisplayBusiness } from "#lib/db/businesses.ts";
 import { getScreenById, toDisplayScreen } from "#lib/db/screens.ts";
-import type { DisplayScreen } from "#lib/db/screens.ts";
 import {
   createMenuScreen,
   deleteMenuScreen,
@@ -21,8 +19,7 @@ import {
   updateMenuScreenCampaignId,
   updateMenuScreenLayoutId,
 } from "#lib/db/menu-screens.ts";
-import type { DisplayMenuScreen } from "#lib/db/menu-screens.ts";
-import type { MenuScreen } from "#lib/types.ts";
+import type { Business, MenuScreen, Screen } from "#lib/types.ts";
 import { validateForm } from "#lib/forms.tsx";
 import {
   buildLayoutFromTemplate,
@@ -53,7 +50,7 @@ const menusUrl = (bizId: number, screenId: number): string =>
 // ─── Access control helpers ────────────────────────────────────────
 
 /** Result of requireScreen when successful */
-type ScreenCtx = { business: DisplayBusiness; screen: DisplayScreen };
+type ScreenCtx = { business: Business; screen: Screen };
 
 /** Verify user access to business + screen, returning display objects or error response */
 const requireScreen = async (
@@ -88,7 +85,7 @@ const withScreenCtx = async <T>(
 /** Load menu screens for a screen and decrypt them for display */
 const loadDisplayMenuScreens = async (
   screenId: number,
-): Promise<{ menuScreens: MenuScreen[]; display: DisplayMenuScreen[] }> => {
+): Promise<{ menuScreens: MenuScreen[]; display: MenuScreen[] }> => {
   const menuScreens = await getMenuScreensForScreen(screenId);
   const display = await Promise.all(menuScreens.map(toDisplayMenuScreen));
   return { menuScreens, display };

@@ -4,9 +4,7 @@
 
 import { renderError, renderFields } from "#lib/forms.tsx";
 import { Raw } from "#lib/jsx/jsx-runtime.ts";
-import type { AdminSession } from "#lib/types.ts";
-import type { DisplayBusiness } from "#lib/db/businesses.ts";
-import type { DisplayScreen } from "#lib/db/screens.ts";
+import type { AdminSession, Business, Screen } from "#lib/types.ts";
 import type { XiboDisplay } from "#xibo/types.ts";
 import { screenFields } from "#templates/fields.ts";
 import { Layout } from "#templates/layout.tsx";
@@ -16,7 +14,7 @@ import { AdminNav, Breadcrumb } from "#templates/admin/nav.tsx";
  * Screen create form page (with Xibo display picker)
  */
 export const adminScreenCreatePage = (
-  business: DisplayBusiness,
+  business: Business,
   availableDisplays: XiboDisplay[],
   session: AdminSession,
   error?: string,
@@ -54,8 +52,8 @@ export const adminScreenCreatePage = (
  * Screen detail page
  */
 export const adminScreenDetailPage = (
-  business: DisplayBusiness,
-  screen: DisplayScreen,
+  business: Business,
+  screen: Screen,
   session: AdminSession,
   error?: string,
   success?: string,

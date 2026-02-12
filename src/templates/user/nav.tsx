@@ -2,13 +2,12 @@
  * User-facing navigation component
  */
 
-import type { AdminSession } from "#lib/types.ts";
-import type { DisplayBusiness } from "#lib/db/businesses.ts";
+import type { AdminSession, Business } from "#lib/types.ts";
 
 interface UserNavProps {
   session: AdminSession;
-  activeBusiness?: DisplayBusiness;
-  allBusinesses?: DisplayBusiness[];
+  activeBusiness?: Business;
+  allBusinesses?: Business[];
 }
 
 /**

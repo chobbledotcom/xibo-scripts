@@ -3,8 +3,7 @@
  */
 
 import { describe, expect, test } from "#test-compat";
-import type { AdminSession } from "#lib/types.ts";
-import type { DisplayBusiness } from "#lib/db/businesses.ts";
+import type { AdminSession, Business } from "#lib/types.ts";
 import {
   userDashboardPage,
   userBusinessDetailPage,
@@ -22,7 +21,7 @@ const impersonatingSession: AdminSession = {
   impersonating: { username: "admin", userId: 1 },
 };
 
-const business1: DisplayBusiness = {
+const business1: Business = {
   id: 1,
   name: "Ice Cream Van",
   xibo_folder_id: 100,
@@ -31,7 +30,7 @@ const business1: DisplayBusiness = {
   created_at: "2024-01-15T10:00:00Z",
 };
 
-const business2: DisplayBusiness = {
+const business2: Business = {
   id: 2,
   name: "Pizza Place",
   xibo_folder_id: 200,

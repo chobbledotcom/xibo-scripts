@@ -4,9 +4,7 @@
 
 import { renderError, renderFields } from "#lib/forms.tsx";
 import { Raw } from "#lib/jsx/jsx-runtime.ts";
-import type { AdminLevel, AdminSession } from "#lib/types.ts";
-import type { DisplayBusiness } from "#lib/db/businesses.ts";
-import type { DisplayScreen } from "#lib/db/screens.ts";
+import type { AdminLevel, AdminSession, Business, Screen } from "#lib/types.ts";
 import { businessFields } from "#templates/fields.ts";
 import { Layout } from "#templates/layout.tsx";
 import { AdminNav, Breadcrumb } from "#templates/admin/nav.tsx";
@@ -22,7 +20,7 @@ export interface BusinessUser {
  * Business list page
  */
 export const adminBusinessesPage = (
-  businesses: DisplayBusiness[],
+  businesses: Business[],
   session: AdminSession,
   error?: string,
   success?: string,
@@ -94,8 +92,8 @@ export const adminBusinessCreatePage = (
  * Business detail page (screens + assigned users)
  */
 export const adminBusinessDetailPage = (
-  business: DisplayBusiness,
-  screens: DisplayScreen[],
+  business: Business,
+  screens: Screen[],
   assignedUsers: BusinessUser[],
   availableUsers: BusinessUser[],
   session: AdminSession,

@@ -4,8 +4,7 @@
  * Shows shared photos (read-only) and business-owned photos (editable).
  */
 
-import type { AdminSession } from "#lib/types.ts";
-import type { DisplayBusiness } from "#lib/db/businesses.ts";
+import type { AdminSession, Business } from "#lib/types.ts";
 import type { XiboMedia } from "#xibo/types.ts";
 import { formatFileSize, isPreviewable } from "#xibo/media.ts";
 import { Layout } from "#templates/layout.tsx";
@@ -86,8 +85,8 @@ const MediaTable = (
  */
 export const userMediaPage = (
   session: AdminSession,
-  activeBusiness: DisplayBusiness,
-  allBusinesses: DisplayBusiness[],
+  activeBusiness: Business,
+  allBusinesses: Business[],
   sharedMedia: XiboMedia[],
   businessMedia: XiboMedia[],
   success?: string,
@@ -150,8 +149,8 @@ export const userMediaPage = (
  */
 export const userMediaUploadPage = (
   session: AdminSession,
-  activeBusiness: DisplayBusiness,
-  allBusinesses: DisplayBusiness[],
+  activeBusiness: Business,
+  allBusinesses: Business[],
   error?: string,
 ): string =>
   String(

@@ -9,7 +9,7 @@
 import { filter, map, pipe } from "#fp";
 import { getSharedFolderId } from "#lib/db/settings.ts";
 import { validateForm } from "#lib/forms.tsx";
-import type { DisplayBusiness } from "#lib/db/businesses.ts";
+import type { Business } from "#lib/types.ts";
 import { post, put, del } from "#xibo/client.ts";
 import { fetchAllMedia } from "#xibo/media-ops.ts";
 import type {
@@ -84,7 +84,7 @@ const productsUrl = (businessId: number): string =>
 // ─── Shared access-control + API helpers ────────────────────────────
 
 /** Result of resolving business + dataset access for mutation routes */
-type BusinessCtx = { business: DisplayBusiness; datasetId: number; businessId: number };
+type BusinessCtx = { business: Business; datasetId: number; businessId: number };
 
 /**
  * Verify user has access to the business AND it has a dataset provisioned.
