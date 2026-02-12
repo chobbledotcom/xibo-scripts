@@ -421,16 +421,18 @@ const handleCategoryEdit = boardCategoryRoute(
 /** POST /admin/menuboard/:boardId/category/:id — update category */
 const handleCategoryUpdate = formRouteP<CategoryFormValues>(
   categoryFields,
-  (values, config, params, session) =>
-    boardChildMutation(
-      () => put(config, `menuboard/${params.id}/category`, buildCategoryBody(values)),
+  (values, config, params, session) => {
+    const body = buildCategoryBody(values);
+    return boardChildMutation(
+      () => put(config, `menuboard/${params.id}/category`, body),
       params.boardId!,
       session,
       "UPDATE",
       "category",
       `Updated category "${values.name}" in board ${params.boardId}`,
       "Category updated",
-    ),
+    );
+  },
 );
 
 /** POST /admin/menuboard/:boardId/category/:id/delete — delete category */

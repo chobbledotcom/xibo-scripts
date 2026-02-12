@@ -24,11 +24,11 @@ import {
 // Re-export for convenience — many route modules need errorMessage
 export { errorMessage } from "#lib/logger.ts";
 
-/** Route params from URL patterns */
-type Params = Record<string, string | undefined>;
+/** Route params from URL patterns (same as RouteParams from router.ts) */
+export type Params = Record<string, string | undefined>;
 
 /** Route handler that receives URL params */
-type ParamHandler = (request: Request, params: Params) => Promise<Response>;
+export type ParamHandler = (request: Request, params: Params) => Promise<Response>;
 
 /** Clear session cookie on logout */
 export const clearSessionCookie = clearCookie("__Host-session", "/");
@@ -250,3 +250,4 @@ export const withEntity = async <T>(
   if (!entity) return htmlResponse(`<h1>${label} not found</h1>`, 404);
   return handler(entity);
 };
+

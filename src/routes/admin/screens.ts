@@ -27,6 +27,7 @@ import {
   errorMessage,
   getQueryMessages,
   toAdminSession,
+  withEntity,
 } from "#routes/route-helpers.ts";
 import {
   adminScreenCreatePage,
@@ -71,37 +72,34 @@ const loadScreenForBusiness = async (
   return { business: biz, screen };
 };
 
-/** Screen GET route: require manager auth + load business from params */
+/** Screen GET route: require manager auth + load business by ID */
 const withScreenAuth = (
   request: Request,
-  params: RouteParams,
+  businessId: number,
   handler: (session: AuthSession, biz: Business) => Promise<Response>,
 ): Promise<Response> =>
-  requireManagerOrAbove(request, async (session) => {
-    const biz = await getBusinessById(Number(params.id));
-    if (!biz) return htmlResponse("<h1>Business not found</h1>", 404);
-    return handler(session, biz);
-  });
+  requireManagerOrAbove(request, (session) =>
+    withEntity(getBusinessById, businessId, "Business", (biz) =>
+      handler(session, biz)),
+  );
 
-/** Screen POST route: require manager auth form + load business from params */
+/** Screen POST route: require manager auth form + load business by ID */
 const withScreenForm = (
   request: Request,
-  params: RouteParams,
+  businessId: number,
   handler: (session: AuthSession, form: URLSearchParams, biz: Business) => Promise<Response>,
 ): Promise<Response> =>
-  withManagerAuthForm(request, async (session, form) => {
-    const biz = await getBusinessById(Number(params.id));
-    return biz
-      ? handler(session, form, biz)
-      : htmlResponse("<h1>Business not found</h1>", 404);
-  });
+  withManagerAuthForm(request, (session, form) =>
+    withEntity(getBusinessById, businessId, "Business", (biz) =>
+      handler(session, form, biz)),
+  );
 
 /** Handle GET /admin/business/:id/screen/create */
 const handleScreenCreateGet = (
   request: Request,
   params: RouteParams,
 ): Promise<Response> =>
-  withScreenAuth(request, params, async (session, biz) => {
+  withScreenAuth(request, Number(params.id), async (session, biz) => {
     const bizDisplay = await toDisplayBusiness(biz);
     let availableDisplays: XiboDisplay[] = [];
     let fetchError: string | undefined;
@@ -123,7 +121,7 @@ const handleScreenCreatePost = (
   request: Request,
   params: RouteParams,
 ): Promise<Response> =>
-  withScreenForm(request, params, async (session, form, biz) => {
+  withScreenForm(request, Number(params.id), async (session, form, biz) => {
     const validation = validateForm<ScreenFormValues>(form, screenFields);
     if (!validation.valid) {
       const bizDisplay = await toDisplayBusiness(biz);

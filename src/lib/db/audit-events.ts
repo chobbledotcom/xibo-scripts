@@ -38,7 +38,7 @@ export type AuditResourceType =
   | "settings"
   | "schedule";
 
-/** Stored audit event row (decrypted view) */
+/** Audit event row — same shape before and after decryption */
 export interface AuditEvent {
   id: number;
   created: string;
@@ -49,19 +49,8 @@ export interface AuditEvent {
   detail: string;
 }
 
-/** Raw DB row before decryption */
-interface AuditEventRow {
-  id: number;
-  created: string;
-  actor_user_id: number;
-  action: string;
-  resource_type: string;
-  resource_id: string | null;
-  detail: string;
-}
-
 /** Decrypt sensitive fields in an audit event row */
-const decryptRow = async (row: AuditEventRow): Promise<AuditEvent> => ({
+const decryptRow = async (row: AuditEvent): Promise<AuditEvent> => ({
   ...row,
   detail: await tryDecrypt(row.detail),
   resource_id: row.resource_id != null
@@ -70,7 +59,7 @@ const decryptRow = async (row: AuditEventRow): Promise<AuditEvent> => ({
 });
 
 /** Decrypt an array of audit event rows */
-const decryptRows = (rows: AuditEventRow[]): Promise<AuditEvent[]> =>
+const decryptRows = (rows: AuditEvent[]): Promise<AuditEvent[]> =>
   Promise.all(map(decryptRow)(rows));
 
 /**
@@ -144,7 +133,7 @@ export const getAuditEvents = async (
     ? `WHERE ${conditions.join(" AND ")}`
     : "";
 
-  const rows = await queryAll<AuditEventRow>(
+  const rows = await queryAll<AuditEvent>(
     `SELECT id, created, actor_user_id, action, resource_type, resource_id, detail
      FROM audit_events ${where} ORDER BY id DESC LIMIT ?`,
     [...args, limit],
@@ -160,7 +149,7 @@ export const getAuditEvents = async (
 export const getAuditEventById = async (
   id: number,
 ): Promise<AuditEvent | null> => {
-  const row = await queryOne<AuditEventRow>(
+  const row = await queryOne<AuditEvent>(
     "SELECT id, created, actor_user_id, action, resource_type, resource_id, detail FROM audit_events WHERE id = ?",
     [id],
   );

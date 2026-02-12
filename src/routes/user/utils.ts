@@ -15,16 +15,15 @@ import type { DisplayBusiness } from "#lib/db/businesses.ts";
 import type { XiboConfig } from "#xibo/types.ts";
 import type { AuthSession } from "#routes/utils.ts";
 import { htmlResponse } from "#routes/utils.ts";
-import { detailRoute, sessionRoute } from "#routes/route-helpers.ts";
-
-/** Route params from URL patterns */
-type Params = Record<string, string | undefined>;
+import {
+  detailRoute,
+  type Params,
+  type ParamHandler,
+  sessionRoute,
+} from "#routes/route-helpers.ts";
 
 /** Single-request route handler */
 type RequestHandler = (request: Request) => Promise<Response>;
-
-/** Route handler with URL params */
-type ParamHandler = (request: Request, params: Params) => Promise<Response>;
 
 /** Business context available to user route handlers */
 export type UserBusinessContext = {

@@ -247,48 +247,46 @@ const handleBusinessDetailGet = (
     }),
   );
 
-/** Handle POST /admin/business/:id (update name) */
-const handleBusinessUpdatePost = (
-  request: Request,
-  params: RouteParams,
-): Promise<Response> =>
+/** Manager auth + business lookup by params.id — returns a route handler */
+const businessFormRoute = (
+  handler: (session: AuthSession, form: URLSearchParams, biz: Business) => Promise<Response>,
+) =>
+(request: Request, params: RouteParams): Promise<Response> =>
   withManagerAuthForm(request, (session, form) =>
-    withEntity(getBusinessById, Number(params.id), "Business", async (biz) => {
-      const validation = validateBusinessFields(form);
-      if (!validation.valid) {
-        return renderBusinessDetail(biz, session, validation.error, undefined, 400);
-      }
-
-      await updateBusiness(biz.id, validation.values.name);
-      await logAuditEvent({
-        actorUserId: session.userId,
-        action: "UPDATE",
-        resourceType: "business",
-        resourceId: biz.id,
-        detail: `Updated business ${biz.id}`,
-      });
-      return redirectWithSuccess(`/admin/business/${biz.id}`, "Business updated");
-    }),
+    withEntity(getBusinessById, Number(params.id), "Business", (biz) =>
+      handler(session, form, biz)),
   );
+
+/** Handle POST /admin/business/:id (update name) */
+const handleBusinessUpdatePost = businessFormRoute(async (session, form, biz) => {
+  const validation = validateBusinessFields(form);
+  if (!validation.valid) {
+    return renderBusinessDetail(biz, session, validation.error, undefined, 400);
+  }
+
+  await updateBusiness(biz.id, validation.values.name);
+  await logAuditEvent({
+    actorUserId: session.userId,
+    action: "UPDATE",
+    resourceType: "business",
+    resourceId: biz.id,
+    detail: `Updated business ${biz.id}`,
+  });
+  return redirectWithSuccess(`/admin/business/${biz.id}`, "Business updated");
+});
 
 /** Handle POST /admin/business/:id/delete */
-const handleBusinessDeletePost = (
-  request: Request,
-  params: RouteParams,
-): Promise<Response> =>
-  withManagerAuthForm(request, (session, _form) =>
-    withEntity(getBusinessById, Number(params.id), "Business", async (biz) => {
-      await deleteBusiness(biz.id);
-      await logAuditEvent({
-        actorUserId: session.userId,
-        action: "DELETE",
-        resourceType: "business",
-        resourceId: biz.id,
-        detail: `Deleted business ${biz.id}`,
-      });
-      return redirectWithSuccess("/admin/businesses", "Business deleted");
-    }),
-  );
+const handleBusinessDeletePost = businessFormRoute(async (session, _form, biz) => {
+  await deleteBusiness(biz.id);
+  await logAuditEvent({
+    actorUserId: session.userId,
+    action: "DELETE",
+    resourceType: "business",
+    resourceId: biz.id,
+    detail: `Deleted business ${biz.id}`,
+  });
+  return redirectWithSuccess("/admin/businesses", "Business deleted");
+});
 
 /** Common pattern: load business, parse user_id from form, run action */
 const withBusinessUser = (
@@ -297,17 +295,29 @@ const withBusinessUser = (
   noUserError: string,
   action: (businessId: number, userId: number, session: AuthSession) => Promise<Response>,
 ): Promise<Response> =>
-  withManagerAuthForm(request, (session, form) =>
-    withEntity(getBusinessById, Number(params.id), "Business", (biz) => {
-      const userId = Number(form.get("user_id"));
-      if (!userId) {
-        return Promise.resolve(
-          redirectWithError(`/admin/business/${biz.id}`, noUserError),
-        );
-      }
-      return action(biz.id, userId, session);
-    }),
-  );
+  businessFormRoute((session, form, biz) => {
+    const userId = Number(form.get("user_id"));
+    if (!userId) {
+      return Promise.resolve(
+        redirectWithError(`/admin/business/${biz.id}`, noUserError),
+      );
+    }
+    return action(biz.id, userId, session);
+  })(request, params);
+
+/** Log a business-user membership change */
+const logBusinessUserChange = (
+  session: AuthSession,
+  businessId: number,
+  detail: string,
+): Promise<void> =>
+  logAuditEvent({
+    actorUserId: session.userId,
+    action: "UPDATE",
+    resourceType: "business",
+    resourceId: businessId,
+    detail,
+  });
 
 /** Handle POST /admin/business/:id/assign-user */
 const handleAssignUser = (
@@ -325,13 +335,7 @@ const handleAssignUser = (
     }
 
     await assignUserToBusiness(businessId, userId);
-    await logAuditEvent({
-      actorUserId: session.userId,
-      action: "UPDATE",
-      resourceType: "business",
-      resourceId: businessId,
-      detail: `Assigned user ${userId} to business ${businessId}`,
-    });
+    await logBusinessUserChange(session, businessId, `Assigned user ${userId} to business ${businessId}`);
     return redirectWithSuccess(`/admin/business/${businessId}`, "User assigned");
   });
 
@@ -342,13 +346,7 @@ const handleRemoveUser = (
 ): Promise<Response> =>
   withBusinessUser(request, params, "Invalid user", async (businessId, userId, session) => {
     await removeUserFromBusiness(businessId, userId);
-    await logAuditEvent({
-      actorUserId: session.userId,
-      action: "UPDATE",
-      resourceType: "business",
-      resourceId: businessId,
-      detail: `Removed user ${userId} from business ${businessId}`,
-    });
+    await logBusinessUserChange(session, businessId, `Removed user ${userId} from business ${businessId}`);
     return redirectWithSuccess(`/admin/business/${businessId}`, "User removed");
   });
 
