@@ -6,6 +6,7 @@
  * generates Xibo layouts, campaigns, and schedules automatically.
  */
 
+import { mapAsync } from "#fp";
 import type { DisplayBusiness } from "#lib/db/businesses.ts";
 import { getScreenById, toDisplayScreen } from "#lib/db/screens.ts";
 import type { DisplayScreen } from "#lib/db/screens.ts";
@@ -288,9 +289,9 @@ const refreshSchedule = async (
     existingCampaignId,
   );
 
-  for (const ms of menuScreens) {
-    await updateMenuScreenCampaignId(ms.id, campaignId);
-  }
+  await mapAsync((ms: MenuScreen) =>
+    updateMenuScreenCampaignId(ms.id, campaignId)
+  )(menuScreens);
 
   return campaignId;
 };

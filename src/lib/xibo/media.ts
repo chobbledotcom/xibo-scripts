@@ -3,7 +3,7 @@
  * and folder tree construction.
  */
 
-import { filter, pipe, reduce } from "#fp";
+import { filter, identity, pipe, reduce } from "#fp";
 import type { XiboFolder, XiboMedia } from "#xibo/types.ts";
 
 /**
@@ -132,8 +132,8 @@ export const filterMedia = (
   pipe(
     folderId !== undefined
       ? filter((m: XiboMedia) => m.folderId === folderId)
-      : (x: XiboMedia[]) => x,
+      : identity<XiboMedia[]>,
     mediaType
       ? filter((m: XiboMedia) => m.mediaType === mediaType)
-      : (x: XiboMedia[]) => x,
+      : identity<XiboMedia[]>,
   )(media);

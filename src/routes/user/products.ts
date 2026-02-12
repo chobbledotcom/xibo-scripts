@@ -6,7 +6,7 @@
  * Xibo dataset data API.
  */
 
-import { filter, map, pipe } from "#fp";
+import { filter, map, pick, pipe } from "#fp";
 import { getSharedFolderId } from "#lib/db/settings.ts";
 import { validateForm } from "#lib/forms.tsx";
 import type { DisplayBusiness } from "#lib/db/businesses.ts";
@@ -49,7 +49,7 @@ const getMediaOptions = async (
       (m.folderId === businessFolderId ||
         (sharedFolderId !== null && m.folderId === sharedFolderId))
     ),
-    map((m: XiboMedia) => ({ mediaId: m.mediaId, name: m.name })),
+    map(pick<XiboMedia, "mediaId" | "name">(["mediaId", "name"])),
   )(allMedia);
 };
 

@@ -2,6 +2,7 @@
  * Admin layout routes — list, create, view, and delete layouts
  */
 
+import { map, mapAsync, pick } from "#fp";
 import { get, del } from "#xibo/client.ts";
 import { createMenuLayout } from "#xibo/layout-builder.ts";
 import type {
@@ -99,8 +100,7 @@ const handleLayoutCreatePost = (request: Request): Promise<Response> =>
       config,
       `menuboard/${catId}/products`,
     );
-    const products = categoryProducts
-      .map((p) => ({ name: p.name, price: p.price }));
+    const products = map(pick<XiboProduct, "name" | "price">(["name", "price"]))(categoryProducts);
 
     const layout = await createMenuLayout(
       config,
@@ -146,9 +146,9 @@ const handleLayoutDeleteAll = (request: Request): Promise<Response> =>
   withXiboForm(request, async (_session, _form, config) => {
     try {
       const layouts = await get<XiboLayout[]>(config, "layout");
-      for (const layout of layouts) {
-        await del(config, `layout/${layout.layoutId}`);
-      }
+      await mapAsync((layout: XiboLayout) =>
+        del(config, `layout/${layout.layoutId}`)
+      )(layouts);
       const count = layouts.length;
       const msg = `Deleted ${count} layout${count !== 1 ? "s" : ""}`;
       return redirectWithSuccess("/admin/layouts", msg);
