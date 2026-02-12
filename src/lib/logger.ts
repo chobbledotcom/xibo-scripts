@@ -5,6 +5,8 @@
  * - Error logging: logs classified error codes without PII
  */
 
+import { compact } from "#fp";
+
 /**
  * Error codes for classified error logging
  * Format: E_CATEGORY_DETAIL
@@ -90,10 +92,10 @@ type ErrorContext = {
 export const logError = (context: ErrorContext): void => {
   const { code, detail } = context;
 
-  const parts = [
+  const parts = compact([
     `[Error] ${code}`,
     detail ? `detail="${detail}"` : null,
-  ].filter(Boolean);
+  ]);
 
   // biome-ignore lint/suspicious/noConsole: Intentional error logging
   console.error(parts.join(" "));

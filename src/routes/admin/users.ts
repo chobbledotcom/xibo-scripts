@@ -2,7 +2,7 @@
  * Admin user management routes - manager or above
  */
 
-import { filter } from "#fp";
+import { filter, identity } from "#fp";
 import { unwrapKeyWithToken } from "#lib/crypto.ts";
 import { logAuditEvent } from "#lib/db/audit-events.ts";
 import {
@@ -67,7 +67,7 @@ const filterUsersForRole = (
   actorRole: AdminLevel,
 ): (users: DisplayUser[]) => DisplayUser[] =>
   actorRole === "owner"
-    ? (users) => users
+    ? identity
     : filter((u: DisplayUser) => u.adminLevel === "user");
 
 /**
