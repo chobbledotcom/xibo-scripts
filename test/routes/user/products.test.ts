@@ -724,7 +724,7 @@ describe("user product routes", () => {
   });
 
   describe("parseProduct", () => {
-    test("parses media_id as null when image_id is null", () => {
+    test("parses media_id as null when mediaId is null", () => {
       const row: XiboDatasetRow = {
         id: 1,
         [COL.NAME]: "Test",
@@ -737,7 +737,7 @@ describe("user product routes", () => {
       expect(product.media_id).toBeNull();
     });
 
-    test("parses media_id as null when image_id is empty string", () => {
+    test("parses media_id as null when mediaId is empty string", () => {
       const row: XiboDatasetRow = {
         id: 2,
         [COL.NAME]: "Test2",
@@ -750,7 +750,7 @@ describe("user product routes", () => {
       expect(product.media_id).toBeNull();
     });
 
-    test("parses media_id as number when image_id has a value", () => {
+    test("parses media_id as number when mediaId has a value", () => {
       const row: XiboDatasetRow = {
         id: 3,
         [COL.NAME]: "Test3",
