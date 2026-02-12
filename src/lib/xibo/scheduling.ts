@@ -10,6 +10,7 @@
 import { filter, pipe, reduce } from "#fp";
 import { del, get, post, put } from "#xibo/client.ts";
 import type { XiboCampaign, XiboConfig, XiboSchedule } from "#xibo/types.ts";
+import { ErrorCode, logError } from "#lib/logger.ts";
 import type { DisplayMenuScreen } from "#lib/db/menu-screens.ts";
 
 /** Campaign layout assignment body */
@@ -65,8 +66,8 @@ export const updateCampaign = async (
       await put(config, `campaign/${campaignId}`, {
         name: existing[0]!.campaign,
       });
-    } catch {
-      // Campaign update may fail if no changes; continue
+    } catch (_e) {
+      logError({ code: ErrorCode.XIBO_API_REQUEST, detail: "campaign update (may be no-op)" });
     }
   }
 
@@ -154,8 +155,8 @@ export const rebuildScreenSchedule = async (
     if (existingCampaignId !== null) {
       try {
         await deleteCampaign(config, existingCampaignId);
-      } catch {
-        // Campaign may already be deleted
+      } catch (_e) {
+        logError({ code: ErrorCode.XIBO_API_REQUEST, detail: "campaign delete (may already be removed)" });
       }
     }
     return { campaignId: existingCampaignId ?? 0 };

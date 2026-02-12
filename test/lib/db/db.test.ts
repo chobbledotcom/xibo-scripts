@@ -212,7 +212,7 @@ describe("database layer", () => {
     it("logActivity inserts with ISO timestamp", async () => {
       await createTestDb();
       const { logActivity, getAllActivityLog } = await import(
-        "#lib/db/activityLog.ts"
+        "#lib/db/activity-log.ts"
       );
       await logActivity("Test activity");
       const logs = await getAllActivityLog();
@@ -225,7 +225,7 @@ describe("database layer", () => {
     it("getAllActivityLog returns entries in reverse chronological order", async () => {
       await createTestDb();
       const { logActivity, getAllActivityLog } = await import(
-        "#lib/db/activityLog.ts"
+        "#lib/db/activity-log.ts"
       );
       await logActivity("First");
       await logActivity("Second");
@@ -238,7 +238,7 @@ describe("database layer", () => {
     it("getAllActivityLog respects limit parameter", async () => {
       await createTestDb();
       const { logActivity, getAllActivityLog } = await import(
-        "#lib/db/activityLog.ts"
+        "#lib/db/activity-log.ts"
       );
       await logActivity("A");
       await logActivity("B");

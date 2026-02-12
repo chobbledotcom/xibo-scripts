@@ -13,8 +13,8 @@ import type { AdminSession } from "#lib/types.ts";
 import type { XiboConfig } from "#xibo/types.ts";
 import type { AuthSession } from "#routes/utils.ts";
 import {
+  clearCookie,
   htmlResponse,
-  redirect,
   redirectWithError,
   redirectWithSuccess,
   requireSessionOr,
@@ -31,8 +31,7 @@ type Params = Record<string, string | undefined>;
 type ParamHandler = (request: Request, params: Params) => Promise<Response>;
 
 /** Clear session cookie on logout */
-export const clearSessionCookie =
-  "__Host-session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0";
+export const clearSessionCookie = clearCookie("__Host-session", "/");
 
 /** Build AdminSession for template rendering from an AuthSession */
 export const toAdminSession = (session: AuthSession): AdminSession => ({
@@ -49,9 +48,9 @@ export const withXiboConfig = async (
 ): Promise<Response> => {
   const config = await loadXiboConfig();
   if (!config) {
-    return redirect(
-      "/admin/settings?success=" +
-        encodeURIComponent("Configure Xibo API credentials first"),
+    return redirectWithSuccess(
+      "/admin/settings",
+      "Configure Xibo API credentials first",
     );
   }
   return handler(config);

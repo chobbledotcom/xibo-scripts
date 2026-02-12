@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "#test-compat";
-import { getAllActivityLog } from "#lib/db/activityLog.ts";
+import { getAllActivityLog } from "#lib/db/activity-log.ts";
 import { createBusiness } from "#lib/db/businesses.ts";
 import {
   createScreen,

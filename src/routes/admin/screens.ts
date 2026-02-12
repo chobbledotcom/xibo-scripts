@@ -3,7 +3,7 @@
  */
 
 import { filter } from "#fp";
-import { logActivity } from "#lib/db/activityLog.ts";
+import { logActivity } from "#lib/db/activity-log.ts";
 import { getBusinessById, toDisplayBusiness } from "#lib/db/businesses.ts";
 import {
   createScreen,
