@@ -80,7 +80,6 @@ const handleDatasetDetail = detailRoute(
 
 /** Dataset routes */
 export const datasetRoutes = defineRoutes({
-  "GET /admin/datasets": (request) => handleDatasetList(request),
-  "GET /admin/dataset/:id": (request, params) =>
-    handleDatasetDetail(request, params),
+  "GET /admin/datasets": handleDatasetList,
+  "GET /admin/dataset/:id": handleDatasetDetail,
 });

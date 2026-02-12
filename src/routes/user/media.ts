@@ -18,6 +18,7 @@ import {
   uploadToXibo,
   verifyAndDeleteMedia,
 } from "#xibo/media-ops.ts";
+import type { AuthSession } from "#routes/utils.ts";
 import { htmlResponse, redirectWithError, withAuthForm } from "#routes/utils.ts";
 import { defineRoutes } from "#routes/router.ts";
 import { errorMessage, getQueryMessages, toAdminSession, withXiboConfig } from "#routes/admin/utils.ts";
@@ -33,7 +34,7 @@ import { userMediaPage, userMediaUploadPage } from "#templates/user/media.tsx";
  * Render user upload page with an error.
  */
 const uploadPageError = (
-  session: Parameters<typeof toAdminSession>[0],
+  session: AuthSession,
   ctx: UserBusinessContext,
   message: string,
   status = 200,
@@ -161,13 +162,16 @@ const handleDeletePost = (
       const bf = await resolveBusinessFolder(request, session.userId,
         () => redirectWithError("/dashboard/media", "Business folder not provisioned"));
       if (bf instanceof Response) return bf;
-      return verifyAndDeleteMedia(
-        config, Number(params.id), bf.businessFolderId,
-        "/dashboard/media", "Photo deleted",
-        "/dashboard/media",
-        "Media not found",
-        "You can only delete your own business photos",
-      );
+      return verifyAndDeleteMedia({
+        config,
+        mediaId: Number(params.id),
+        expectedFolderId: bf.businessFolderId,
+        successUrl: "/dashboard/media",
+        successMsg: "Photo deleted",
+        errorUrl: "/dashboard/media",
+        notFoundMsg: "Media not found",
+        wrongFolderMsg: "You can only delete your own business photos",
+      });
     }));
 
 /**
@@ -180,11 +184,9 @@ const handlePreviewGet = userBusinessDetailRoute(
 
 /** User media routes */
 export const userMediaRoutes = defineRoutes({
-  "GET /dashboard/media": (request) => handleMediaGet(request),
-  "GET /dashboard/media/upload": (request) => handleUploadGet(request),
-  "POST /dashboard/media/upload": (request) => handleUploadPost(request),
-  "POST /dashboard/media/:id/delete": (request, params) =>
-    handleDeletePost(request, params),
-  "GET /dashboard/media/:id/preview": (request, params) =>
-    handlePreviewGet(request, params),
+  "GET /dashboard/media": handleMediaGet,
+  "GET /dashboard/media/upload": handleUploadGet,
+  "POST /dashboard/media/upload": handleUploadPost,
+  "POST /dashboard/media/:id/delete": handleDeletePost,
+  "GET /dashboard/media/:id/preview": handlePreviewGet,
 });

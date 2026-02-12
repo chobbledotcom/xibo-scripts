@@ -8,7 +8,7 @@
 import { getBusinessesForUser, toDisplayBusiness } from "#lib/db/businesses.ts";
 import { getScreensForBusiness } from "#lib/db/screens.ts";
 import { get } from "#xibo/client.ts";
-import type { XiboDatasetRow } from "#xibo/types.ts";
+import type { XiboConfig, XiboDatasetRow } from "#xibo/types.ts";
 import { htmlResponse } from "#routes/utils.ts";
 import { defineRoutes } from "#routes/router.ts";
 import { getQueryMessages, sessionRoute, toAdminSession } from "#routes/admin/utils.ts";
@@ -23,7 +23,7 @@ import {
 
 /** Count products by fetching dataset rows, returning 0 on any failure */
 const countProducts = async (
-  config: Parameters<typeof get>[0],
+  config: XiboConfig,
   datasetId: number | null,
 ): Promise<number> => {
   if (datasetId === null) return 0;
@@ -71,7 +71,6 @@ const handleBusinessDetail = userBusinessDetailRoute(
 
 /** User dashboard routes */
 export const userDashboardRoutes = defineRoutes({
-  "GET /dashboard": (request) => handleDashboardGet(request),
-  "GET /dashboard/business/:id": (request, params) =>
-    handleBusinessDetail(request, params),
+  "GET /dashboard": handleDashboardGet,
+  "GET /dashboard/business/:id": handleBusinessDetail,
 });

@@ -2,7 +2,6 @@
  * Shared utilities for route handlers
  */
 
-import { compact, map, pipe, reduce } from "#fp";
 import {
   constantTimeEqual,
   generateSecureToken,
@@ -50,20 +49,12 @@ export const parseCookies = (request: Request): Map<string, string> => {
   const header = request.headers.get("cookie");
   if (!header) return new Map<string, string>();
 
-  type CookiePair = [string, string];
-  const toPair = (part: string): CookiePair | null => {
+  const cookies = new Map<string, string>();
+  for (const part of header.split(";")) {
     const [key, value] = part.trim().split("=");
-    return key && value ? [key, value] : null;
-  };
-
-  return pipe(
-    map(toPair),
-    compact,
-    reduce((acc, [key, value]) => {
-      acc.set(key, value);
-      return acc;
-    }, new Map<string, string>()),
-  )(header.split(";"));
+    if (key && value) cookies.set(key, value);
+  }
+  return cookies;
 };
 
 /** Session with CSRF token, wrapped data key for private key derivation, and user role */

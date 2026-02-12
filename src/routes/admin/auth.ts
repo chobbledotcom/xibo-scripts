@@ -124,5 +124,5 @@ export const authRoutes = defineRoutes({
   "GET /admin/login": () => redirect("/admin"),
   "POST /admin/login": (request, _, server) =>
     handleAdminLogin(request, server),
-  "GET /admin/logout": (request) => handleAdminLogout(request),
+  "GET /admin/logout": handleAdminLogout,
 });

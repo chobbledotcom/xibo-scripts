@@ -198,34 +198,39 @@ export const handleMultipartUpload = async <C extends UploadContext>(
   return onFile(result, file, parsed.formData);
 };
 
+/** Options for verifyAndDeleteMedia */
+export type VerifyDeleteOptions = {
+  config: XiboConfig;
+  mediaId: number;
+  expectedFolderId: number;
+  successUrl: string;
+  successMsg: string;
+  errorUrl: string;
+  notFoundMsg: string;
+  wrongFolderMsg: string;
+};
+
 /**
  * Verify media belongs to a specific folder, then delete it.
  * Returns redirect with success/error message.
  */
 export const verifyAndDeleteMedia = async (
-  config: XiboConfig,
-  mediaId: number,
-  expectedFolderId: number,
-  successUrl: string,
-  successMsg: string,
-  errorUrl: string,
-  notFoundMsg: string,
-  wrongFolderMsg: string,
+  opts: VerifyDeleteOptions,
 ): Promise<Response> => {
   try {
-    const media = await findMediaById(config, mediaId);
-    if (!media) return redirectWithError(errorUrl, notFoundMsg);
-    if (media.folderId !== expectedFolderId) {
-      return redirectWithError(errorUrl, wrongFolderMsg);
+    const media = await findMediaById(opts.config, opts.mediaId);
+    if (!media) return redirectWithError(opts.errorUrl, opts.notFoundMsg);
+    if (media.folderId !== opts.expectedFolderId) {
+      return redirectWithError(opts.errorUrl, opts.wrongFolderMsg);
     }
   } catch (e) {
-    return redirectWithError(errorUrl, `Failed to verify media: ${errorMessage(e)}`);
+    return redirectWithError(opts.errorUrl, `Failed to verify media: ${errorMessage(e)}`);
   }
 
   try {
-    await del(config, `library/${mediaId}`);
-    return redirectWithSuccess(successUrl, successMsg);
+    await del(opts.config, `library/${opts.mediaId}`);
+    return redirectWithSuccess(opts.successUrl, opts.successMsg);
   } catch (e) {
-    return redirectWithError(errorUrl, `Delete failed: ${errorMessage(e)}`);
+    return redirectWithError(opts.errorUrl, `Delete failed: ${errorMessage(e)}`);
   }
 };
