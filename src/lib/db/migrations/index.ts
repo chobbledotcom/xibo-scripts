@@ -7,7 +7,7 @@ import { getDb } from "#lib/db/client.ts";
 /**
  * The latest database update identifier - update this when changing schema
  */
-export const LATEST_UPDATE = "add menu screen items and campaign tracking";
+export const LATEST_UPDATE = "add audit events and publish attempts";
 
 /**
  * Run a migration that may fail if already applied (e.g., adding a column that exists)
@@ -190,6 +190,50 @@ export const initDb = async (): Promise<void> => {
     `CREATE INDEX IF NOT EXISTS idx_menu_screen_items_menu ON menu_screen_items(menu_screen_id)`,
   );
 
+  // Create audit_events table (immutable, append-only)
+  await runMigration(`
+    CREATE TABLE IF NOT EXISTS audit_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      created TEXT NOT NULL,
+      actor_user_id INTEGER NOT NULL,
+      action TEXT NOT NULL,
+      resource_type TEXT NOT NULL,
+      resource_id TEXT,
+      detail TEXT NOT NULL
+    )
+  `);
+
+  // Indexes for audit event queries
+  await runMigration(
+    `CREATE INDEX IF NOT EXISTS idx_audit_events_actor ON audit_events(actor_user_id)`,
+  );
+  await runMigration(
+    `CREATE INDEX IF NOT EXISTS idx_audit_events_action ON audit_events(action)`,
+  );
+
+  // Create publish_attempts table (tracks publish lifecycle)
+  await runMigration(`
+    CREATE TABLE IF NOT EXISTS publish_attempts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      created TEXT NOT NULL,
+      user_id INTEGER NOT NULL,
+      business_id INTEGER NOT NULL,
+      screen_id INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'started',
+      completed_at TEXT,
+      duration_ms INTEGER,
+      error_detail TEXT
+    )
+  `);
+
+  // Indexes for publish attempt queries
+  await runMigration(
+    `CREATE INDEX IF NOT EXISTS idx_publish_attempts_business ON publish_attempts(business_id)`,
+  );
+  await runMigration(
+    `CREATE INDEX IF NOT EXISTS idx_publish_attempts_screen ON publish_attempts(screen_id)`,
+  );
+
   // Update the version marker
   await getDb().execute({
     sql:
@@ -202,6 +246,8 @@ export const initDb = async (): Promise<void> => {
  * All database tables in order for safe dropping (respects foreign key constraints)
  */
 const ALL_TABLES = [
+  "publish_attempts",
+  "audit_events",
   "menu_screen_items",
   "menu_screens",
   "screens",

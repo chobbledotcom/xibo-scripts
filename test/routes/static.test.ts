@@ -12,15 +12,17 @@ describe("health & static assets", () => {
   });
 
   describe("GET /health", () => {
-    it("returns 200 with body OK", async () => {
+    it("returns 200 with JSON health status", async () => {
       const res = await request("/health");
       expect(res.status).toBe(200);
-      expect(await res.text()).toBe("OK");
+      const body = await res.json();
+      expect(body.status).toBe("ok");
+      expect(body.db).toBe("connected");
     });
 
-    it("returns content-type text/plain", async () => {
+    it("returns content-type application/json", async () => {
       const res = await request("/health");
-      expect(res.headers.get("content-type")).toBe("text/plain");
+      expect(res.headers.get("content-type")).toBe("application/json");
     });
   });
 

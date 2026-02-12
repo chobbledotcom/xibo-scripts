@@ -14,6 +14,11 @@ import {
   XiboClientError,
 } from "#xibo/client.ts";
 import { cacheGet, cacheInvalidateAll } from "#xibo/cache.ts";
+import {
+  FAILURE_THRESHOLD,
+  getXiboCircuitBreaker,
+  resetXiboCircuitBreaker,
+} from "#xibo/circuit-breaker.ts";
 import type { XiboConfig, XiboDataset } from "#xibo/types.ts";
 
 /** Load config from env vars for integration tests */
@@ -37,6 +42,7 @@ describe("xibo/client", () => {
 
   afterEach(() => {
     clearToken();
+    resetXiboCircuitBreaker();
     resetDb();
   });
 
@@ -183,6 +189,44 @@ describe("xibo/client", () => {
     it("returns null when credentials are not stored", async () => {
       const result = await loadXiboConfig();
       expect(result).toBeNull();
+    });
+  });
+
+  describe("circuit breaker open", () => {
+    it("throws when circuit breaker is open", async () => {
+      const breaker = getXiboCircuitBreaker();
+      for (let i = 0; i < FAILURE_THRESHOLD; i++) {
+        breaker.recordFailure();
+      }
+
+      const fakeConfig: XiboConfig = {
+        apiUrl: "https://fake.example.invalid",
+        clientId: "x",
+        clientSecret: "x",
+      };
+      await expect(get(fakeConfig, "about")).rejects.toThrow(
+        "Xibo API circuit breaker is open",
+      );
+    });
+
+    it("returns 503 status on circuit breaker open error", async () => {
+      const breaker = getXiboCircuitBreaker();
+      for (let i = 0; i < FAILURE_THRESHOLD; i++) {
+        breaker.recordFailure();
+      }
+
+      const fakeConfig: XiboConfig = {
+        apiUrl: "https://fake.example.invalid",
+        clientId: "x",
+        clientSecret: "x",
+      };
+      try {
+        await get(fakeConfig, "about");
+        expect(true).toBe(false); // should not reach here
+      } catch (e) {
+        expect(e).toBeInstanceOf(XiboClientError);
+        expect((e as XiboClientError).httpStatus).toBe(503);
+      }
     });
   });
 

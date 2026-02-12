@@ -3,6 +3,7 @@
  */
 
 import { deriveKEK, unwrapKey } from "#lib/crypto.ts";
+import { logAuditEvent } from "#lib/db/audit-events.ts";
 import {
   clearLoginAttempts,
   isLoginRateLimited,
@@ -103,6 +104,13 @@ const handleAdminLogin = async (
     return loginResponse("Invalid credentials", 401);
   }
 
+  await logAuditEvent({
+    actorUserId: user.id,
+    action: "LOGIN",
+    resourceType: "session",
+    detail: "Successful login",
+  });
+
   return createLoginSession(dataKey, user.id);
 };
 
@@ -113,6 +121,12 @@ const handleAdminLogout = (request: Request): Promise<Response> =>
   withSession(
     request,
     async (session) => {
+      await logAuditEvent({
+        actorUserId: session.userId,
+        action: "LOGOUT",
+        resourceType: "session",
+        detail: "User logged out",
+      });
       await deleteSession(session.token);
       return redirect("/admin", clearSessionCookie);
     },

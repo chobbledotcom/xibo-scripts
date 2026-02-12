@@ -70,7 +70,8 @@ describe("routing & not found", () => {
       await createTestDbWithSetup();
       const res = await handle(mockRequest("/health"));
       expect(res.status).toBe(200);
-      expect(await res.text()).toBe("OK");
+      const body = await res.json();
+      expect(body.status).toBe("ok");
     });
   });
 });
