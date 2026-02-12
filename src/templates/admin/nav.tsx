@@ -77,6 +77,11 @@ export const AdminNav = ({ session }: AdminNavProps = {}): JSX.Element => (
           <a href="/admin/sessions">Sessions</a>
         </li>
       )}
+      {session?.adminLevel === "owner" && (
+        <li>
+          <a href="/admin/audit-log">Audit Log</a>
+        </li>
+      )}
       <li>
         {session?.impersonating
           ? <a href="/admin/stop-impersonating">Stop Impersonating</a>

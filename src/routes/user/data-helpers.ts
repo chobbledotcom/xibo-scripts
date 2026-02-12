@@ -13,7 +13,7 @@ import type { DatasetProduct, XiboConfig, XiboDatasetRow } from "#xibo/types.ts"
 export const COL = {
   NAME: "name",
   PRICE: "price",
-  MEDIA_ID: "media_id",
+  MEDIA_ID: "image_id",
   AVAILABLE: "available",
   SORT_ORDER: "sort_order",
 } as const;

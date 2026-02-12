@@ -2,6 +2,7 @@
  * Admin routes - combined from individual route modules
  */
 
+import { auditRoutes } from "#routes/admin/audit.tsx";
 import { authRoutes } from "#routes/admin/auth.ts";
 import { businessRoutes } from "#routes/admin/businesses.ts";
 import { dashboardRoutes } from "#routes/admin/dashboard.ts";
@@ -22,6 +23,7 @@ const adminRoutes = {
   ...authRoutes,
   ...settingsRoutes,
   ...sessionsRoutes,
+  ...auditRoutes,
   ...mediaRoutes,
   ...menuBoardRoutes,
   ...layoutRoutes,

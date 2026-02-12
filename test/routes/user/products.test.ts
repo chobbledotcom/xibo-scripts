@@ -35,6 +35,8 @@ import {
   resetDb,
   restoreFetch,
 } from "#test-utils";
+import { parseProduct, COL } from "#routes/user/data-helpers.ts";
+import type { XiboDatasetRow } from "#xibo/types.ts";
 
 const XIBO_URL = "https://xibo.test";
 const DATASET_ID = 500;
@@ -718,6 +720,51 @@ describe("user product routes", () => {
       );
       expect(response.status).toBe(302);
       expect(response.headers.get("location")).toContain("error=");
+    });
+  });
+
+  describe("parseProduct", () => {
+    test("parses media_id as null when image_id is null", () => {
+      const row: XiboDatasetRow = {
+        id: 1,
+        [COL.NAME]: "Test",
+        [COL.PRICE]: "2.50",
+        [COL.MEDIA_ID]: null,
+        [COL.AVAILABLE]: 1,
+        [COL.SORT_ORDER]: 0,
+      };
+      const product = parseProduct(row);
+      expect(product.media_id).toBeNull();
+    });
+
+    test("parses media_id as null when image_id is empty string", () => {
+      const row: XiboDatasetRow = {
+        id: 2,
+        [COL.NAME]: "Test2",
+        [COL.PRICE]: "3.00",
+        [COL.MEDIA_ID]: "",
+        [COL.AVAILABLE]: 1,
+        [COL.SORT_ORDER]: 0,
+      };
+      const product = parseProduct(row);
+      expect(product.media_id).toBeNull();
+    });
+
+    test("parses media_id as number when image_id has a value", () => {
+      const row: XiboDatasetRow = {
+        id: 3,
+        [COL.NAME]: "Test3",
+        [COL.PRICE]: "4.00",
+        [COL.MEDIA_ID]: 42,
+        [COL.AVAILABLE]: 0,
+        [COL.SORT_ORDER]: 2,
+      };
+      const product = parseProduct(row);
+      expect(product.media_id).toBe(42);
+      expect(product.name).toBe("Test3");
+      expect(product.price).toBe("4.00");
+      expect(product.available).toBe(0);
+      expect(product.sort_order).toBe(2);
     });
   });
 });

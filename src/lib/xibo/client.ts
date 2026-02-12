@@ -15,6 +15,8 @@ import {
 } from "#lib/logger.ts";
 import { nowMs } from "#lib/now.ts";
 import { cacheGet, cacheInvalidatePrefix, cacheSet } from "#xibo/cache.ts";
+import { getXiboCircuitBreaker } from "#xibo/circuit-breaker.ts";
+import { withRetry } from "#xibo/retry.ts";
 import type {
   ConnectionTestResult,
   DashboardStatus,
@@ -166,6 +168,8 @@ const fetchWithAuth = async (
 /**
  * Make an authenticated request to the Xibo API.
  * On 401, re-authenticates once and retries.
+ * Uses circuit breaker to fail fast when API is down,
+ * and retry with backoff for transient failures.
  */
 const apiRequest = async (
   config: XiboConfig,
@@ -177,6 +181,13 @@ const apiRequest = async (
     formData?: FormData;
   } = {},
 ): Promise<unknown> => {
+  const breaker = getXiboCircuitBreaker();
+
+  // Fail fast if circuit is open
+  if (!breaker.canAttempt()) {
+    throw new XiboClientError("Xibo API circuit breaker is open", 503);
+  }
+
   const timer = createRequestTimer();
 
   const makeRequest = (token: string): Promise<globalThis.Response> => {
@@ -201,21 +212,32 @@ const apiRequest = async (
     return fetch(url, { method, headers, body: reqBody });
   };
 
-  const response = await fetchWithAuth(config, makeRequest);
-  const duration = timer();
-  logDebug("Xibo", `${method} ${endpoint} ${response.status} ${duration}ms`);
+  const execute = async (): Promise<unknown> => {
+    const response = await fetchWithAuth(config, makeRequest);
+    const duration = timer();
+    logDebug("Xibo", `${method} ${endpoint} ${response.status} ${duration}ms`);
 
-  await throwOnError(
-    response,
-    ErrorCode.XIBO_API_REQUEST,
-    `${method} ${endpoint} ${response.status}`,
-    `API request failed: ${method} ${endpoint} ${response.status}`,
-  );
+    await throwOnError(
+      response,
+      ErrorCode.XIBO_API_REQUEST,
+      `${method} ${endpoint} ${response.status}`,
+      `API request failed: ${method} ${endpoint} ${response.status}`,
+    );
 
-  // Some DELETE endpoints return 204 No Content
-  if (response.status === 204) return null;
+    breaker.recordSuccess();
 
-  return response.json();
+    // Some DELETE endpoints return 204 No Content
+    if (response.status === 204) return null;
+
+    return response.json();
+  };
+
+  try {
+    return await withRetry(execute);
+  } catch (e) {
+    breaker.recordFailure();
+    throw e;
+  }
 };
 
 /**
