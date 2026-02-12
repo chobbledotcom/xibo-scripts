@@ -6,13 +6,20 @@
 
 import { isSetupComplete } from "#lib/db/settings.ts";
 import { getEnv } from "#lib/env.ts";
+import { ErrorCode, logError } from "#lib/logger.ts";
 
 /**
  * Get allowed domain for security validation (runtime config via Bunny secrets)
- * This is a required configuration that hardens origin validation
+ * This is a required configuration that hardens origin validation.
+ * Throws if ALLOWED_DOMAIN is not set — the app cannot run securely without it.
  */
 export const getAllowedDomain = (): string => {
-  return getEnv("ALLOWED_DOMAIN") as string;
+  const domain = getEnv("ALLOWED_DOMAIN");
+  if (!domain) {
+    logError({ code: ErrorCode.CONFIG_MISSING, detail: "ALLOWED_DOMAIN" });
+    throw new Error("ALLOWED_DOMAIN environment variable is required");
+  }
+  return domain;
 };
 
 /**

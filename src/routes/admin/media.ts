@@ -109,6 +109,80 @@ const handleMediaUploadPost = (request: Request): Promise<Response> =>
   );
 
 /**
+ * Validate that a URL is safe to fetch (SSRF protection).
+ * Only allows HTTPS URLs to public, non-reserved hostnames.
+ * Returns an error message string if invalid, or null if safe.
+ */
+export const validateExternalUrl = (raw: string): string | null => {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return "Invalid URL format";
+  }
+
+  if (parsed.protocol !== "https:") {
+    return "Only HTTPS URLs are allowed";
+  }
+
+  // Disallow explicit credentials in URLs
+  if (parsed.username || parsed.password) {
+    return "URLs with credentials are not allowed";
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  // URL.hostname includes brackets for IPv6 (e.g., "[::1]") — strip them
+  const bare = hostname.startsWith("[") && hostname.endsWith("]")
+    ? hostname.slice(1, -1)
+    : hostname;
+
+  // Block localhost and loopback
+  if (
+    bare === "localhost" ||
+    bare === "127.0.0.1" ||
+    bare === "::1" ||
+    bare === "0.0.0.0"
+  ) {
+    return "Internal URLs are not allowed";
+  }
+
+  // Block private/reserved IPv4 ranges
+  const ipv4Match = bare.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (ipv4Match) {
+    const a = Number(ipv4Match[1]);
+    const b = Number(ipv4Match[2]);
+    if (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 169 && b === 254)
+    ) {
+      return "Internal URLs are not allowed";
+    }
+  }
+
+  // Block IPv6 private/reserved ranges
+  if (
+    bare.startsWith("fe80:") ||
+    bare.startsWith("fc00:") ||
+    bare.startsWith("fd00:") ||
+    bare.startsWith("::ffff:")
+  ) {
+    return "Internal URLs are not allowed";
+  }
+
+  // Block known internal/metadata hostnames
+  if (bare.endsWith(".internal") || bare.endsWith(".local")) {
+    return "Internal URLs are not allowed";
+  }
+
+  return null;
+};
+
+/**
  * POST /admin/media/upload-url — upload media from a URL
  */
 const handleMediaUploadUrl = sessionRoute(
@@ -123,6 +197,11 @@ const handleMediaUploadUrl = sessionRoute(
     if (!url) return uploadError(session, config, "URL is required", 400);
     if (!name) {
       return uploadError(session, config, "Name is required", 400);
+    }
+
+    const urlError = validateExternalUrl(url);
+    if (urlError) {
+      return uploadError(session, config, urlError, 400);
     }
 
     // Download the file from the URL
