@@ -4,7 +4,7 @@
 
 import { filter } from "#fp";
 import { unwrapKeyWithToken } from "#lib/crypto.ts";
-import { logActivity } from "#lib/db/activityLog.ts";
+import { logActivity } from "#lib/db/activity-log.ts";
 import {
   activateUser,
   createInvitedUser,

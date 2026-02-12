@@ -86,6 +86,26 @@ export const resetAuthSessionCache = (): void => {
   authSessionCache.clear();
 };
 
+/** Standard security attributes for all cookies */
+const COOKIE_ATTRS = "HttpOnly; Secure; SameSite=Strict";
+
+/**
+ * Build a cookie string with standard security attributes.
+ */
+export const buildCookie = (
+  name: string,
+  value: string,
+  path: string,
+  maxAge: number,
+): string =>
+  `${name}=${value}; ${COOKIE_ATTRS}; Path=${path}; Max-Age=${maxAge}`;
+
+/**
+ * Build a cookie-clearing string (Max-Age=0) with standard security attributes.
+ */
+export const clearCookie = (name: string, path: string): string =>
+  buildCookie(name, "", path, 0);
+
 /** Cookie name for the admin's original session during impersonation */
 const ADMIN_SESSION_COOKIE = "__Host-admin-session";
 
@@ -294,13 +314,16 @@ export type CsrfFormResult =
 /** Default cookie name for CSRF tokens */
 const DEFAULT_CSRF_COOKIE = "csrf_token";
 
+/** CSRF cookie max-age (1 hour) */
+const CSRF_MAX_AGE = 3600;
+
 /** Generate CSRF cookie string */
 export const csrfCookie = (
   token: string,
   path: string,
   cookieName = DEFAULT_CSRF_COOKIE,
 ): string =>
-  `${cookieName}=${token}; HttpOnly; Secure; SameSite=Strict; Path=${path}; Max-Age=3600`;
+  buildCookie(cookieName, token, path, CSRF_MAX_AGE);
 
 /**
  * Parse form with CSRF validation (double-submit cookie pattern)
@@ -412,8 +435,6 @@ export const getSearchParam = (
 /** Session expiry duration (24 hours) */
 const SESSION_EXPIRY_MS = 86_400_000;
 
-/** Session cookie max-age attribute */
-export const SESSION_MAX_AGE = "Max-Age=86400";
 
 /**
  * Create a new authenticated session with a wrapped data key.
@@ -432,11 +453,14 @@ export const createSessionWithKey = async (
   return token;
 };
 
+/** Session cookie max-age (24 hours) */
+const SESSION_MAX_AGE_SECONDS = 86400;
+
 /**
  * Build a __Host-session cookie string from a token.
  */
 export const sessionCookieValue = (token: string): string =>
-  `__Host-session=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; ${SESSION_MAX_AGE}`;
+  buildCookie("__Host-session", token, "/", SESSION_MAX_AGE_SECONDS);
 
 /**
  * Create a redirect response with multiple Set-Cookie headers.

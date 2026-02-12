@@ -8,6 +8,7 @@ import { validateForm } from "#lib/forms.tsx";
 import { ErrorCode, logDebug, logError } from "#lib/logger.ts";
 import { createRouter, defineRoutes } from "#routes/router.ts";
 import {
+  csrfCookie,
   htmlResponse,
   htmlResponseWithCookie,
   redirect,
@@ -16,13 +17,9 @@ import {
 import { setupFields, type SetupFormValues } from "#templates/fields.ts";
 import { setupCompletePage, setupPage } from "#templates/setup.tsx";
 
-/** Cookie for CSRF token with standard security options */
-const setupCsrfCookie = (token: string): string =>
-  `setup_csrf=${token}; HttpOnly; Secure; SameSite=Strict; Path=/setup; Max-Age=3600`;
-
 /** Response helper with setup CSRF cookie */
 const setupResponse = (token: string) => (error?: string, status = 200) =>
-  htmlResponseWithCookie(setupCsrfCookie(token))(
+  htmlResponseWithCookie(csrfCookie(token, "/setup", "setup_csrf"))(
     setupPage(error, token),
     status,
   );

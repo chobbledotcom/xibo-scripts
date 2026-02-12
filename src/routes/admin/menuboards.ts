@@ -2,7 +2,7 @@
  * Admin menu board routes — CRUD for boards, categories, and products
  */
 
-import { logActivity } from "#lib/db/activityLog.ts";
+import { logActivity } from "#lib/db/activity-log.ts";
 import { get, post, put, del } from "#xibo/client.ts";
 import type {
   XiboCategory,
@@ -38,6 +38,7 @@ import {
   formRouteP,
   getSuccessParam,
   listRoute,
+  withEntity,
   xiboThenPersist,
 } from "#routes/route-helpers.ts";
 
@@ -84,21 +85,24 @@ const findProduct = (
 
 // ─── Guard Helpers ───────────────────────────────────────────────────
 
+/** Load a board by ID from the Xibo API, returning null if not found. */
+const loadBoard = (config: XiboConfig) =>
+  async (id: number): Promise<XiboMenuBoard | null> => {
+    const boards = await get<XiboMenuBoard[]>(config, "menuboards", {
+      menuId: String(id),
+    });
+    return boards[0] ?? null;
+  };
+
 /**
  * Fetch a board by ID, calling handler if found or returning 404.
  */
-const withBoard = async (
+const withBoard = (
   config: XiboConfig,
   boardId: string,
   handler: (board: XiboMenuBoard) => Promise<Response>,
-): Promise<Response> => {
-  const boards = await get<XiboMenuBoard[]>(config, "menuboards", {
-    menuId: boardId,
-  });
-  const board = boards[0];
-  if (!board) return htmlResponse("Menu board not found", 404);
-  return handler(board);
-};
+): Promise<Response> =>
+  withEntity(loadBoard(config), Number(boardId), "Menu board", handler);
 
 /**
  * Fetch a board + find a category within it, or return 404.

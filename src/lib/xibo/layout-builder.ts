@@ -5,7 +5,7 @@
  * header region at top and a 3x4 product grid filling the remaining space.
  */
 
-import { logActivity } from "#lib/db/activityLog.ts";
+import { logActivity } from "#lib/db/activity-log.ts";
 import { get, post, put } from "#xibo/client.ts";
 import type {
   XiboConfig,

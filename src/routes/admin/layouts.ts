@@ -13,7 +13,7 @@ import type {
 import { defineRoutes } from "#routes/router.ts";
 import {
   htmlResponse,
-  redirect,
+  redirectWithError,
   redirectWithSuccess,
 } from "#routes/utils.ts";
 import {
@@ -72,9 +72,9 @@ const handleLayoutCreatePost = (request: Request): Promise<Response> =>
     const categoryValue = form.get("category") || "";
     const [boardIdStr, catIdStr] = categoryValue.split(":");
     if (!boardIdStr || !catIdStr) {
-      return redirect(
-        "/admin/layout/create?error=" +
-          encodeURIComponent("Please select a category"),
+      return redirectWithError(
+        "/admin/layout/create",
+        "Please select a category",
       );
     }
 
@@ -88,9 +88,9 @@ const handleLayoutCreatePost = (request: Request): Promise<Response> =>
     );
     const category = categories.find((c) => c.menuCategoryId === catId);
     if (!category) {
-      return redirect(
-        "/admin/layout/create?error=" +
-          encodeURIComponent("Category not found"),
+      return redirectWithError(
+        "/admin/layout/create",
+        "Category not found",
       );
     }
 
@@ -153,8 +153,10 @@ const handleLayoutDeleteAll = (request: Request): Promise<Response> =>
       const msg = `Deleted ${count} layout${count !== 1 ? "s" : ""}`;
       return redirectWithSuccess("/admin/layouts", msg);
     } catch (e) {
-      const msg = `Delete failed: ${errorMessage(e)}`;
-      return redirect(`/admin/layouts?error=${encodeURIComponent(msg)}`);
+      return redirectWithError(
+        "/admin/layouts",
+        `Delete failed: ${errorMessage(e)}`,
+      );
     }
   });
 
