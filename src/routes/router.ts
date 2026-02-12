@@ -2,7 +2,6 @@
  * Declarative router with pattern matching
  */
 
-import { reduce } from "#fp";
 import type { ServerContext } from "#routes/types.ts";
 
 /** Route parameters extracted from URL patterns */
@@ -73,25 +72,19 @@ const parseRoutePattern = (
  */
 const compileRoutes = (
   routes: Record<string, RouteHandlerFn>,
-): Map<string, CompiledRoute[]> =>
-  reduce(
-    (
-      compiled: Map<string, CompiledRoute[]>,
-      [pattern, handler]: [string, RouteHandlerFn],
-    ) => {
-      const { method, path } = parseRoutePattern(pattern);
-      const regex = compilePattern(path);
-      const methodRoutes = compiled.get(method) ?? [];
-      methodRoutes.push({
-        regex,
-        paramNames: regex.paramNames,
-        handler,
-      });
-      compiled.set(method, methodRoutes);
-      return compiled;
-    },
-    new Map<string, CompiledRoute[]>(),
-  )(Object.entries(routes));
+): Map<string, CompiledRoute[]> => {
+  const compiled = new Map<string, CompiledRoute[]>();
+
+  for (const [pattern, handler] of Object.entries(routes)) {
+    const { method, path } = parseRoutePattern(pattern);
+    const regex = compilePattern(path);
+    const methodRoutes = compiled.get(method) ?? [];
+    methodRoutes.push({ regex, paramNames: regex.paramNames, handler });
+    compiled.set(method, methodRoutes);
+  }
+
+  return compiled;
+};
 
 /**
  * Extract params from regex match using param names

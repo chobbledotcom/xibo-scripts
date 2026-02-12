@@ -916,7 +916,7 @@ describe("xibo-unit", () => {
     });
 
     describe("testConnection non-XiboClientError", () => {
-      it("returns Unknown error for non-XiboClientError exceptions", async () => {
+      it("returns the error message for non-XiboClientError exceptions", async () => {
         const mock = mockFetch((url) => {
           if (url.includes("/api/authorize/access_token")) {
             return jsonResponse(MOCK_TOKEN_RESPONSE);
@@ -933,7 +933,7 @@ describe("xibo-unit", () => {
         try {
           const result = await testConnection(MOCK_CONFIG);
           expect(result.success).toBe(false);
-          expect(result.message).toBe("Unknown error");
+          expect(result.message).toContain("not valid json");
         } finally {
           mock.restore();
         }

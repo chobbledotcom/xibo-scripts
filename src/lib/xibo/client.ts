@@ -361,12 +361,7 @@ export const testConnection = async (
       version: about.version,
     };
   } catch (e) {
-    let message: string;
-    if (e instanceof XiboClientError) {
-      message = e.message;
-    } else {
-      message = "Unknown error";
-    }
+    const message = e instanceof Error ? e.message : "Unknown error";
     return { success: false, message };
   }
 };

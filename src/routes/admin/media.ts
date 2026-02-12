@@ -270,32 +270,29 @@ const handleSharedDeletePost = (
     if (sharedFolderId === null) {
       return redirectWithError("/admin/media/shared", "Shared folder not configured");
     }
-    return verifyAndDeleteMedia(
-      config, Number(params.id), sharedFolderId,
-      "/admin/media/shared", "Shared photo deleted",
-      "/admin/media/shared",
-      "Media not found in shared folder",
-      "Media not found in shared folder",
-    );
+    return verifyAndDeleteMedia({
+      config,
+      mediaId: Number(params.id),
+      expectedFolderId: sharedFolderId,
+      successUrl: "/admin/media/shared",
+      successMsg: "Shared photo deleted",
+      errorUrl: "/admin/media/shared",
+      notFoundMsg: "Media not found in shared folder",
+      wrongFolderMsg: "Media not found in shared folder",
+    });
   });
 
 /** Media routes */
 export const mediaRoutes = defineRoutes({
-  "GET /admin/media": (request) => handleMediaListGet(request),
-  "GET /admin/media/shared": (request) => handleSharedMediaGet(request),
-  "GET /admin/media/shared/upload": (request) =>
-    handleSharedUploadGet(request),
-  "POST /admin/media/shared/upload": (request) =>
-    handleSharedUploadPost(request),
-  "POST /admin/media/shared/:id/delete": (request, params) =>
-    handleSharedDeletePost(request, params),
-  "GET /admin/media/upload": (request) => handleMediaUploadGet(request),
-  "POST /admin/media/upload": (request) => handleMediaUploadPost(request),
-  "POST /admin/media/upload-url": (request) => handleMediaUploadUrl(request),
-  "GET /admin/media/:id": (request, params) =>
-    handleMediaDetailGet(request, params),
-  "GET /admin/media/:id/preview": (request, params) =>
-    handleMediaPreviewGet(request, params),
-  "POST /admin/media/:id/delete": (request, params) =>
-    handleMediaDeletePost(request, params),
+  "GET /admin/media": handleMediaListGet,
+  "GET /admin/media/shared": handleSharedMediaGet,
+  "GET /admin/media/shared/upload": handleSharedUploadGet,
+  "POST /admin/media/shared/upload": handleSharedUploadPost,
+  "POST /admin/media/shared/:id/delete": handleSharedDeletePost,
+  "GET /admin/media/upload": handleMediaUploadGet,
+  "POST /admin/media/upload": handleMediaUploadPost,
+  "POST /admin/media/upload-url": handleMediaUploadUrl,
+  "GET /admin/media/:id": handleMediaDetailGet,
+  "GET /admin/media/:id/preview": handleMediaPreviewGet,
+  "POST /admin/media/:id/delete": handleMediaDeletePost,
 });

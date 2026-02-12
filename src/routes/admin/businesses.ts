@@ -24,10 +24,11 @@ import {
   getUserById,
 } from "#lib/db/users.ts";
 import { validateForm, type ValidationResult } from "#lib/forms.tsx";
+import type { Business, User } from "#lib/types.ts";
 import { post } from "#xibo/client.ts";
 import type { XiboConfig, XiboDataset, XiboFolder } from "#xibo/types.ts";
-import { defineRoutes } from "#routes/router.ts";
-import type { RouteParams } from "#routes/router.ts";
+import { defineRoutes, type RouteParams } from "#routes/router.ts";
+import type { AuthSession } from "#routes/utils.ts";
 import {
   htmlResponse,
   redirect,
@@ -76,12 +77,10 @@ const DATASET_COLUMNS = [
 ] as const;
 
 /** Convert a User record to a BusinessUser for display */
-const toBusinessUser = async (
-  user: { id: number; username_hash: string; admin_level: string },
-): Promise<BusinessUser> => ({
+const toBusinessUser = async (user: User): Promise<BusinessUser> => ({
   id: user.id,
-  username: await decryptUsername(user as Parameters<typeof decryptUsername>[0]),
-  adminLevel: await decryptAdminLevel(user as Parameters<typeof decryptAdminLevel>[0]),
+  username: await decryptUsername(user),
+  adminLevel: await decryptAdminLevel(user),
 });
 
 /** Get user-role users who are/aren't assigned to a business */
@@ -157,8 +156,8 @@ const loadBusinessContext = async (businessId: number) => {
 
 /** Render the business detail page with full context */
 const renderBusinessDetail = async (
-  biz: Parameters<typeof toDisplayBusiness>[0],
-  session: Parameters<typeof toAdminSession>[0],
+  biz: Business,
+  session: AuthSession,
   error?: string,
   success?: string,
   status?: number,

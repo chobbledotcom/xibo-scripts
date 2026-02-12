@@ -13,18 +13,20 @@ import {
   toDisplayScreen,
 } from "#lib/db/screens.ts";
 import { validateForm } from "#lib/forms.tsx";
-import { get } from "#xibo/client.ts";
+import { get, loadXiboConfig } from "#xibo/client.ts";
 import type { XiboConfig, XiboDisplay } from "#xibo/types.ts";
-import { defineRoutes } from "#routes/router.ts";
-import type { RouteParams } from "#routes/router.ts";
-import type { AuthSession } from "#routes/utils.ts";
-import { htmlResponse, redirectWithSuccess } from "#routes/utils.ts";
-import { requireManagerOrAbove, withManagerAuthForm } from "#routes/utils.ts";
+import { defineRoutes, type RouteParams } from "#routes/router.ts";
+import {
+  type AuthSession,
+  htmlResponse,
+  redirectWithSuccess,
+  requireManagerOrAbove,
+  withManagerAuthForm,
+} from "#routes/utils.ts";
 import {
   errorMessage,
   getQueryMessages,
   toAdminSession,
-  withXiboConfig,
 } from "#routes/admin/utils.ts";
 import {
   adminScreenCreatePage,
@@ -48,11 +50,17 @@ const fetchAvailableDisplays = async (
   }
 };
 
+/** Business type from DB loader */
+type Business = NonNullable<Awaited<ReturnType<typeof getBusinessById>>>;
+
+/** Screen type from DB loader */
+type Screen = NonNullable<Awaited<ReturnType<typeof getScreenById>>>;
+
 /** Load and validate screen belongs to business, or return 404 */
 const loadScreenForBusiness = async (
   businessId: number,
   screenId: number,
-): Promise<{ business: Awaited<ReturnType<typeof getBusinessById>>; screen: Awaited<ReturnType<typeof getScreenById>> } | Response> => {
+): Promise<{ business: Business; screen: Screen } | Response> => {
   const biz = await getBusinessById(businessId);
   if (!biz) return htmlResponse("<h1>Business not found</h1>", 404);
 
@@ -62,9 +70,6 @@ const loadScreenForBusiness = async (
   }
   return { business: biz, screen };
 };
-
-/** Business type from DB loader */
-type Business = NonNullable<Awaited<ReturnType<typeof getBusinessById>>>;
 
 /** Screen GET route: require manager auth + load business from params */
 const withScreenAuth = (
@@ -101,14 +106,12 @@ const handleScreenCreateGet = (
     let availableDisplays: XiboDisplay[] = [];
     let fetchError: string | undefined;
 
-    const configResult = await withXiboConfig(async (config) => {
+    const config = await loadXiboConfig();
+    if (config) {
       const result = await fetchAvailableDisplays(config);
       availableDisplays = result.displays;
       fetchError = result.error;
-      return new Response("");
-    });
-
-    if (configResult.status === 302) availableDisplays = [];
+    }
 
     return htmlResponse(
       adminScreenCreatePage(bizDisplay, availableDisplays, toAdminSession(session), fetchError),
@@ -150,8 +153,8 @@ const handleScreenDetailGet = (
     const { success } = getQueryMessages(request);
     return htmlResponse(
       adminScreenDetailPage(
-        await toDisplayBusiness(loaded.business!),
-        await toDisplayScreen(loaded.screen!),
+        await toDisplayBusiness(loaded.business),
+        await toDisplayScreen(loaded.screen),
         toAdminSession(session),
         undefined,
         success,
@@ -169,8 +172,8 @@ const handleScreenDeletePost = (
     const loaded = await loadScreenForBusiness(businessId, Number(params.id));
     if (loaded instanceof Response) return loaded;
 
-    await deleteScreen(loaded.screen!.id);
-    await logActivity(`Deleted screen ${loaded.screen!.id} from business ${businessId}`);
+    await deleteScreen(loaded.screen.id);
+    await logActivity(`Deleted screen ${loaded.screen.id} from business ${businessId}`);
     return redirectWithSuccess(`/admin/business/${businessId}`, "Screen deleted");
   });
 

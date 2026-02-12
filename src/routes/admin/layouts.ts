@@ -160,13 +160,10 @@ const handleLayoutDeleteAll = (request: Request): Promise<Response> =>
 
 /** Layout routes */
 export const layoutRoutes = defineRoutes({
-  "GET /admin/layouts": (request) => handleLayoutList(request),
-  "GET /admin/layout/create": (request) => handleLayoutCreateGet(request),
-  "POST /admin/layout/create": (request) => handleLayoutCreatePost(request),
-  "GET /admin/layout/:id": (request, params) =>
-    handleLayoutDetail(request, params),
-  "POST /admin/layout/:id/delete": (request, params) =>
-    handleLayoutDelete(request, params),
-  "POST /admin/layouts/delete-all": (request) =>
-    handleLayoutDeleteAll(request),
+  "GET /admin/layouts": handleLayoutList,
+  "GET /admin/layout/create": handleLayoutCreateGet,
+  "POST /admin/layout/create": handleLayoutCreatePost,
+  "GET /admin/layout/:id": handleLayoutDetail,
+  "POST /admin/layout/:id/delete": handleLayoutDelete,
+  "POST /admin/layouts/delete-all": handleLayoutDeleteAll,
 });
