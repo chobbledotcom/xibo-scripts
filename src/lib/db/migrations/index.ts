@@ -7,7 +7,7 @@ import { getDb } from "#lib/db/client.ts";
 /**
  * The latest database update identifier - update this when changing schema
  */
-export const LATEST_UPDATE = "add audit events and publish attempts";
+export const LATEST_UPDATE = "encrypt audit event detail and resource_id";
 
 /**
  * Run a migration that may fail if already applied (e.g., adding a column that exists)

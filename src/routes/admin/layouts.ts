@@ -68,7 +68,7 @@ const handleLayoutCreateGet = sessionRoute(
  * POST /admin/layout/create — create layout from selected category
  */
 const handleLayoutCreatePost = (request: Request): Promise<Response> =>
-  withXiboForm(request, async (_session, form, config) => {
+  withXiboForm(request, async (session, form, config) => {
     const categoryValue = form.get("category") || "";
     const [boardIdStr, catIdStr] = categoryValue.split(":");
     if (!boardIdStr || !catIdStr) {
@@ -106,6 +106,7 @@ const handleLayoutCreatePost = (request: Request): Promise<Response> =>
       config,
       category.name,
       products,
+      session.userId,
     );
 
     return redirectWithSuccess(

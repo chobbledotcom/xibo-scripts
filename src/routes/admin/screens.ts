@@ -3,7 +3,7 @@
  */
 
 import { filter } from "#fp";
-import { logActivity } from "#lib/db/activityLog.ts";
+import { logAuditEvent } from "#lib/db/audit-events.ts";
 import { getBusinessById, toDisplayBusiness } from "#lib/db/businesses.ts";
 import {
   createScreen,
@@ -137,7 +137,12 @@ const handleScreenCreatePost = (
     const xiboDisplayId = xiboDisplayIdStr ? Number(xiboDisplayIdStr) : null;
 
     await createScreen(validation.values.name, biz.id, xiboDisplayId || null);
-    await logActivity(`Created screen "${validation.values.name}" for business ${biz.id}`);
+    await logAuditEvent({
+      actorUserId: session.userId,
+      action: "CREATE",
+      resourceType: "screen",
+      detail: `Created screen "${validation.values.name}" for business ${biz.id}`,
+    });
     return redirectWithSuccess(`/admin/business/${biz.id}`, "Screen created");
   });
 
@@ -167,13 +172,19 @@ const handleScreenDeletePost = (
   request: Request,
   params: RouteParams,
 ): Promise<Response> =>
-  withManagerAuthForm(request, async (_session, _form) => {
+  withManagerAuthForm(request, async (session, _form) => {
     const businessId = Number(params.businessId);
     const loaded = await loadScreenForBusiness(businessId, Number(params.id));
     if (loaded instanceof Response) return loaded;
 
     await deleteScreen(loaded.screen.id);
-    await logActivity(`Deleted screen ${loaded.screen.id} from business ${businessId}`);
+    await logAuditEvent({
+      actorUserId: session.userId,
+      action: "DELETE",
+      resourceType: "screen",
+      resourceId: loaded.screen.id,
+      detail: `Deleted screen ${loaded.screen.id} from business ${businessId}`,
+    });
     return redirectWithSuccess(`/admin/business/${businessId}`, "Screen deleted");
   });
 

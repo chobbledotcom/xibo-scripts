@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "#test-compat";
-import { getAllActivityLog } from "#lib/db/activityLog.ts";
+import { getAuditEvents } from "#lib/db/audit-events.ts";
 import { createBusiness } from "#lib/db/businesses.ts";
 import {
   createScreen,
@@ -204,10 +204,10 @@ describe("admin screens management", () => {
           cookie,
         ),
       );
-      const logs = await getAllActivityLog();
-      const log = logs.find((l) => l.message.includes("Created screen"));
+      const events = await getAuditEvents();
+      const log = events.find((e) => e.detail.includes("Created screen"));
       expect(log).not.toBeNull();
-      expect(log!.message).toContain("Audit Screen");
+      expect(log!.detail).toContain("Audit Screen");
     });
   });
 
@@ -314,8 +314,8 @@ describe("admin screens management", () => {
           cookie,
         ),
       );
-      const logs = await getAllActivityLog();
-      const log = logs.find((l) => l.message.includes("Deleted screen"));
+      const events = await getAuditEvents();
+      const log = events.find((e) => e.detail.includes("Deleted screen"));
       expect(log).not.toBeNull();
     });
   });

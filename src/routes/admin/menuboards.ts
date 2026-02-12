@@ -2,7 +2,7 @@
  * Admin menu board routes — CRUD for boards, categories, and products
  */
 
-import { logActivity } from "#lib/db/activityLog.ts";
+import { logAuditEvent, type AuditAction, type AuditResourceType } from "#lib/db/audit-events.ts";
 import { get, post, put, del } from "#xibo/client.ts";
 import type {
   XiboCategory,
@@ -157,21 +157,26 @@ const boardCategoryRoute = (
         handler(session, config, board, category, categories, params)),
   );
 
-/** Delete a board child entity (category or product) with activity logging */
+/** Delete a board child entity (category or product) with audit logging */
 const deleteBoardChild = (
   entity: string,
   subpath: string,
+  resourceType: AuditResourceType,
 ) =>
   formRouteP<Record<string, never>>(
     [],
-    (_values, config, params) =>
+    (_values, config, params, session) =>
       xiboThenPersist(
         () => del(config, `menuboard/${params.id}/${subpath}`),
         `/admin/menuboard/${params.boardId}`,
         async () => {
-          await logActivity(
-            `Deleted ${entity} ${params.id} from board ${params.boardId}`,
-          );
+          await logAuditEvent({
+            actorUserId: session.userId,
+            action: "DELETE",
+            resourceType,
+            resourceId: params.id,
+            detail: `Deleted ${entity} ${params.id} from board ${params.boardId}`,
+          });
           return redirectWithSuccess(
             `/admin/menuboard/${params.boardId}`,
             `${entity[0]!.toUpperCase()}${entity.slice(1)} deleted`,
@@ -180,27 +185,28 @@ const deleteBoardChild = (
       ),
   );
 
-/** Log an activity and redirect back to the board detail page. */
-const logAndRedirectToBoard = async (
-  boardId: string,
-  logMsg: string,
-  successMsg: string,
-): Promise<Response> => {
-  await logActivity(logMsg);
-  return redirectWithSuccess(`/admin/menuboard/${boardId}`, successMsg);
-};
-
-/** Xibo API mutation for a board child, with activity logging on success. */
+/** Xibo API mutation for a board child, with audit logging on success. */
 const boardChildMutation = (
   apiCall: () => Promise<unknown>,
   boardId: string,
-  logMsg: string,
+  session: AuthSession,
+  action: AuditAction,
+  resourceType: AuditResourceType,
+  detail: string,
   successMsg: string,
 ): Promise<Response> =>
   xiboThenPersist(
     apiCall,
     `/admin/menuboard/${boardId}`,
-    () => logAndRedirectToBoard(boardId, logMsg, successMsg),
+    async () => {
+      await logAuditEvent({
+        actorUserId: session.userId,
+        action,
+        resourceType,
+        detail,
+      });
+      return redirectWithSuccess(`/admin/menuboard/${boardId}`, successMsg);
+    },
   );
 
 // ─── Body Builders ──────────────────────────────────────────────────
@@ -261,12 +267,18 @@ const handleBoardNew = (request: Request): Promise<Response> =>
 /** POST /admin/menuboard — create board */
 const handleBoardCreate = formRouteP<MenuBoardFormValues>(
   menuBoardFields,
-  (values, config) =>
+  (values, config, _params, session) =>
     xiboThenPersist(
       () => post<XiboMenuBoard>(config, "menuboard", buildBoardBody(values)),
       "/admin/menuboards",
       async (created) => {
-        await logActivity(`Created menu board "${values.name}"`);
+        await logAuditEvent({
+          actorUserId: session.userId,
+          action: "CREATE",
+          resourceType: "menuboard",
+          resourceId: created.menuId,
+          detail: `Created menu board "${values.name}"`,
+        });
         return redirectWithSuccess(
           `/admin/menuboard/${created.menuId}`,
           "Menu board created",
@@ -315,12 +327,18 @@ const handleBoardEdit = boardRoute(
 /** POST /admin/menuboard/:id — update board */
 const handleBoardUpdate = formRouteP<MenuBoardFormValues>(
   menuBoardFields,
-  (values, config, params) =>
+  (values, config, params, session) =>
     xiboThenPersist(
       () => put(config, `menuboard/${params.id}`, buildBoardBody(values)),
       `/admin/menuboard/${params.id}`,
       async () => {
-        await logActivity(`Updated menu board "${values.name}"`);
+        await logAuditEvent({
+          actorUserId: session.userId,
+          action: "UPDATE",
+          resourceType: "menuboard",
+          resourceId: params.id,
+          detail: `Updated menu board "${values.name}"`,
+        });
         return redirectWithSuccess(
           `/admin/menuboard/${params.id}`,
           "Menu board updated",
@@ -332,7 +350,7 @@ const handleBoardUpdate = formRouteP<MenuBoardFormValues>(
 /** POST /admin/menuboard/:id/delete — delete board */
 const handleBoardDelete = formRouteP<Record<string, never>>(
   [],
-  (_values, config, params) =>
+  (_values, config, params, session) =>
     xiboThenPersist(
       async () => {
         const boards = await get<XiboMenuBoard[]>(config, "menuboards", {
@@ -344,7 +362,13 @@ const handleBoardDelete = formRouteP<Record<string, never>>(
       },
       "/admin/menuboards",
       async (name) => {
-        await logActivity(`Deleted menu board "${name}"`);
+        await logAuditEvent({
+          actorUserId: session.userId,
+          action: "DELETE",
+          resourceType: "menuboard",
+          resourceId: params.id,
+          detail: `Deleted menu board "${name}"`,
+        });
         return redirectWithSuccess("/admin/menuboards", "Menu board deleted");
       },
     ),
@@ -364,10 +388,13 @@ const handleCategoryNew = boardRoute(
 /** POST /admin/menuboard/:boardId/category — create category */
 const handleCategoryCreate = formRouteP<CategoryFormValues>(
   categoryFields,
-  (values, config, params) =>
+  (values, config, params, session) =>
     boardChildMutation(
       () => post(config, `menuboard/${params.boardId}/category`, buildCategoryBody(values)),
       params.boardId!,
+      session,
+      "CREATE",
+      "category",
       `Created category "${values.name}" in board ${params.boardId}`,
       "Category created",
     ),
@@ -390,17 +417,20 @@ const handleCategoryEdit = boardCategoryRoute(
 /** POST /admin/menuboard/:boardId/category/:id — update category */
 const handleCategoryUpdate = formRouteP<CategoryFormValues>(
   categoryFields,
-  (values, config, params) =>
+  (values, config, params, session) =>
     boardChildMutation(
       () => put(config, `menuboard/${params.id}/category`, buildCategoryBody(values)),
       params.boardId!,
+      session,
+      "UPDATE",
+      "category",
       `Updated category "${values.name}" in board ${params.boardId}`,
       "Category updated",
     ),
 );
 
 /** POST /admin/menuboard/:boardId/category/:id/delete — delete category */
-const handleCategoryDelete = deleteBoardChild("category", "category");
+const handleCategoryDelete = deleteBoardChild("category", "category", "category");
 
 // ─── Product Routes ──────────────────────────────────────────────────
 
@@ -422,10 +452,13 @@ const handleProductNew = boardCategoryRoute(
 /** POST /admin/menuboard/:boardId/category/:catId/product — create product */
 const handleProductCreate = formRouteP<ProductFormValues>(
   productFields,
-  (values, config, params) =>
+  (values, config, params, session) =>
     boardChildMutation(
       () => post(config, `menuboard/${params.catId}/product`, buildProductBody(params.catId!, values)),
       params.boardId!,
+      session,
+      "CREATE",
+      "product",
       `Created product "${values.name}" in category ${params.catId}`,
       "Product created",
     ),
@@ -458,17 +491,20 @@ const handleProductEdit = boardCategoryRoute(
 /** POST /admin/menuboard/:boardId/category/:catId/product/:id — update product */
 const handleProductUpdate = formRouteP<ProductFormValues>(
   productFields,
-  (values, config, params) =>
+  (values, config, params, session) =>
     boardChildMutation(
       () => put(config, `menuboard/${params.id}/product`, buildProductBody(params.catId!, values)),
       params.boardId!,
+      session,
+      "UPDATE",
+      "product",
       `Updated product "${values.name}" in category ${params.catId}`,
       "Product updated",
     ),
 );
 
 /** POST /admin/menuboard/:boardId/category/:catId/product/:id/delete — delete product */
-const handleProductDelete = deleteBoardChild("product", "product");
+const handleProductDelete = deleteBoardChild("product", "product", "product");
 
 // ─── Route Definitions ──────────────────────────────────────────────
 

@@ -222,6 +222,13 @@ export const decrypt = async (encrypted: string): Promise<string> => {
 };
 
 /**
+ * Decrypt if the value is encrypted, otherwise return as-is.
+ * Handles migration from plaintext to encrypted data gracefully.
+ */
+export const tryDecrypt = (value: string): Promise<string> =>
+  value.startsWith(ENCRYPTION_PREFIX) ? decrypt(value) : Promise.resolve(value);
+
+/**
  * Clear the cached encryption key (useful for testing)
  */
 export const clearEncryptionKeyCache = (): void => {

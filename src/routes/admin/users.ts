@@ -4,7 +4,7 @@
 
 import { filter } from "#fp";
 import { unwrapKeyWithToken } from "#lib/crypto.ts";
-import { logActivity } from "#lib/db/activityLog.ts";
+import { logAuditEvent } from "#lib/db/audit-events.ts";
 import {
   activateUser,
   createInvitedUser,
@@ -164,7 +164,12 @@ const handleUsersPost = (request: Request): Promise<Response> =>
       expiry,
     );
 
-    await logActivity(`Invited user "${username}" with role "${adminLevel}"`);
+    await logAuditEvent({
+      actorUserId: session.userId,
+      action: "CREATE",
+      resourceType: "user",
+      detail: `Invited user "${username}" with role "${adminLevel}"`,
+    });
 
     const domain = getAllowedDomain();
     const inviteLink = `https://${domain}/join/${inviteCode}`;
@@ -253,7 +258,13 @@ const handleUserActivate = (
 
     await activateUser(userId, dataKey, decryptedPasswordHash);
 
-    await logActivity(`Activated user ${userId}`);
+    await logAuditEvent({
+      actorUserId: session.userId,
+      action: "UPDATE",
+      resourceType: "user",
+      resourceId: userId,
+      detail: `Activated user ${userId}`,
+    });
 
     return redirectWithSuccess("/admin/users", "User activated successfully");
   });
@@ -281,7 +292,13 @@ const handleUserDelete = (
 
     await deleteUser(userId);
 
-    await logActivity(`Deleted user ${userId}`);
+    await logAuditEvent({
+      actorUserId: session.userId,
+      action: "DELETE",
+      resourceType: "user",
+      resourceId: userId,
+      detail: `Deleted user ${userId}`,
+    });
 
     return redirectWithSuccess("/admin/users", "User deleted successfully");
   });

@@ -3,14 +3,7 @@
  */
 
 import { map, pipe, reduce } from "#fp";
-import { Raw } from "#jsx/jsx-runtime.ts";
-
-const escapeHtml = (str: string): string =>
-  str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+import { escapeHtml, Raw } from "#jsx/jsx-runtime.ts";
 
 export type FieldType =
   | "text"

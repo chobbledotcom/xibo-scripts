@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "#test-compat";
-import { getAllActivityLog } from "#lib/db/activityLog.ts";
+import { getAuditEvents } from "#lib/db/audit-events.ts";
 import { getDb } from "#lib/db/client.ts";
 import { createSession } from "#lib/db/sessions.ts";
 import {
@@ -652,10 +652,10 @@ describe("admin users management", () => {
         ),
       );
 
-      const logs = await getAllActivityLog();
-      expect(logs.length).toBeGreaterThan(0);
-      expect(logs[0]!.message).toContain("Invited user");
-      expect(logs[0]!.message).toContain("audituser");
+      const events = await getAuditEvents();
+      const inviteLog = events.find((e) => e.detail.includes("Invited user"));
+      expect(inviteLog).not.toBeNull();
+      expect(inviteLog!.detail).toContain("audituser");
     });
 
     it("logs activity when user is activated", async () => {
@@ -676,10 +676,10 @@ describe("admin users management", () => {
         ),
       );
 
-      const logs = await getAllActivityLog();
-      const activateLog = logs.find((l) => l.message.includes("Activated"));
+      const events = await getAuditEvents();
+      const activateLog = events.find((e) => e.detail.includes("Activated"));
       expect(activateLog).not.toBeNull();
-      expect(activateLog!.message).toContain("Activated user 2");
+      expect(activateLog!.detail).toContain("Activated user 2");
     });
 
     it("logs activity when user is deleted", async () => {
@@ -699,10 +699,10 @@ describe("admin users management", () => {
         ),
       );
 
-      const logs = await getAllActivityLog();
-      const deleteLog = logs.find((l) => l.message.includes("Deleted"));
+      const events = await getAuditEvents();
+      const deleteLog = events.find((e) => e.detail.includes("Deleted"));
       expect(deleteLog).not.toBeNull();
-      expect(deleteLog!.message).toContain("Deleted user 2");
+      expect(deleteLog!.detail).toContain("Deleted user 2");
     });
   });
 

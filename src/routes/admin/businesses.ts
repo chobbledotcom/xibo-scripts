@@ -3,7 +3,7 @@
  */
 
 import { filter } from "#fp";
-import { logActivity } from "#lib/db/activityLog.ts";
+import { logAuditEvent } from "#lib/db/audit-events.ts";
 import {
   assignUserToBusiness,
   createBusiness,
@@ -223,7 +223,12 @@ const handleBusinessCreatePost = (request: Request): Promise<Response> =>
             provision.folderName,
             provision.datasetId,
           );
-          await logActivity(`Created business "${name}"`);
+          await logAuditEvent({
+            actorUserId: session.userId,
+            action: "CREATE",
+            resourceType: "business",
+            detail: `Created business "${name}"`,
+          });
           return redirectWithSuccess("/admin/businesses", "Business created successfully");
         },
       ),
@@ -255,7 +260,13 @@ const handleBusinessUpdatePost = (
       }
 
       await updateBusiness(biz.id, validation.values.name);
-      await logActivity(`Updated business ${biz.id}`);
+      await logAuditEvent({
+        actorUserId: session.userId,
+        action: "UPDATE",
+        resourceType: "business",
+        resourceId: biz.id,
+        detail: `Updated business ${biz.id}`,
+      });
       return redirectWithSuccess(`/admin/business/${biz.id}`, "Business updated");
     }),
   );
@@ -265,10 +276,16 @@ const handleBusinessDeletePost = (
   request: Request,
   params: RouteParams,
 ): Promise<Response> =>
-  withManagerAuthForm(request, (_session, _form) =>
+  withManagerAuthForm(request, (session, _form) =>
     withEntity(getBusinessById, Number(params.id), "Business", async (biz) => {
       await deleteBusiness(biz.id);
-      await logActivity(`Deleted business ${biz.id}`);
+      await logAuditEvent({
+        actorUserId: session.userId,
+        action: "DELETE",
+        resourceType: "business",
+        resourceId: biz.id,
+        detail: `Deleted business ${biz.id}`,
+      });
       return redirectWithSuccess("/admin/businesses", "Business deleted");
     }),
   );
@@ -278,9 +295,9 @@ const withBusinessUser = (
   request: Request,
   params: RouteParams,
   noUserError: string,
-  action: (businessId: number, userId: number) => Promise<Response>,
+  action: (businessId: number, userId: number, session: AuthSession) => Promise<Response>,
 ): Promise<Response> =>
-  withManagerAuthForm(request, (_session, form) =>
+  withManagerAuthForm(request, (session, form) =>
     withEntity(getBusinessById, Number(params.id), "Business", (biz) => {
       const userId = Number(form.get("user_id"));
       if (!userId) {
@@ -288,7 +305,7 @@ const withBusinessUser = (
           redirect(`/admin/business/${biz.id}?error=${encodeURIComponent(noUserError)}`),
         );
       }
-      return action(biz.id, userId);
+      return action(biz.id, userId, session);
     }),
   );
 
@@ -297,7 +314,7 @@ const handleAssignUser = (
   request: Request,
   params: RouteParams,
 ): Promise<Response> =>
-  withBusinessUser(request, params, "Please select a user", async (businessId, userId) => {
+  withBusinessUser(request, params, "Please select a user", async (businessId, userId, session) => {
     const user = await getUserById(userId);
     if (!user) {
       return redirect(`/admin/business/${businessId}?error=${encodeURIComponent("User not found")}`);
@@ -308,7 +325,13 @@ const handleAssignUser = (
     }
 
     await assignUserToBusiness(businessId, userId);
-    await logActivity(`Assigned user ${userId} to business ${businessId}`);
+    await logAuditEvent({
+      actorUserId: session.userId,
+      action: "UPDATE",
+      resourceType: "business",
+      resourceId: businessId,
+      detail: `Assigned user ${userId} to business ${businessId}`,
+    });
     return redirectWithSuccess(`/admin/business/${businessId}`, "User assigned");
   });
 
@@ -317,9 +340,15 @@ const handleRemoveUser = (
   request: Request,
   params: RouteParams,
 ): Promise<Response> =>
-  withBusinessUser(request, params, "Invalid user", async (businessId, userId) => {
+  withBusinessUser(request, params, "Invalid user", async (businessId, userId, session) => {
     await removeUserFromBusiness(businessId, userId);
-    await logActivity(`Removed user ${userId} from business ${businessId}`);
+    await logAuditEvent({
+      actorUserId: session.userId,
+      action: "UPDATE",
+      resourceType: "business",
+      resourceId: businessId,
+      detail: `Removed user ${userId} from business ${businessId}`,
+    });
     return redirectWithSuccess(`/admin/business/${businessId}`, "User removed");
   });
 

@@ -5,7 +5,7 @@
  * header region at top and a 3x4 product grid filling the remaining space.
  */
 
-import { logActivity } from "#lib/db/activityLog.ts";
+import { logAuditEvent } from "#lib/db/audit-events.ts";
 import { get, post, put } from "#xibo/client.ts";
 import type {
   XiboConfig,
@@ -186,6 +186,7 @@ export const createMenuLayout = async (
   config: XiboConfig,
   categoryName: string,
   products: RegionProduct[],
+  actorUserId: number,
 ): Promise<XiboLayout> => {
   // 1. Resolution
   const resolution = await getOrCreateResolution(
@@ -222,7 +223,13 @@ export const createMenuLayout = async (
 
   // 5. Publish
   await put(config, `layout/publish/${layout.layoutId}`, {});
-  await logActivity(`Created layout "${layoutName}"`);
+  await logAuditEvent({
+    actorUserId,
+    action: "CREATE",
+    resourceType: "menu_screen",
+    resourceId: layout.layoutId,
+    detail: `Created layout "${layoutName}"`,
+  });
 
   return layout;
 };

@@ -168,7 +168,7 @@ export const listRoute = <T>(
 
 /**
  * Create a validated-form route handler with URL params.
- * Validates form input, then calls handler with parsed values + config + params.
+ * Validates form input, then calls handler with parsed values + config + params + session.
  */
 export const formRouteP = <T>(
   fields: Field[],
@@ -176,13 +176,14 @@ export const formRouteP = <T>(
     values: T,
     config: XiboConfig,
     params: Params,
+    session: AuthSession,
   ) => Promise<Response>,
 ): ParamHandler =>
 (request, params) =>
-  withXiboForm(request, (_session, form, config) => {
+  withXiboForm(request, (session, form, config) => {
     const v = validateForm<T>(form, fields);
     if (!v.valid) return Promise.resolve(htmlResponse(v.error, 400));
-    return handler(v.values, config, params);
+    return handler(v.values, config, params, session);
   });
 
 /**
