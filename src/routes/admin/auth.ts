@@ -12,7 +12,7 @@ import { deleteSession } from "#lib/db/sessions.ts";
 import { getUserByUsername, verifyUserPassword } from "#lib/db/users.ts";
 import { validateForm } from "#lib/forms.tsx";
 import { loginResponse } from "#routes/admin/dashboard.ts";
-import { clearSessionCookie } from "#routes/admin/utils.ts";
+import { clearSessionCookie } from "#routes/route-helpers.ts";
 import { defineRoutes } from "#routes/router.ts";
 import type { ServerContext } from "#routes/types.ts";
 import {

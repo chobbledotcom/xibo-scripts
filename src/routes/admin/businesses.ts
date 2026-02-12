@@ -42,7 +42,7 @@ import {
   withEntity,
   withXiboConfig,
   xiboThenPersist,
-} from "#routes/admin/utils.ts";
+} from "#routes/route-helpers.ts";
 import {
   adminBusinessCreatePage,
   adminBusinessDetailPage,

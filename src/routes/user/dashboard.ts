@@ -11,7 +11,7 @@ import { get } from "#xibo/client.ts";
 import type { XiboConfig, XiboDatasetRow } from "#xibo/types.ts";
 import { htmlResponse } from "#routes/utils.ts";
 import { defineRoutes } from "#routes/router.ts";
-import { getQueryMessages, sessionRoute, toAdminSession } from "#routes/admin/utils.ts";
+import { getQueryMessages, sessionRoute, toAdminSession } from "#routes/route-helpers.ts";
 import {
   userBusinessDetailRoute,
   withUserBusiness,

@@ -39,7 +39,7 @@ import {
   getSuccessParam,
   listRoute,
   xiboThenPersist,
-} from "#routes/admin/utils.ts";
+} from "#routes/route-helpers.ts";
 
 // ─── Data Helpers ────────────────────────────────────────────────────
 

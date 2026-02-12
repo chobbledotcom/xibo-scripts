@@ -18,7 +18,7 @@ import {
   detailRoute,
   fetchList,
   sessionRoute,
-} from "#routes/admin/utils.ts";
+} from "#routes/route-helpers.ts";
 
 // ─── Routes ──────────────────────────────────────────────────────────
 

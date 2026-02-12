@@ -10,7 +10,7 @@ import {
   decryptUsername,
   getUserById,
 } from "#lib/db/users.ts";
-import { clearSessionCookie } from "#routes/admin/utils.ts";
+import { clearSessionCookie } from "#routes/route-helpers.ts";
 import { defineRoutes } from "#routes/router.ts";
 import type { RouteParams } from "#routes/router.ts";
 import {
