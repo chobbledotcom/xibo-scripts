@@ -2,7 +2,7 @@
  * Admin impersonation routes - manager or above
  */
 
-import { logActivity } from "#lib/db/activity-log.ts";
+import { logAuditEvent } from "#lib/db/audit-events.ts";
 import { deleteSession } from "#lib/db/sessions.ts";
 import {
   decryptAdminLevel,
@@ -76,9 +76,13 @@ const handleImpersonate = (
     const newToken = await createNewSession(targetUserId);
 
     const targetUsername = await decryptUsername(targetUser);
-    await logActivity(
-      `Impersonated user "${targetUsername}" (id=${targetUserId})`,
-    );
+    await logAuditEvent({
+      actorUserId: session.userId,
+      action: "IMPERSONATE",
+      resourceType: "session",
+      resourceId: targetUserId,
+      detail: `Impersonated user "${targetUsername}" (id=${targetUserId})`,
+    });
 
     // Set both cookies: store admin session, switch to impersonation session
     return redirectWithCookies("/admin", [
@@ -123,7 +127,12 @@ const handleStopImpersonating = async (
     ]);
   }
 
-  await logActivity("Stopped impersonating");
+  await logAuditEvent({
+    actorUserId: adminSession.userId,
+    action: "STOP_IMPERSONATE",
+    resourceType: "session",
+    detail: "Stopped impersonating",
+  });
 
   // Restore admin session cookie, clear admin backup cookie
   return redirectWithCookies("/admin/users", [

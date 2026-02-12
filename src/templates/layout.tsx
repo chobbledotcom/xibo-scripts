@@ -2,15 +2,10 @@
  * Base layout and common template utilities
  */
 
-import { type Child, Raw, SafeHtml } from "#jsx/jsx-runtime.ts";
+import { type Child, escapeHtml, Raw, SafeHtml } from "#jsx/jsx-runtime.ts";
 import { CSS_PATH, JS_PATH } from "#src/config/asset-paths.ts";
 
-export const escapeHtml = (str: string): string =>
-  str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+export { escapeHtml };
 
 interface LayoutProps {
   title: string;

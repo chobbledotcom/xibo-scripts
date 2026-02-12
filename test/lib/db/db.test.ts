@@ -208,46 +208,6 @@ describe("database layer", () => {
     });
   });
 
-  describe("activity log", () => {
-    it("logActivity inserts with ISO timestamp", async () => {
-      await createTestDb();
-      const { logActivity, getAllActivityLog } = await import(
-        "#lib/db/activity-log.ts"
-      );
-      await logActivity("Test activity");
-      const logs = await getAllActivityLog();
-      expect(logs.length).toBe(1);
-      expect(logs[0]!.message).toBe("Test activity");
-      // ISO timestamp format check
-      expect(logs[0]!.created).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    });
-
-    it("getAllActivityLog returns entries in reverse chronological order", async () => {
-      await createTestDb();
-      const { logActivity, getAllActivityLog } = await import(
-        "#lib/db/activity-log.ts"
-      );
-      await logActivity("First");
-      await logActivity("Second");
-      await logActivity("Third");
-      const logs = await getAllActivityLog();
-      expect(logs[0]!.message).toBe("Third");
-      expect(logs[2]!.message).toBe("First");
-    });
-
-    it("getAllActivityLog respects limit parameter", async () => {
-      await createTestDb();
-      const { logActivity, getAllActivityLog } = await import(
-        "#lib/db/activity-log.ts"
-      );
-      await logActivity("A");
-      await logActivity("B");
-      await logActivity("C");
-      const logs = await getAllActivityLog(2);
-      expect(logs.length).toBe(2);
-    });
-  });
-
   describe("sessions", () => {
     beforeEach(async () => {
       await createTestDb();

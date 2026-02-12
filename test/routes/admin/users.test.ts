@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "#test-compat";
-import { getAllActivityLog } from "#lib/db/activity-log.ts";
+import { getAuditEvents } from "#lib/db/audit-events.ts";
 import { getDb } from "#lib/db/client.ts";
 import { createSession } from "#lib/db/sessions.ts";
 import {
@@ -618,10 +618,10 @@ describe("admin users management", () => {
         ),
       );
 
-      const logs = await getAllActivityLog();
-      expect(logs.length).toBeGreaterThan(0);
-      expect(logs[0]!.message).toContain("Invited user");
-      expect(logs[0]!.message).toContain("audituser");
+      const events = await getAuditEvents();
+      const inviteLog = events.find((e) => e.detail.includes("Invited user"));
+      expect(inviteLog).not.toBeNull();
+      expect(inviteLog!.detail).toContain("audituser");
     });
 
     it("logs activity when user is deleted", async () => {
@@ -641,32 +641,10 @@ describe("admin users management", () => {
         ),
       );
 
-      const logs = await getAllActivityLog();
-      const deleteLog2 = logs.find((l) => l.message.includes("Deleted user 2"));
-      expect(deleteLog2).not.toBeNull();
-    });
-
-    it("logs activity when user is deleted", async () => {
-      await handle(
-        mockFormRequest(
-          "/admin/users",
-          { username: "deleteaudit", admin_level: "manager", csrf_token: csrfToken },
-          cookie,
-        ),
-      );
-
-      await handle(
-        mockFormRequest(
-          "/admin/users/2/delete",
-          { csrf_token: csrfToken },
-          cookie,
-        ),
-      );
-
-      const logs = await getAllActivityLog();
-      const deleteLog = logs.find((l) => l.message.includes("Deleted"));
+      const events = await getAuditEvents();
+      const deleteLog = events.find((e) => e.detail.includes("Deleted"));
       expect(deleteLog).not.toBeNull();
-      expect(deleteLog!.message).toContain("Deleted user 2");
+      expect(deleteLog!.detail).toContain("Deleted user 2");
     });
   });
 

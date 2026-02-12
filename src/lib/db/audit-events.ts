@@ -4,8 +4,11 @@
  * Records critical actions (auth, impersonation, publish, CRUD)
  * with actor, resource, and result information.
  * Entries are append-only — never updated or deleted.
+ * Detail and resource_id fields are encrypted at rest with DB_ENCRYPTION_KEY.
  */
 
+import { map } from "#fp";
+import { encrypt, tryDecrypt } from "#lib/crypto.ts";
 import { getDb, queryAll, queryOne } from "#lib/db/client.ts";
 import { nowIso } from "#lib/now.ts";
 
@@ -26,6 +29,8 @@ export type AuditResourceType =
   | "business"
   | "screen"
   | "menu_screen"
+  | "menuboard"
+  | "category"
   | "user"
   | "media"
   | "product"
@@ -33,7 +38,7 @@ export type AuditResourceType =
   | "settings"
   | "schedule";
 
-/** Stored audit event row */
+/** Audit event row — same shape before and after decryption */
 export interface AuditEvent {
   id: number;
   created: string;
@@ -44,9 +49,23 @@ export interface AuditEvent {
   detail: string;
 }
 
+/** Decrypt sensitive fields in an audit event row */
+const decryptRow = async (row: AuditEvent): Promise<AuditEvent> => ({
+  ...row,
+  detail: await tryDecrypt(row.detail),
+  resource_id: row.resource_id != null
+    ? await tryDecrypt(row.resource_id)
+    : null,
+});
+
+/** Decrypt an array of audit event rows */
+const decryptRows = (rows: AuditEvent[]): Promise<AuditEvent[]> =>
+  Promise.all(map(decryptRow)(rows));
+
 /**
  * Log an audit event.
  * This is the primary function for recording critical actions.
+ * Detail and resource_id are encrypted at rest.
  */
 export const logAuditEvent = async (event: {
   actorUserId: number;
@@ -55,6 +74,14 @@ export const logAuditEvent = async (event: {
   resourceId?: string | number | null;
   detail: string;
 }): Promise<void> => {
+  const encryptedDetail = await encrypt(event.detail);
+  const rawResourceId = event.resourceId != null
+    ? String(event.resourceId)
+    : null;
+  const encryptedResourceId = rawResourceId != null
+    ? await encrypt(rawResourceId)
+    : null;
+
   await getDb().execute({
     sql: `INSERT INTO audit_events (created, actor_user_id, action, resource_type, resource_id, detail)
           VALUES (?, ?, ?, ?, ?, ?)`,
@@ -63,8 +90,8 @@ export const logAuditEvent = async (event: {
       event.actorUserId,
       event.action,
       event.resourceType,
-      event.resourceId != null ? String(event.resourceId) : null,
-      event.detail,
+      encryptedResourceId,
+      encryptedDetail,
     ],
   });
 };
@@ -80,8 +107,9 @@ export type AuditEventQuery = {
 /**
  * Get audit events with optional filtering.
  * Returns most recent events first.
+ * Decrypts detail and resource_id before returning.
  */
-export const getAuditEvents = (
+export const getAuditEvents = async (
   opts: AuditEventQuery = {},
 ): Promise<AuditEvent[]> => {
   const limit = opts.limit ?? 100;
@@ -105,21 +133,28 @@ export const getAuditEvents = (
     ? `WHERE ${conditions.join(" AND ")}`
     : "";
 
-  return queryAll<AuditEvent>(
+  const rows = await queryAll<AuditEvent>(
     `SELECT id, created, actor_user_id, action, resource_type, resource_id, detail
      FROM audit_events ${where} ORDER BY id DESC LIMIT ?`,
     [...args, limit],
   );
+
+  return decryptRows(rows);
 };
 
 /**
  * Get a single audit event by ID.
+ * Decrypts detail and resource_id before returning.
  */
-export const getAuditEventById = (id: number): Promise<AuditEvent | null> =>
-  queryOne<AuditEvent>(
+export const getAuditEventById = async (
+  id: number,
+): Promise<AuditEvent | null> => {
+  const row = await queryOne<AuditEvent>(
     "SELECT id, created, actor_user_id, action, resource_type, resource_id, detail FROM audit_events WHERE id = ?",
     [id],
   );
+  return row ? decryptRow(row) : null;
+};
 
 /**
  * Count total audit events (for pagination / observability).

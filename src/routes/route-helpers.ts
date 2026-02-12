@@ -24,11 +24,11 @@ import {
 // Re-export for convenience — many route modules need errorMessage
 export { errorMessage } from "#lib/logger.ts";
 
-/** Route params from URL patterns */
-type Params = Record<string, string | undefined>;
+/** Route params from URL patterns (same as RouteParams from router.ts) */
+export type Params = Record<string, string | undefined>;
 
 /** Route handler that receives URL params */
-type ParamHandler = (request: Request, params: Params) => Promise<Response>;
+export type ParamHandler = (request: Request, params: Params) => Promise<Response>;
 
 /** Clear session cookie on logout */
 export const clearSessionCookie = clearCookie("__Host-session", "/");
@@ -171,7 +171,7 @@ export const listRoute = <T>(
 
 /**
  * Create a validated-form route handler with URL params.
- * Validates form input, then calls handler with parsed values + config + params.
+ * Validates form input, then calls handler with parsed values + config + params + session.
  */
 export const formRouteP = <T>(
   fields: Field[],
@@ -179,13 +179,14 @@ export const formRouteP = <T>(
     values: T,
     config: XiboConfig,
     params: Params,
+    session: AuthSession,
   ) => Promise<Response>,
 ): ParamHandler =>
 (request, params) =>
-  withXiboForm(request, (_session, form, config) => {
+  withXiboForm(request, (session, form, config) => {
     const v = validateForm<T>(form, fields);
     if (!v.valid) return Promise.resolve(htmlResponse(v.error, 400));
-    return handler(v.values, config, params);
+    return handler(v.values, config, params, session);
   });
 
 /**
@@ -249,3 +250,4 @@ export const withEntity = async <T>(
   if (!entity) return htmlResponse(`<h1>${label} not found</h1>`, 404);
   return handler(entity);
 };
+

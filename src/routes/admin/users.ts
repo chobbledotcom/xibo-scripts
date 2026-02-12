@@ -3,7 +3,7 @@
  */
 
 import { filter, identity } from "#fp";
-import { logActivity } from "#lib/db/activity-log.ts";
+import { logAuditEvent } from "#lib/db/audit-events.ts";
 import {
   createInvitedUser,
   decryptAdminLevel,
@@ -161,7 +161,12 @@ const handleUsersPost = (request: Request): Promise<Response> =>
       expiry,
     );
 
-    await logActivity(`Invited user "${username}" with role "${adminLevel}"`);
+    await logAuditEvent({
+      actorUserId: session.userId,
+      action: "CREATE",
+      resourceType: "user",
+      detail: `Invited user "${username}" with role "${adminLevel}"`,
+    });
 
     const domain = getAllowedDomain();
     const inviteLink = `https://${domain}/join/${inviteCode}`;
@@ -249,7 +254,13 @@ const handleUserDelete = (
 
     await deleteUser(userId);
 
-    await logActivity(`Deleted user ${userId}`);
+    await logAuditEvent({
+      actorUserId: session.userId,
+      action: "DELETE",
+      resourceType: "user",
+      resourceId: userId,
+      detail: `Deleted user ${userId}`,
+    });
 
     return redirectWithSuccess("/admin/users", "User deleted successfully");
   });

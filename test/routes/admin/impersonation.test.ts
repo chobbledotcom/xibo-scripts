@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "#test-compat";
-import { getAllActivityLog } from "#lib/db/activity-log.ts";
+import { getAuditEvents } from "#lib/db/audit-events.ts";
 import { createSession } from "#lib/db/sessions.ts";
 import {
   awaitTestRequest,
@@ -63,10 +63,10 @@ describe("admin impersonation", () => {
         ),
       );
 
-      const logs = await getAllActivityLog();
-      const log = logs.find((l) => l.message.includes("Impersonated"));
+      const events = await getAuditEvents();
+      const log = events.find((e) => e.detail.includes("Impersonated"));
       expect(log).not.toBeNull();
-      expect(log!.message).toContain("loguser");
+      expect(log!.detail).toContain("loguser");
     });
 
     it("cannot impersonate yourself", async () => {
