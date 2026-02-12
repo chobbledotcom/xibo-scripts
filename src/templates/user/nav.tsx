@@ -31,6 +31,9 @@ export const UserNav = (
     )}
     <ul>
       <li>
+        <a href="/dashboard">Dashboard</a>
+      </li>
+      <li>
         <a href="/dashboard/media">My Media</a>
       </li>
       <li>

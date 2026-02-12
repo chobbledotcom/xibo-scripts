@@ -260,6 +260,8 @@ const descriptionField: Field = { name: "description", label: "Description", typ
 /** Common field: media_id (optional number) */
 const mediaIdField: Field = { name: "media_id", label: "Media", type: "number", hint: "Media library ID" };
 
+const priceField: Field = { name: "price", label: "Price", type: "text", required: true, hint: "e.g. 9.99" };
+
 /** Typed values from business form */
 export type BusinessFormValues = {
   name: string;
@@ -309,13 +311,7 @@ export const categoryFields: Field[] = [
 export const productFields: Field[] = [
   nameField,
   descriptionField,
-  {
-    name: "price",
-    label: "Price",
-    type: "text",
-    required: true,
-    hint: "e.g. 9.99",
-  },
+  priceField,
   { name: "calories", label: "Calories", type: "text" },
   { name: "allergy_info", label: "Allergy Info", type: "text" },
   {
@@ -325,4 +321,20 @@ export const productFields: Field[] = [
     hint: "1 = available, 0 = unavailable",
   },
   mediaIdField,
+];
+
+/** Typed values from dataset product form (user-facing) */
+export type DatasetProductFormValues = {
+  name: string;
+  price: string;
+  media_id: number | null;
+};
+
+/**
+ * Dataset product form field definitions (user-facing product CRUD)
+ */
+export const datasetProductFields: Field[] = [
+  nameField,
+  priceField,
+  { name: "media_id", label: "Image", type: "number", hint: "Select from your media library" },
 ];
