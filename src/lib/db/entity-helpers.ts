@@ -38,3 +38,4 @@ export const executePairSql =
   async (param1: number, param2: number): Promise<void> => {
     await getDb().execute({ sql, args: [param1, param2] });
   };
+

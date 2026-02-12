@@ -60,3 +60,24 @@ export interface Screen {
   xibo_display_id: number | null;
   created_at: string; // encrypted ISO 8601
 }
+
+/** Menu screen entity (encrypted at rest) */
+export interface MenuScreen {
+  id: number;
+  name: string; // encrypted
+  screen_id: number;
+  template_id: string;
+  display_time: number;
+  sort_order: number;
+  xibo_layout_id: number | null;
+  xibo_campaign_id: number | null;
+  created_at: string; // encrypted ISO 8601
+}
+
+/** Menu screen item — links a menu screen to a product (dataset row ID) */
+export interface MenuScreenItem {
+  id: number;
+  menu_screen_id: number;
+  product_row_id: number;
+  sort_order: number;
+}

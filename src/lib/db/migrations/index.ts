@@ -7,7 +7,7 @@ import { getDb } from "#lib/db/client.ts";
 /**
  * The latest database update identifier - update this when changing schema
  */
-export const LATEST_UPDATE = "add multi-tenant tables with fk and indexes";
+export const LATEST_UPDATE = "add menu screen items and campaign tracking";
 
 /**
  * Run a migration that may fail if already applied (e.g., adding a column that exists)
@@ -170,6 +170,26 @@ export const initDb = async (): Promise<void> => {
     `CREATE INDEX IF NOT EXISTS idx_menu_screens_screen ON menu_screens(screen_id)`,
   );
 
+  // Add xibo_campaign_id column to menu_screens
+  await runMigration(
+    `ALTER TABLE menu_screens ADD COLUMN xibo_campaign_id INTEGER`,
+  );
+
+  // Create menu_screen_items table (links menu screens to product dataset rows)
+  await runMigration(`
+    CREATE TABLE IF NOT EXISTS menu_screen_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      menu_screen_id INTEGER NOT NULL REFERENCES menu_screens(id),
+      product_row_id INTEGER NOT NULL,
+      sort_order INTEGER NOT NULL
+    )
+  `);
+
+  // Index for menu_screen_items by menu_screen
+  await runMigration(
+    `CREATE INDEX IF NOT EXISTS idx_menu_screen_items_menu ON menu_screen_items(menu_screen_id)`,
+  );
+
   // Update the version marker
   await getDb().execute({
     sql:
@@ -182,6 +202,7 @@ export const initDb = async (): Promise<void> => {
  * All database tables in order for safe dropping (respects foreign key constraints)
  */
 const ALL_TABLES = [
+  "menu_screen_items",
   "menu_screens",
   "screens",
   "business_users",

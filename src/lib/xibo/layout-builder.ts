@@ -113,6 +113,66 @@ export const LAYOUT_STATUS_LABELS: Record<number, string> = {
 export const layoutStatusLabel = (status: number): string =>
   LAYOUT_STATUS_LABELS[status] ?? `Unknown (${status})`;
 
+/** Product data needed for layout region widgets */
+export type RegionProduct = { name: string; price: string };
+
+/**
+ * Create a header region with a text widget on a layout.
+ * Returns the created region.
+ */
+export const createHeaderRegion = async (
+  config: XiboConfig,
+  layoutId: number,
+  headerPos: GridPosition,
+  label: string,
+): Promise<XiboRegion> => {
+  const region = await post<XiboRegion>(
+    config,
+    `region/${layoutId}`,
+    {
+      width: headerPos.width,
+      height: headerPos.height,
+      top: headerPos.top,
+      left: headerPos.left,
+    },
+  );
+  await post(config, `playlist/widget/text/${region.regionId}`, {
+    name: label,
+    duration: 0,
+  });
+  return region;
+};
+
+/**
+ * Create product grid regions on a layout.
+ * Each position gets a region; if a matching product exists, a text widget is added.
+ */
+export const createProductGridRegions = async (
+  config: XiboConfig,
+  layoutId: number,
+  positions: GridPosition[],
+  products: RegionProduct[],
+): Promise<void> => {
+  for (let i = 0; i < positions.length; i++) {
+    const pos = positions[i]!;
+    const product = products[i];
+
+    const region = await post<XiboRegion>(config, `region/${layoutId}`, {
+      width: pos.width,
+      height: pos.height,
+      top: pos.top,
+      left: pos.left,
+    });
+
+    if (product) {
+      await post(config, `playlist/widget/text/${region.regionId}`, {
+        name: `${product.name} - ${product.price}`,
+        duration: 0,
+      });
+    }
+  }
+};
+
 /**
  * Create a full menu board layout with header and product grid.
  *
@@ -125,7 +185,7 @@ export const layoutStatusLabel = (status: number): string =>
 export const createMenuLayout = async (
   config: XiboConfig,
   categoryName: string,
-  products: Array<{ name: string; price: string }>,
+  products: RegionProduct[],
 ): Promise<XiboLayout> => {
   // 1. Resolution
   const resolution = await getOrCreateResolution(
@@ -143,23 +203,11 @@ export const createMenuLayout = async (
   });
 
   // 3. Header region
-  const headerPos = calculateHeaderPosition();
-  const headerRegion = await post<XiboRegion>(
+  await createHeaderRegion(
     config,
-    `region/${layout.layoutId}`,
-    {
-      width: headerPos.width,
-      height: headerPos.height,
-      top: headerPos.top,
-      left: headerPos.left,
-    },
-  );
-
-  // Add text widget to header with category name
-  await post(
-    config,
-    `playlist/widget/text/${headerRegion.regionId}`,
-    { name: categoryName, duration: 0 },
+    layout.layoutId,
+    calculateHeaderPosition(),
+    categoryName,
   );
 
   // 4. Product grid
@@ -170,33 +218,7 @@ export const createMenuLayout = async (
     SCREEN_HEIGHT,
     HEADER_HEIGHT,
   );
-
-  for (let i = 0; i < gridPositions.length; i++) {
-    const pos = gridPositions[i]!;
-    const product = products[i];
-
-    const region = await post<XiboRegion>(
-      config,
-      `region/${layout.layoutId}`,
-      {
-        width: pos.width,
-        height: pos.height,
-        top: pos.top,
-        left: pos.left,
-      },
-    );
-
-    if (product) {
-      await post(
-        config,
-        `playlist/widget/text/${region.regionId}`,
-        {
-          name: `${product.name} - ${product.price}`,
-          duration: 0,
-        },
-      );
-    }
-  }
+  await createProductGridRegions(config, layout.layoutId, gridPositions, products);
 
   // 5. Publish
   await put(config, `layout/publish/${layout.layoutId}`, {});

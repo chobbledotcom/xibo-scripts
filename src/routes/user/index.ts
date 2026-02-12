@@ -4,6 +4,7 @@
 
 import { userDashboardRoutes } from "#routes/user/dashboard.ts";
 import { userMediaRoutes } from "#routes/user/media.ts";
+import { userMenuScreenRoutes } from "#routes/user/menu-screens.ts";
 import { userProductRoutes } from "#routes/user/products.ts";
 import { createRouter } from "#routes/router.ts";
 
@@ -11,6 +12,7 @@ import { createRouter } from "#routes/router.ts";
 const userRoutes = {
   ...userDashboardRoutes,
   ...userMediaRoutes,
+  ...userMenuScreenRoutes,
   ...userProductRoutes,
 };
 

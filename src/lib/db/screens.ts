@@ -3,18 +3,16 @@
  */
 
 import { decrypt } from "#lib/crypto.ts";
-import { getDb, queryOne } from "#lib/db/client.ts";
+import { executeByField, getDb, queryOne } from "#lib/db/client.ts";
 import { insertAndGetId, prepareEncryptedFields } from "#lib/db/entity-helpers.ts";
 import type { Screen } from "#lib/types.ts";
 
-/** Decrypted screen for display */
-export interface DisplayScreen {
-  id: number;
-  name: string;
-  business_id: number;
-  xibo_display_id: number | null;
-  created_at: string;
-}
+/**
+ * Decrypted screen for display.
+ * Structurally identical to Screen — the alias documents that
+ * `name` and `created_at` have been decrypted for safe rendering.
+ */
+export type DisplayScreen = Screen;
 
 /**
  * Create a new screen with encrypted fields
@@ -65,15 +63,8 @@ export const getScreensForBusiness = async (
  * Delete a screen and cascade delete its menu_screens
  */
 export const deleteScreen = async (id: number): Promise<void> => {
-  const db = getDb();
-  await db.execute({
-    sql: "DELETE FROM menu_screens WHERE screen_id = ?",
-    args: [id],
-  });
-  await db.execute({
-    sql: "DELETE FROM screens WHERE id = ?",
-    args: [id],
-  });
+  await executeByField("menu_screens", "screen_id", id);
+  await executeByField("screens", "id", id);
 };
 
 /**

@@ -10,12 +10,11 @@ import { filter, map, pipe } from "#fp";
 import { getSharedFolderId } from "#lib/db/settings.ts";
 import { validateForm } from "#lib/forms.tsx";
 import type { DisplayBusiness } from "#lib/db/businesses.ts";
-import { get, post, put, del } from "#xibo/client.ts";
+import { post, put, del } from "#xibo/client.ts";
 import { fetchAllMedia } from "#xibo/media-ops.ts";
 import type {
   DatasetProduct,
   XiboConfig,
-  XiboDatasetRow,
   XiboMedia,
 } from "#xibo/types.ts";
 import type { AuthSession } from "#routes/utils.ts";
@@ -28,50 +27,13 @@ import {
   withXiboForm,
 } from "#routes/admin/utils.ts";
 import { userBusinessDetailRoute, withUserBusiness } from "#routes/user/utils.ts";
+import { COL, fetchProducts, findProduct } from "#routes/user/data-helpers.ts";
 import {
   userProductCreatePage,
   userProductEditPage,
   userProductListPage,
 } from "#templates/user/products.tsx";
 import { datasetProductFields, type DatasetProductFormValues } from "#templates/fields.ts";
-
-// ─── Data Helpers ──────────────────────────────────────────────────
-
-/** Column headings in the business dataset */
-const COL = {
-  NAME: "name",
-  PRICE: "price",
-  MEDIA_ID: "media_id",
-  AVAILABLE: "available",
-  SORT_ORDER: "sort_order",
-} as const;
-
-/** Parse a Xibo dataset row into a typed DatasetProduct */
-const parseProduct = (row: XiboDatasetRow): DatasetProduct => ({
-  id: Number(row["id"] ?? 0),
-  name: String(row[COL.NAME] ?? ""),
-  price: String(row[COL.PRICE] ?? "0"),
-  media_id: row[COL.MEDIA_ID] !== null && row[COL.MEDIA_ID] !== ""
-    ? Number(row[COL.MEDIA_ID])
-    : null,
-  available: Number(row[COL.AVAILABLE] ?? 1),
-  sort_order: Number(row[COL.SORT_ORDER] ?? 0),
-});
-
-/** Fetch all products from a business dataset */
-const fetchProducts = async (
-  config: XiboConfig,
-  datasetId: number,
-): Promise<DatasetProduct[]> =>
-  map(parseProduct)(await get<XiboDatasetRow[]>(config, `dataset/data/${datasetId}`));
-
-/** Find a specific product by row ID within a dataset */
-const findProduct = async (
-  config: XiboConfig,
-  datasetId: number,
-  rowId: number,
-): Promise<DatasetProduct | null> =>
-  (await fetchProducts(config, datasetId)).find((p) => p.id === rowId) ?? null;
 
 /** Get media options for the image picker — shared + business-owned images */
 const getMediaOptions = async (
