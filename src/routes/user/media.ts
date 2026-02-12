@@ -9,19 +9,18 @@
 import { filter } from "#fp";
 import { getSharedFolderId } from "#lib/db/settings.ts";
 import type { XiboMedia } from "#xibo/types.ts";
+import { extractUploadName, fetchAllMedia } from "#xibo/media-ops.ts";
 import {
-  extractUploadName,
-  fetchAllMedia,
   handleMultipartUpload,
   proxyMediaPreview,
   resolveAuthConfig,
   uploadToXibo,
   verifyAndDeleteMedia,
-} from "#xibo/media-ops.ts";
+} from "#routes/media-ops.ts";
 import type { AuthSession } from "#routes/utils.ts";
 import { htmlResponse, redirectWithError, withAuthForm } from "#routes/utils.ts";
 import { defineRoutes } from "#routes/router.ts";
-import { errorMessage, getQueryMessages, toAdminSession, withXiboConfig } from "#routes/admin/utils.ts";
+import { errorMessage, getQueryMessages, toAdminSession, withXiboConfig } from "#routes/route-helpers.ts";
 import type { UserBusinessContext } from "#routes/user/utils.ts";
 import {
   resolveBusinessContext,

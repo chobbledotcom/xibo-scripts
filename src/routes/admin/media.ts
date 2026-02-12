@@ -14,12 +14,14 @@ import {
   fetchAllMedia,
   fetchFolders,
   findMediaById,
+} from "#xibo/media-ops.ts";
+import {
   handleMultipartUpload,
   proxyMediaPreview,
   resolveAuthConfig,
   uploadToXibo,
   verifyAndDeleteMedia,
-} from "#xibo/media-ops.ts";
+} from "#routes/media-ops.ts";
 import { defineRoutes } from "#routes/router.ts";
 import { htmlResponse, redirectWithError } from "#routes/utils.ts";
 import {
@@ -36,7 +38,7 @@ import {
   getQueryMessages,
   sessionRoute,
   withXiboForm,
-} from "#routes/admin/utils.ts";
+} from "#routes/route-helpers.ts";
 
 /**
  * Render upload page with an error, fetching folders for the form.

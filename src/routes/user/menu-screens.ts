@@ -35,7 +35,7 @@ import { rebuildScreenSchedule } from "#xibo/scheduling.ts";
 import type { DatasetProduct, XiboConfig } from "#xibo/types.ts";
 import { defineRoutes } from "#routes/router.ts";
 import { htmlResponse, redirectWithError, redirectWithSuccess } from "#routes/utils.ts";
-import { errorMessage, getQueryMessages, toAdminSession, withXiboForm } from "#routes/admin/utils.ts";
+import { errorMessage, getQueryMessages, toAdminSession, withXiboForm } from "#routes/route-helpers.ts";
 import { userBusinessDetailRoute, withUserBusiness } from "#routes/user/utils.ts";
 import { fetchProducts } from "#routes/user/data-helpers.ts";
 import { menuScreenFields, type MenuScreenFormValues } from "#templates/fields.ts";

@@ -120,3 +120,7 @@ export const logDebug = (category: LogCategory, message: string): void => {
   // biome-ignore lint/suspicious/noConsole: Intentional debug logging
   console.debug(`[${category}] ${message}`);
 };
+
+/** Extract error message from an unknown thrown value. */
+export const errorMessage = (e: unknown): string =>
+  e instanceof Error ? e.message : "Unknown error";

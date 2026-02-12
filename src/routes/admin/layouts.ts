@@ -28,7 +28,7 @@ import {
   listRoute,
   sessionRoute,
   withXiboForm,
-} from "#routes/admin/utils.ts";
+} from "#routes/route-helpers.ts";
 
 // ─── Routes ──────────────────────────────────────────────────────────
 

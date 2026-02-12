@@ -1,9 +1,14 @@
 /**
- * Admin route utilities
+ * Shared route utilities
+ *
+ * Higher-order functions and helpers used by both admin and user route modules.
+ * Composes the lower-level primitives from routes/utils.ts into convenient
+ * session+config wrappers, list/detail/form route builders, and entity helpers.
  */
 
 import { get, del, loadXiboConfig } from "#xibo/client.ts";
 import { validateForm, type Field } from "#lib/forms.tsx";
+import { errorMessage } from "#lib/logger.ts";
 import type { AdminSession } from "#lib/types.ts";
 import type { XiboConfig } from "#xibo/types.ts";
 import type { AuthSession } from "#routes/utils.ts";
@@ -15,6 +20,9 @@ import {
   requireSessionOr,
   withAuthForm,
 } from "#routes/utils.ts";
+
+// Re-export for convenience — many route modules need errorMessage
+export { errorMessage } from "#lib/logger.ts";
 
 /** Route params from URL patterns */
 type Params = Record<string, string | undefined>;
@@ -48,10 +56,6 @@ export const withXiboConfig = async (
   }
   return handler(config);
 };
-
-/** Extract error message from an unknown thrown value. */
-export const errorMessage = (e: unknown): string =>
-  e instanceof Error ? e.message : "Unknown error";
 
 /** Extract the `?success=` query parameter from a request. */
 export const getSuccessParam = (request: Request): string | undefined =>

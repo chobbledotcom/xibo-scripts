@@ -17,7 +17,7 @@ import {
   requireOwnerOnly,
   withOwnerAuthForm,
 } from "#routes/utils.ts";
-import { getQueryMessages } from "#routes/admin/utils.ts";
+import { getQueryMessages } from "#routes/route-helpers.ts";
 import {
   changePasswordFields,
   type ChangePasswordFormValues,

@@ -27,7 +27,7 @@ import {
   errorMessage,
   getQueryMessages,
   toAdminSession,
-} from "#routes/admin/utils.ts";
+} from "#routes/route-helpers.ts";
 import {
   adminScreenCreatePage,
   adminScreenDetailPage,
