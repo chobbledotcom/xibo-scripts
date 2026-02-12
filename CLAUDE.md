@@ -210,6 +210,25 @@ import type { XiboConfig, XiboLayout } from "#xibo/types.ts";
 import { cacheGet, cacheSet, cacheInvalidateAll } from "#xibo/cache.ts";
 ```
 
+## Xibo API Reference
+
+The Xibo CMS API is documented via Swagger/OpenAPI. The canonical spec for any CMS instance is at `<cms_url>/swagger.json`, and the interactive docs are at `<cms_url>/api/doc/`. The public Swagger UI is at https://account.xibosignage.com/manual/api/.
+
+When adding new API calls, always verify the endpoint path against the swagger spec — Xibo uses **plural** resource names consistently.
+
+### Key endpoints (all under `/api`)
+
+| Resource | GET (list) | POST (create) | PUT (update) | DELETE |
+|----------|-----------|---------------|-------------|--------|
+| Folders | `GET /folders` | `POST /folders` | `PUT /folders/{id}` | `DELETE /folders/{id}` |
+| Datasets | `GET /dataset` | `POST /dataset` | `PUT /dataset/{id}` | `DELETE /dataset/{id}` |
+| Dataset columns | `GET /dataset/{id}/column` | `POST /dataset/{id}/column` | — | — |
+| Media library | `GET /library` | `POST /library` (multipart) | `PUT /library/{id}` | `DELETE /library/{id}` |
+| Layouts | `GET /layout` | `POST /layout` | `PUT /layout/{id}` | `DELETE /layout/{id}` |
+| Menu boards | `GET /menuboard` | `POST /menuboard` | `PUT /menuboard/{id}` | `DELETE /menuboard/{id}` |
+
+**Note:** `folders` is plural; most other resources are singular. Always check the spec.
+
 ## Domain Context
 
 This tool manages a Xibo CMS that drives digital signage layouts. The primary entities are **layouts** (the main display format), **media** (images/videos in the library), and **datasets** (structured data). Menu boards were originally planned but the CMS module may not be available — layouts are the core entity we work with. Always base new work on the existing codebase patterns and code, not on assumptions.
