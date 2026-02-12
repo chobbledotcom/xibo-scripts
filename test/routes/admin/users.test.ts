@@ -145,7 +145,7 @@ describe("admin users management", () => {
       });
 
       const managerUserId = 2;
-      await createSession("manager-token", "manager-csrf", Date.now() + 3600000, null, managerUserId);
+      await createSession("manager-token", "manager-csrf", Date.now() + 3600000, managerUserId);
 
       const usersResponse = await awaitTestRequest("/admin/users", {
         cookie: "__Host-session=manager-token",
@@ -170,7 +170,7 @@ describe("admin users management", () => {
       });
 
       const userId = 2;
-      await createSession("user-token", "user-csrf", Date.now() + 3600000, null, userId);
+      await createSession("user-token", "user-csrf", Date.now() + 3600000, userId);
 
       const usersResponse = await awaitTestRequest("/admin/users", {
         cookie: "__Host-session=user-token",

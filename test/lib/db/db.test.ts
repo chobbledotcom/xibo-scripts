@@ -257,7 +257,7 @@ describe("database layer", () => {
       const { createSession, getSession } = await import(
         "#lib/db/sessions.ts"
       );
-      await createSession("tok-1", "csrf-1", Date.now() + 60000, null, 1);
+      await createSession("tok-1", "csrf-1", Date.now() + 60000, 1);
       const session = await getSession("tok-1");
       expect(session).not.toBeNull();
       expect(session!.csrf_token).toBe("csrf-1");
@@ -267,7 +267,7 @@ describe("database layer", () => {
       const { createSession, getSession } = await import(
         "#lib/db/sessions.ts"
       );
-      await createSession("tok-2", "csrf-2", Date.now() + 60000, null, 1);
+      await createSession("tok-2", "csrf-2", Date.now() + 60000, 1);
       const s1 = await getSession("tok-2");
       const s2 = await getSession("tok-2");
       expect(s1).toEqual(s2);
@@ -283,7 +283,7 @@ describe("database layer", () => {
       const { createSession, deleteSession, getSession } = await import(
         "#lib/db/sessions.ts"
       );
-      await createSession("tok-3", "csrf-3", Date.now() + 60000, null, 1);
+      await createSession("tok-3", "csrf-3", Date.now() + 60000, 1);
       await deleteSession("tok-3");
       const session = await getSession("tok-3");
       expect(session).toBeNull();
@@ -293,8 +293,8 @@ describe("database layer", () => {
       const { createSession, deleteAllSessions, getAllSessions } = await import(
         "#lib/db/sessions.ts"
       );
-      await createSession("tok-a", "csrf-a", Date.now() + 60000, null, 1);
-      await createSession("tok-b", "csrf-b", Date.now() + 60000, null, 1);
+      await createSession("tok-a", "csrf-a", Date.now() + 60000, 1);
+      await createSession("tok-b", "csrf-b", Date.now() + 60000, 1);
       await deleteAllSessions();
       const all = await getAllSessions();
       expect(all.length).toBe(0);
@@ -307,8 +307,8 @@ describe("database layer", () => {
         getSession,
         getAllSessions,
       } = await import("#lib/db/sessions.ts");
-      await createSession("tok-keep", "csrf", Date.now() + 60000, null, 1);
-      await createSession("tok-del", "csrf", Date.now() + 60000, null, 1);
+      await createSession("tok-keep", "csrf", Date.now() + 60000, 1);
+      await createSession("tok-del", "csrf", Date.now() + 60000, 1);
       await deleteOtherSessions("tok-keep");
       const kept = await getSession("tok-keep");
       expect(kept).not.toBeNull();
@@ -320,8 +320,8 @@ describe("database layer", () => {
       const { createSession, getAllSessions } = await import(
         "#lib/db/sessions.ts"
       );
-      await createSession("tok-old", "c", Date.now() + 10000, null, 1);
-      await createSession("tok-new", "c", Date.now() + 90000, null, 1);
+      await createSession("tok-old", "c", Date.now() + 10000, 1);
+      await createSession("tok-new", "c", Date.now() + 90000, 1);
       const all = await getAllSessions();
       expect(all.length).toBe(2);
       // Ordered by expires DESC
@@ -332,7 +332,7 @@ describe("database layer", () => {
       const { createSession, getSession, resetSessionCache } = await import(
         "#lib/db/sessions.ts"
       );
-      await createSession("tok-cache", "c", Date.now() + 60000, null, 1);
+      await createSession("tok-cache", "c", Date.now() + 60000, 1);
       // Read to populate cache
       await getSession("tok-cache");
       resetSessionCache();
@@ -409,7 +409,7 @@ describe("database layer", () => {
         "#lib/db/sessions.ts"
       );
       const user = await getUserByUsername(TEST_ADMIN_USERNAME);
-      await createSession("u-sess", "c", Date.now() + 60000, null, user!.id);
+      await createSession("u-sess", "c", Date.now() + 60000, user!.id);
       await deleteUser(user!.id);
       const deleted = await getUserById(user!.id);
       expect(deleted).toBeNull();
@@ -496,7 +496,7 @@ describe("database layer", () => {
       const oldHash = await verifyUserPassword(user!, TEST_ADMIN_PASSWORD);
       expect(oldHash).not.toBeNull();
 
-      await createSession("pw-sess", "c", Date.now() + 60000, null, user!.id);
+      await createSession("pw-sess", "c", Date.now() + 60000, user!.id);
 
       await updateUserPassword(user!.id, "newpassword123");
 
@@ -773,7 +773,7 @@ describe("database layer", () => {
 
     it("getSession re-fetches from DB when cache entry has expired TTL", async () => {
       const { createSession, getSession } = await import("#lib/db/sessions.ts");
-      await createSession("ttl-tok", "csrf", Date.now() + 60000, null, 1);
+      await createSession("ttl-tok", "csrf", Date.now() + 60000, 1);
       // First call populates cache
       const s1 = await getSession("ttl-tok");
       expect(s1).not.toBeNull();
@@ -796,7 +796,7 @@ describe("database layer", () => {
         const baseTime = Date.now();
         setSystemTime(baseTime);
 
-        await createSession("ttl-expire", "csrf-original", baseTime + 60000, null, 1);
+        await createSession("ttl-expire", "csrf-original", baseTime + 60000, 1);
 
         // First call — populates cache
         const s1 = await getSession("ttl-expire");

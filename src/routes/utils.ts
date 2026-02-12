@@ -441,7 +441,7 @@ export const createNewSession = async (
   const token = generateSecureToken();
   const csrfToken = generateSecureToken();
   const expires = nowMs() + SESSION_EXPIRY_MS;
-  await createSession(token, csrfToken, expires, null, userId);
+  await createSession(token, csrfToken, expires, userId);
   return token;
 };
 

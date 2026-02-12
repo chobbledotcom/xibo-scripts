@@ -86,7 +86,6 @@ export const createSession = async (
   token: string,
   csrfToken: string,
   expires: number,
-  _unused: null,
   userId: number,
 ): Promise<void> => {
   const tokenHash = await hashSessionToken(token);

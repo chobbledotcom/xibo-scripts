@@ -196,7 +196,7 @@ describe("admin impersonation", () => {
 
     it("clears cookies when admin session expired", async () => {
       // Create an expired admin session
-      await createSession("expired-admin", "expired-csrf", Date.now() - 1000, null, 1);
+      await createSession("expired-admin", "expired-csrf", Date.now() - 1000, 1);
 
       const response = await handle(
         new Request("http://localhost/admin/stop-impersonating", {
