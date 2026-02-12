@@ -10,10 +10,12 @@ import {
   decryptUsername,
   getUserById,
 } from "#lib/db/users.ts";
-import { clearSessionCookie } from "#routes/admin/utils.ts";
+import { clearSessionCookie } from "#routes/route-helpers.ts";
 import { defineRoutes } from "#routes/router.ts";
 import type { RouteParams } from "#routes/router.ts";
 import {
+  buildCookie,
+  clearCookie,
   createSessionWithKey,
   getAuthenticatedSession,
   htmlResponse,
@@ -27,13 +29,15 @@ import {
 /** Cookie name for storing the admin's original session during impersonation */
 export const ADMIN_SESSION_COOKIE = "__Host-admin-session";
 
+/** Admin session cookie max-age (24 hours) */
+const ADMIN_SESSION_MAX_AGE = 86400;
+
 /** Build the admin session cookie string */
 const adminSessionCookie = (token: string): string =>
-  `${ADMIN_SESSION_COOKIE}=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`;
+  buildCookie(ADMIN_SESSION_COOKIE, token, "/", ADMIN_SESSION_MAX_AGE);
 
 /** Clear the admin session cookie */
-const clearAdminSessionCookie =
-  `${ADMIN_SESSION_COOKIE}=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`;
+const clearAdminSessionCookie = clearCookie(ADMIN_SESSION_COOKIE, "/");
 
 /**
  * Handle POST /admin/users/:id/impersonate

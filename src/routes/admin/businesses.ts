@@ -31,7 +31,7 @@ import { defineRoutes, type RouteParams } from "#routes/router.ts";
 import type { AuthSession } from "#routes/utils.ts";
 import {
   htmlResponse,
-  redirect,
+  redirectWithError,
   redirectWithSuccess,
   requireManagerOrAbove,
   withManagerAuthForm,
@@ -42,7 +42,7 @@ import {
   withEntity,
   withXiboConfig,
   xiboThenPersist,
-} from "#routes/admin/utils.ts";
+} from "#routes/route-helpers.ts";
 import {
   adminBusinessCreatePage,
   adminBusinessDetailPage,
@@ -302,7 +302,7 @@ const withBusinessUser = (
       const userId = Number(form.get("user_id"));
       if (!userId) {
         return Promise.resolve(
-          redirect(`/admin/business/${biz.id}?error=${encodeURIComponent(noUserError)}`),
+          redirectWithError(`/admin/business/${biz.id}`, noUserError),
         );
       }
       return action(biz.id, userId, session);
@@ -317,11 +317,11 @@ const handleAssignUser = (
   withBusinessUser(request, params, "Please select a user", async (businessId, userId, session) => {
     const user = await getUserById(userId);
     if (!user) {
-      return redirect(`/admin/business/${businessId}?error=${encodeURIComponent("User not found")}`);
+      return redirectWithError(`/admin/business/${businessId}`, "User not found");
     }
     const level = await decryptAdminLevel(user);
     if (level !== "user") {
-      return redirect(`/admin/business/${businessId}?error=${encodeURIComponent("Only user-role users can be assigned")}`);
+      return redirectWithError(`/admin/business/${businessId}`, "Only user-role users can be assigned");
     }
 
     await assignUserToBusiness(businessId, userId);

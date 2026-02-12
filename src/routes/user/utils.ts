@@ -15,7 +15,7 @@ import type { DisplayBusiness } from "#lib/db/businesses.ts";
 import type { XiboConfig } from "#xibo/types.ts";
 import type { AuthSession } from "#routes/utils.ts";
 import { htmlResponse } from "#routes/utils.ts";
-import { detailRoute, sessionRoute } from "#routes/admin/utils.ts";
+import { detailRoute, sessionRoute } from "#routes/route-helpers.ts";
 
 /** Route params from URL patterns */
 type Params = Record<string, string | undefined>;

@@ -8,6 +8,7 @@ import type {
   XiboDatasetColumn,
   XiboDatasetRow,
 } from "#xibo/types.ts";
+import { ErrorCode, logError } from "#lib/logger.ts";
 import { defineRoutes } from "#routes/router.ts";
 import { htmlResponse } from "#routes/utils.ts";
 import {
@@ -18,7 +19,7 @@ import {
   detailRoute,
   fetchList,
   sessionRoute,
-} from "#routes/admin/utils.ts";
+} from "#routes/route-helpers.ts";
 
 // ─── Routes ──────────────────────────────────────────────────────────
 
@@ -56,8 +57,8 @@ const handleDatasetDetail = detailRoute(
         config,
         `dataset/${datasetId}/column`,
       );
-    } catch {
-      // columns may not be available
+    } catch (_e) {
+      logError({ code: ErrorCode.XIBO_API_REQUEST, detail: "dataset columns fetch" });
     }
 
     // Fetch sample data (first 10 rows)
@@ -68,8 +69,8 @@ const handleDatasetDetail = detailRoute(
         `dataset/data/${datasetId}`,
         { start: "0", length: "10" },
       );
-    } catch {
-      // data may not be available
+    } catch (_e) {
+      logError({ code: ErrorCode.XIBO_API_REQUEST, detail: "dataset data fetch" });
     }
 
     return htmlResponse(

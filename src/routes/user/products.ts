@@ -25,7 +25,7 @@ import {
   getQueryMessages,
   toAdminSession,
   withXiboForm,
-} from "#routes/admin/utils.ts";
+} from "#routes/route-helpers.ts";
 import { userBusinessDetailRoute, withUserBusiness } from "#routes/user/utils.ts";
 import { COL, fetchProducts, findProduct } from "#routes/user/data-helpers.ts";
 import {
