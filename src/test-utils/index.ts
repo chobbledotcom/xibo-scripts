@@ -114,13 +114,12 @@ export const createTestDbWithSetup = async (): Promise<void> => {
       for (const row of cachedSetupUsers) {
         await cachedClient!.execute({
           sql:
-            "INSERT INTO users (id, username_hash, username_index, password_hash, wrapped_data_key, admin_level, invite_code_hash, invite_expiry) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO users (id, username_hash, username_index, password_hash, admin_level, invite_code_hash, invite_expiry) VALUES (?, ?, ?, ?, ?, ?, ?)",
           args: [
             row.id,
             row.username_hash,
             row.username_index,
             row.password_hash,
-            row.wrapped_data_key,
             row.admin_level,
             row.invite_code_hash,
             row.invite_expiry,
@@ -354,7 +353,6 @@ export const withMocks = async <
 };
 
 import {
-  activateUser,
   createInvitedUser,
   hashInviteCode,
   setUserPassword,
@@ -374,7 +372,7 @@ export const handle = async (req: Request): Promise<Response> => {
 const ONE_DAY_MS = 86400000;
 
 /**
- * Create an activated user without logging in. Returns the user ID.
+ * Create an active user (has password set). Returns the user ID.
  */
 export const createActivatedUser = async (
   username: string,
@@ -388,13 +386,7 @@ export const createActivatedUser = async (
     codeHash,
     new Date(Date.now() + ONE_DAY_MS).toISOString(),
   );
-  const pwHash = await setUserPassword(user.id, password);
-  const dataKey = await crypto.subtle.generateKey(
-    { name: "AES-GCM", length: 256 },
-    true,
-    ["encrypt", "decrypt"],
-  );
-  await activateUser(user.id, dataKey, pwHash);
+  await setUserPassword(user.id, password);
   return user.id;
 };
 

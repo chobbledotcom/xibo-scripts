@@ -482,7 +482,7 @@ describe("database layer", () => {
       expect(raw!.startsWith("enc:1:")).toBe(true);
     });
 
-    it("updateUserPassword rehashes, re-wraps key, deletes sessions", async () => {
+    it("updateUserPassword rehashes and deletes sessions", async () => {
       await createTestDbWithSetup();
       const { getUserByUsername, verifyUserPassword } = await import(
         "#lib/db/users.ts"
@@ -498,13 +498,7 @@ describe("database layer", () => {
 
       await createSession("pw-sess", "c", Date.now() + 60000, null, user!.id);
 
-      const result = await updateUserPassword(
-        user!.id,
-        oldHash!,
-        user!.wrapped_data_key!,
-        "newpassword123",
-      );
-      expect(result).toBe(true);
+      await updateUserPassword(user!.id, "newpassword123");
 
       // Sessions should be cleared
       const sessions = await getAllSessions();
@@ -541,7 +535,6 @@ describe("database layer", () => {
       expect(user.id).toBeGreaterThan(0);
       expect(user.invite_code_hash).not.toBeNull();
       expect(user.invite_expiry).not.toBeNull();
-      expect(user.wrapped_data_key).toBeNull();
       expect(await hasPassword(user)).toBe(false);
     });
 
@@ -627,42 +620,6 @@ describe("database layer", () => {
       expect(await hasPassword(updated!)).toBe(true);
     });
 
-    it("activateUser wraps data key with KEK", async () => {
-      const { createInvitedUser, activateUser, setUserPassword, getUserById, hashInviteCode } =
-        await import("#lib/db/users.ts");
-      const { deriveKEK, unwrapKey, generateDataKey } = await import("#lib/crypto.ts");
-      const codeHash = await hashInviteCode("code3");
-      const user = await createInvitedUser("activate", "manager", codeHash, new Date(Date.now() + 86400000).toISOString());
-      const pwHash = await setUserPassword(user.id, "activatepass123");
-      const dataKey = await generateDataKey();
-      await activateUser(user.id, dataKey, pwHash);
-      const updated = await getUserById(user.id);
-      expect(updated!.wrapped_data_key).not.toBeNull();
-      // Verify the wrapped key can be unwrapped
-      const kek = await deriveKEK(pwHash);
-      const unwrapped = await unwrapKey(updated!.wrapped_data_key!, kek);
-      expect(unwrapped).toBeDefined();
-    });
-  });
-
-  describe("settings — key storage", () => {
-    beforeEach(async () => {
-      await createTestDbWithSetup();
-    });
-
-    it("getPublicKey returns the stored public key", async () => {
-      const { getPublicKey } = await import("#lib/db/settings.ts");
-      const key = await getPublicKey();
-      expect(key).not.toBeNull();
-      expect(key!.length).toBeGreaterThan(0);
-    });
-
-    it("getWrappedPrivateKey returns the stored wrapped private key", async () => {
-      const { getWrappedPrivateKey } = await import("#lib/db/settings.ts");
-      const key = await getWrappedPrivateKey();
-      expect(key).not.toBeNull();
-      expect(key!.startsWith("enc:1:")).toBe(true);
-    });
   });
 
   describe("migrations — runMigration catch block", () => {
@@ -690,7 +647,6 @@ describe("database layer", () => {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           username_hash TEXT NOT NULL,
           password_hash TEXT NOT NULL DEFAULT '',
-          wrapped_data_key TEXT,
           admin_level TEXT NOT NULL
         )
       `);
@@ -747,8 +703,8 @@ describe("database layer", () => {
       const encExpiry = await encrypt(new Date(Date.now() + 86400000).toISOString());
 
       await getDb().execute({
-        sql: `INSERT INTO users (username_hash, username_index, password_hash, wrapped_data_key, admin_level, invite_code_hash, invite_expiry)
-              VALUES (?, ?, '', NULL, ?, ?, ?)`,
+        sql: `INSERT INTO users (username_hash, username_index, password_hash, admin_level, invite_code_hash, invite_expiry)
+              VALUES (?, ?, '', ?, ?, ?)`,
         args: [encUsername, usernameIndex, encAdminLevel, encEmptyCode, encExpiry],
       });
 
@@ -772,8 +728,8 @@ describe("database layer", () => {
       const encAdminLevel = await encrypt("manager");
 
       await getDb().execute({
-        sql: `INSERT INTO users (username_hash, username_index, password_hash, wrapped_data_key, admin_level, invite_code_hash, invite_expiry)
-              VALUES (?, ?, '', NULL, ?, ?, NULL)`,
+        sql: `INSERT INTO users (username_hash, username_index, password_hash, admin_level, invite_code_hash, invite_expiry)
+              VALUES (?, ?, '', ?, ?, NULL)`,
         args: [encUsername, usernameIndex, encAdminLevel, encCodeHash],
       });
 
@@ -798,8 +754,8 @@ describe("database layer", () => {
       const encEmptyExpiry = await encrypt(""); // decrypts to ""
 
       await getDb().execute({
-        sql: `INSERT INTO users (username_hash, username_index, password_hash, wrapped_data_key, admin_level, invite_code_hash, invite_expiry)
-              VALUES (?, ?, '', NULL, ?, ?, ?)`,
+        sql: `INSERT INTO users (username_hash, username_index, password_hash, admin_level, invite_code_hash, invite_expiry)
+              VALUES (?, ?, '', ?, ?, ?)`,
         args: [encUsername, usernameIndex, encAdminLevel, encCodeHash, encEmptyExpiry],
       });
 

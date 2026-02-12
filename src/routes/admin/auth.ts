@@ -2,7 +2,6 @@
  * Admin authentication routes - login and logout
  */
 
-import { deriveKEK, unwrapKey } from "#lib/crypto.ts";
 import { logAuditEvent } from "#lib/db/audit-events.ts";
 import {
   clearLoginAttempts,
@@ -17,7 +16,7 @@ import { clearSessionCookie } from "#routes/route-helpers.ts";
 import { defineRoutes } from "#routes/router.ts";
 import type { ServerContext } from "#routes/types.ts";
 import {
-  createSessionWithKey,
+  createNewSession,
   getClientIp,
   parseFormData,
   redirect,
@@ -33,12 +32,11 @@ const randomDelay = (): Promise<void> =>
     ? Promise.resolve()
     : new Promise((resolve) => setTimeout(resolve, 100 + Math.random() * 100));
 
-/** Create a session with a wrapped DATA_KEY and redirect to /admin */
+/** Create a session and redirect to /admin */
 const createLoginSession = async (
-  dataKey: CryptoKey,
   userId: number,
 ): Promise<Response> => {
-  const token = await createSessionWithKey(dataKey, userId);
+  const token = await createNewSession(userId);
   return redirect("/admin", sessionCookieValue(token));
 };
 
@@ -87,23 +85,6 @@ const handleAdminLogin = async (
   // Clear failed attempts on successful login
   await clearLoginAttempts(clientIp);
 
-  // Check if user has a wrapped data key (fully activated)
-  if (!user.wrapped_data_key) {
-    return loginResponse(
-      "Your account has not been activated yet. Please contact the site owner.",
-      403,
-    );
-  }
-
-  // Unwrap DATA_KEY using password-derived KEK
-  const kek = await deriveKEK(passwordHash);
-  let dataKey: CryptoKey;
-  try {
-    dataKey = await unwrapKey(user.wrapped_data_key, kek);
-  } catch {
-    return loginResponse("Invalid credentials", 401);
-  }
-
   await logAuditEvent({
     actorUserId: user.id,
     action: "LOGIN",
@@ -111,7 +92,7 @@ const handleAdminLogin = async (
     detail: "Successful login",
   });
 
-  return createLoginSession(dataKey, user.id);
+  return createLoginSession(user.id);
 };
 
 /**

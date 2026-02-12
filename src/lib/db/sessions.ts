@@ -79,28 +79,27 @@ export const resetSessionCache = (): void => {
 };
 
 /**
- * Create a new session with CSRF token, wrapped data key, and user ID
+ * Create a new session with CSRF token and user ID
  * Token is hashed before storage for security
  */
 export const createSession = async (
   token: string,
   csrfToken: string,
   expires: number,
-  wrappedDataKey: string | null,
+  _unused: null,
   userId: number,
 ): Promise<void> => {
   const tokenHash = await hashSessionToken(token);
   await getDb().execute({
     sql:
-      "INSERT INTO sessions (token, csrf_token, expires, wrapped_data_key, user_id) VALUES (?, ?, ?, ?, ?)",
-    args: [tokenHash, csrfToken, expires, wrappedDataKey, userId],
+      "INSERT INTO sessions (token, csrf_token, expires, user_id) VALUES (?, ?, ?, ?)",
+    args: [tokenHash, csrfToken, expires, userId],
   });
   // Pre-cache the new session using token hash as key
   cacheSession(tokenHash, {
     token: tokenHash,
     csrf_token: csrfToken,
     expires,
-    wrapped_data_key: wrappedDataKey,
     user_id: userId,
   });
 };
@@ -118,7 +117,7 @@ export const getSession = async (token: string): Promise<Session | null> => {
 
   // Query DB and cache result (token column contains the hash)
   const session = await queryOne<Session>(
-    "SELECT token, csrf_token, expires, wrapped_data_key, user_id FROM sessions WHERE token = ?",
+    "SELECT token, csrf_token, expires, user_id FROM sessions WHERE token = ?",
     [tokenHash],
   );
   cacheSession(tokenHash, session);
@@ -148,7 +147,7 @@ export const deleteAllSessions = async (): Promise<void> => {
  */
 export const getAllSessions = (): Promise<Session[]> =>
   queryAll<Session>(
-    "SELECT token, csrf_token, expires, wrapped_data_key, user_id FROM sessions ORDER BY expires DESC",
+    "SELECT token, csrf_token, expires, user_id FROM sessions ORDER BY expires DESC",
   );
 
 /**

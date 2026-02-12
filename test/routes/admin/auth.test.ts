@@ -176,40 +176,23 @@ describe("login & authentication", () => {
     });
   });
 
-  describe("POST /admin/login — not-activated account", () => {
-    it("returns 403 when user has password but no wrapped_data_key", async () => {
+  describe("POST /admin/login — user with password can log in", () => {
+    it("returns 302 for user who set password via invite", async () => {
       const { createInvitedUser, setUserPassword, hashInviteCode } = await import(
         "#lib/db/users.ts"
       );
       const codeHash = await hashInviteCode("invite-123");
       const user = await createInvitedUser(
-        "notactivated",
+        "inviteduser",
         "manager",
         codeHash,
         new Date(Date.now() + 86400000).toISOString(),
       );
-      // Set password but DON'T activate (no wrapped_data_key)
       await setUserPassword(user.id, "validpassword");
 
-      const res = await attemptLogin("notactivated", "validpassword");
-      expect(res.status).toBe(403);
-      const body = await res.text();
-      expect(body).toContain("not been activated");
-    });
-  });
-
-  describe("POST /admin/login — corrupt wrapped_data_key", () => {
-    it("returns 401 when unwrapKey fails", async () => {
-      const { getDb } = await import("#lib/db/client.ts");
-      const { getUserByUsername } = await import("#lib/db/users.ts");
-      // Corrupt the admin user's wrapped_data_key
-      const user = await getUserByUsername(TEST_ADMIN_USERNAME);
-      await getDb().execute({
-        sql: "UPDATE users SET wrapped_data_key = ? WHERE id = ?",
-        args: ["corrupted-key-data", user!.id],
-      });
-      const res = await attemptLogin(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD);
-      expect(res.status).toBe(401);
+      const res = await attemptLogin("inviteduser", "validpassword");
+      expect(res.status).toBe(302);
+      expect(res.headers.get("location")).toBe("/admin");
     });
   });
 

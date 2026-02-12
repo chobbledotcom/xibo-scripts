@@ -5,7 +5,6 @@
 import {
   constantTimeEqual,
   generateSecureToken,
-  wrapKeyWithToken,
 } from "#lib/crypto.ts";
 import {
   createSession,
@@ -58,11 +57,10 @@ export const parseCookies = (request: Request): Map<string, string> => {
   return cookies;
 };
 
-/** Session with CSRF token, wrapped data key for private key derivation, and user role */
+/** Session with CSRF token and user role */
 export type AuthSession = {
   token: string;
   csrfToken: string;
-  wrappedDataKey: string | null;
   userId: number;
   adminLevel: AdminLevel;
   impersonating?: ImpersonationInfo;
@@ -164,7 +162,6 @@ export const getAuthenticatedSession = async (
   const authSession: AuthSession = {
     token,
     csrfToken: session.csrf_token,
-    wrappedDataKey: session.wrapped_data_key,
     userId: session.user_id,
     adminLevel,
     impersonating,
@@ -434,19 +431,17 @@ const SESSION_EXPIRY_MS = 86_400_000;
 
 
 /**
- * Create a new authenticated session with a wrapped data key.
+ * Create a new authenticated session.
  * Shared by login and impersonation flows.
  * Returns the session token for cookie setting.
  */
-export const createSessionWithKey = async (
-  dataKey: CryptoKey,
+export const createNewSession = async (
   userId: number,
 ): Promise<string> => {
   const token = generateSecureToken();
   const csrfToken = generateSecureToken();
   const expires = nowMs() + SESSION_EXPIRY_MS;
-  const wrappedDataKey = await wrapKeyWithToken(dataKey, token);
-  await createSession(token, csrfToken, expires, wrappedDataKey, userId);
+  await createSession(token, csrfToken, expires, null, userId);
   return token;
 };
 
