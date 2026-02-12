@@ -5,9 +5,13 @@
  * Each menu screen maps to a Xibo layout and contains selected products.
  */
 
-import { executeByField, getDb, queryOne } from "#lib/db/client.ts";
-import { insertAndGetId, prepareEncryptedFields } from "#lib/db/entity-helpers.ts";
-import { decrypt } from "#lib/crypto.ts";
+import { executeByField, getDb, queryAll, queryOne } from "#lib/db/client.ts";
+import {
+  decryptEntity,
+  insertAndGetId,
+  prepareEncryptedFields,
+  updateField,
+} from "#lib/db/entity-helpers.ts";
 import type { MenuScreen, MenuScreenItem } from "#lib/types.ts";
 
 /**
@@ -62,15 +66,13 @@ export const getMenuScreenById = (id: number): Promise<MenuScreen | null> =>
 /**
  * Get all menu screens for a screen, ordered by sort_order
  */
-export const getMenuScreensForScreen = async (
+export const getMenuScreensForScreen = (
   screenId: number,
-): Promise<MenuScreen[]> => {
-  const result = await getDb().execute({
-    sql: `SELECT ${MENU_SCREEN_COLS} FROM menu_screens WHERE screen_id = ? ORDER BY sort_order ASC, id ASC`,
-    args: [screenId],
-  });
-  return result.rows as unknown as MenuScreen[];
-};
+): Promise<MenuScreen[]> =>
+  queryAll<MenuScreen>(
+    `SELECT ${MENU_SCREEN_COLS} FROM menu_screens WHERE screen_id = ? ORDER BY sort_order ASC, id ASC`,
+    [screenId],
+  );
 
 /**
  * Update a menu screen's editable fields
@@ -92,28 +94,18 @@ export const updateMenuScreen = async (
 /**
  * Update the Xibo layout ID for a menu screen
  */
-export const updateMenuScreenLayoutId = async (
+export const updateMenuScreenLayoutId = (
   id: number,
   xiboLayoutId: number,
-): Promise<void> => {
-  await getDb().execute({
-    sql: "UPDATE menu_screens SET xibo_layout_id = ? WHERE id = ?",
-    args: [xiboLayoutId, id],
-  });
-};
+): Promise<void> => updateField("menu_screens", id, "xibo_layout_id", xiboLayoutId);
 
 /**
  * Update the Xibo campaign ID for a menu screen
  */
-export const updateMenuScreenCampaignId = async (
+export const updateMenuScreenCampaignId = (
   id: number,
   xiboCampaignId: number | null,
-): Promise<void> => {
-  await getDb().execute({
-    sql: "UPDATE menu_screens SET xibo_campaign_id = ? WHERE id = ?",
-    args: [xiboCampaignId, id],
-  });
-};
+): Promise<void> => updateField("menu_screens", id, "xibo_campaign_id", xiboCampaignId);
 
 /**
  * Delete a menu screen and its items
@@ -128,15 +120,13 @@ export const deleteMenuScreen = async (id: number): Promise<void> => {
 /**
  * Get all items for a menu screen, ordered by sort_order
  */
-export const getMenuScreenItems = async (
+export const getMenuScreenItems = (
   menuScreenId: number,
-): Promise<MenuScreenItem[]> => {
-  const result = await getDb().execute({
-    sql: "SELECT id, menu_screen_id, product_row_id, sort_order FROM menu_screen_items WHERE menu_screen_id = ? ORDER BY sort_order ASC",
-    args: [menuScreenId],
-  });
-  return result.rows as unknown as MenuScreenItem[];
-};
+): Promise<MenuScreenItem[]> =>
+  queryAll<MenuScreenItem>(
+    "SELECT id, menu_screen_id, product_row_id, sort_order FROM menu_screen_items WHERE menu_screen_id = ? ORDER BY sort_order ASC",
+    [menuScreenId],
+  );
 
 /**
  * Replace all items for a menu screen (delete + insert).
@@ -160,16 +150,6 @@ export const setMenuScreenItems = async (
 /**
  * Decrypt a menu screen for display
  */
-export const toDisplayMenuScreen = async (
+export const toDisplayMenuScreen = (
   ms: MenuScreen,
-): Promise<DisplayMenuScreen> => ({
-  id: ms.id,
-  name: await decrypt(ms.name),
-  screen_id: ms.screen_id,
-  template_id: ms.template_id,
-  display_time: ms.display_time,
-  sort_order: ms.sort_order,
-  xibo_layout_id: ms.xibo_layout_id,
-  xibo_campaign_id: ms.xibo_campaign_id,
-  created_at: await decrypt(ms.created_at),
-});
+): Promise<DisplayMenuScreen> => decryptEntity(ms);

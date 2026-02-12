@@ -163,18 +163,3 @@ export const buildLayoutFromTemplate = async (
   return layout;
 };
 
-/**
- * Rebuild a Xibo layout by deleting the old one and creating a new one.
- * Returns the new layout.
- */
-export const rebuildLayout = (
-  config: XiboConfig,
-  templateId: string,
-  layoutName: string,
-  products: TemplateProduct[],
-  _oldLayoutId: number,
-): Promise<XiboLayout> =>
-  // Xibo layouts can't be easily updated in place (regions are additive).
-  // The safest approach is to create a new layout from template.
-  // The old layout will be deleted by the caller after campaign is updated.
-  buildLayoutFromTemplate(config, templateId, layoutName, products);

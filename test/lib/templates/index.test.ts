@@ -14,7 +14,6 @@ import {
 import {
   buildLayoutFromTemplate,
   getTemplateById,
-  rebuildLayout,
   TEMPLATES,
 } from "#lib/templates/index.ts";
 import type { TemplateProduct } from "#lib/templates/index.ts";
@@ -205,37 +204,4 @@ describe("layout template registry", () => {
     });
   });
 
-  describe("rebuildLayout", () => {
-    test("creates a new layout from template (delegates to buildLayoutFromTemplate)", async () => {
-      let regionCount = 0;
-
-      globalThis.fetch = createMockFetch({
-        "/api/resolution": () =>
-          jsonResponse([{ resolutionId: 1, resolution: "1080x1920", width: 1080, height: 1920 }]),
-        "/api/layout/publish/": () => jsonResponse({}),
-        "/api/layout": () =>
-          jsonResponse({ layoutId: 400, layout: "Rebuilt", description: "", status: 1, width: 1080, height: 1920, publishedStatusId: 1 }),
-        "/api/region/": () => {
-          regionCount++;
-          return jsonResponse({ regionId: regionCount, width: 100, height: 100, top: 0, left: 0, zIndex: 0 });
-        },
-        "/api/playlist/widget/text/": () => jsonResponse({ widgetId: 1, type: "text", displayOrder: 1 }),
-      });
-
-      const products: TemplateProduct[] = [
-        { name: "Latte", price: "5.00" },
-      ];
-
-      const layout = await rebuildLayout(
-        { apiUrl: XIBO_URL, clientId: "test-id", clientSecret: "test-secret" },
-        "grid-3x4",
-        "Rebuilt Layout",
-        products,
-        999, // old layout ID (ignored by rebuildLayout)
-      );
-
-      expect(layout.layoutId).toBe(400);
-      expect(regionCount).toBe(13);
-    });
-  });
 });

@@ -205,17 +205,20 @@ const safeFetchProducts = async (
 };
 
 /**
- * Build a layout from template and update the menu screen's layout ID.
- * Returns the created layout.
+ * Set items, optionally delete old layout, build from template, and save layout ID.
+ * Shared by both create and edit POST handlers.
  */
-const buildAndSaveLayout = async (
+const saveItemsAndBuild = async (
   config: XiboConfig,
   menuScreenId: number,
   templateId: string,
   name: string,
   datasetId: number | null,
   productIds: number[],
+  oldLayoutId: number | null = null,
 ): Promise<void> => {
+  await setMenuScreenItems(menuScreenId, productIds);
+  await deleteOldLayout(config, oldLayoutId);
   const templateProducts = await fetchTemplateProducts(config, datasetId, productIds);
   const layout = await buildLayoutFromTemplate(config, templateId, name, templateProducts);
   await updateMenuScreenLayoutId(menuScreenId, layout.layoutId);
@@ -386,8 +389,7 @@ const handleMenuScreenCreatePost = menuScreenMutation(
           values.name, screenId, templateId,
           values.display_time as number, values.sort_order as number,
         );
-        await setMenuScreenItems(menuScreen.id, productIds);
-        await buildAndSaveLayout(config, menuScreen.id, templateId, values.name, ctx.business.xibo_dataset_id, productIds);
+        await saveItemsAndBuild(config, menuScreen.id, templateId, values.name, ctx.business.xibo_dataset_id, productIds);
       },
     ),
 );
@@ -427,11 +429,7 @@ const handleMenuScreenEditPost = menuScreenDetailMutation(
           ctx.menuScreen.id, values.name, templateId,
           values.display_time as number, values.sort_order as number,
         );
-        await setMenuScreenItems(ctx.menuScreen.id, productIds);
-        const templateProducts = await fetchTemplateProducts(config, ctx.business.xibo_dataset_id, productIds);
-        await deleteOldLayout(config, ctx.menuScreen.xibo_layout_id);
-        const layout = await buildLayoutFromTemplate(config, templateId, values.name, templateProducts);
-        await updateMenuScreenLayoutId(ctx.menuScreen.id, layout.layoutId);
+        await saveItemsAndBuild(config, ctx.menuScreen.id, templateId, values.name, ctx.business.xibo_dataset_id, productIds, ctx.menuScreen.xibo_layout_id);
       },
     ),
 );

@@ -7,6 +7,7 @@
  * 3. Schedules the campaign on the screen's Xibo display
  */
 
+import { filter, pipe, reduce } from "#fp";
 import { del, get, post, put } from "#xibo/client.ts";
 import type { XiboCampaign, XiboConfig, XiboSchedule } from "#xibo/types.ts";
 import type { DisplayMenuScreen } from "#lib/db/menu-screens.ts";
@@ -123,17 +124,14 @@ export const deleteScheduleEvent = async (
  */
 export const buildCampaignLayouts = (
   menuScreens: DisplayMenuScreen[],
-): CampaignLayoutAssignment[] => {
-  const filtered = menuScreens.filter((ms) => ms.xibo_layout_id !== null);
-  const result: CampaignLayoutAssignment[] = [];
-  for (let i = 0; i < filtered.length; i++) {
-    result.push({
-      layoutId: filtered[i]!.xibo_layout_id!,
-      displayOrder: i + 1,
-    });
-  }
-  return result;
-};
+): CampaignLayoutAssignment[] =>
+  pipe(
+    filter((ms: DisplayMenuScreen) => ms.xibo_layout_id !== null),
+    reduce((acc: CampaignLayoutAssignment[], ms: DisplayMenuScreen) => {
+      acc.push({ layoutId: ms.xibo_layout_id!, displayOrder: acc.length + 1 });
+      return acc;
+    }, [] as CampaignLayoutAssignment[]),
+  )(menuScreens);
 
 /**
  * Rebuild the campaign and schedule for a screen.

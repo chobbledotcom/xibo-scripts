@@ -1,12 +1,15 @@
 /**
- * Shared entity creation helpers for DB modules.
- * Eliminates duplication in encrypt-and-insert patterns.
+ * Shared entity helpers for DB modules.
+ * Eliminates duplication in encrypt/decrypt/insert/update patterns.
  */
 
 import type { InValue } from "@libsql/client";
-import { encrypt } from "#lib/crypto.ts";
+import { decrypt, encrypt } from "#lib/crypto.ts";
 import { getDb } from "#lib/db/client.ts";
 import { nowIso } from "#lib/now.ts";
+
+// Re-export updateField from client.ts for convenience
+export { updateField } from "#lib/db/client.ts";
 
 /**
  * Encrypt name and timestamp for entity creation.
@@ -28,6 +31,17 @@ export const insertAndGetId = async (
   const result = await getDb().execute({ sql, args });
   return Number(result.lastInsertRowid);
 };
+
+/**
+ * Decrypt the name and created_at fields common to all display entities.
+ */
+export const decryptEntity = async <T extends { name: string; created_at: string }>(
+  entity: T,
+): Promise<T> => ({
+  ...entity,
+  name: await decrypt(entity.name),
+  created_at: await decrypt(entity.created_at),
+});
 
 /**
  * Execute a two-parameter SQL statement (curried).

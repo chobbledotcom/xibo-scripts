@@ -3,8 +3,9 @@
  */
 
 import { decrypt, encrypt } from "#lib/crypto.ts";
-import { getDb, queryOne } from "#lib/db/client.ts";
+import { getDb, queryAll, queryOne } from "#lib/db/client.ts";
 import {
+  decryptEntity,
   executePairSql,
   insertAndGetId,
   prepareEncryptedFields,
@@ -55,29 +56,25 @@ export const getBusinessById = (id: number): Promise<Business | null> =>
 /**
  * Get all businesses
  */
-export const getAllBusinesses = async (): Promise<Business[]> => {
-  const result = await getDb().execute(
+export const getAllBusinesses = (): Promise<Business[]> =>
+  queryAll<Business>(
     "SELECT id, name, xibo_folder_id, folder_name, xibo_dataset_id, created_at FROM businesses ORDER BY id ASC",
   );
-  return result.rows as unknown as Business[];
-};
 
 /**
  * Get businesses for a given user (via business_users mapping)
  */
-export const getBusinessesForUser = async (
+export const getBusinessesForUser = (
   userId: number,
-): Promise<Business[]> => {
-  const result = await getDb().execute({
-    sql: `SELECT b.id, b.name, b.xibo_folder_id, b.folder_name, b.xibo_dataset_id, b.created_at
+): Promise<Business[]> =>
+  queryAll<Business>(
+    `SELECT b.id, b.name, b.xibo_folder_id, b.folder_name, b.xibo_dataset_id, b.created_at
           FROM businesses b
           INNER JOIN business_users bu ON b.id = bu.business_id
           WHERE bu.user_id = ?
           ORDER BY b.id ASC`,
-    args: [userId],
-  });
-  return result.rows as unknown as Business[];
-};
+    [userId],
+  );
 
 /**
  * Update a business name
@@ -165,12 +162,8 @@ export const getBusinessUserIds = async (
 export const toDisplayBusiness = async (
   business: Business,
 ): Promise<DisplayBusiness> => ({
-  id: business.id,
-  name: await decrypt(business.name),
-  xibo_folder_id: business.xibo_folder_id,
+  ...(await decryptEntity(business)),
   folder_name: business.folder_name
     ? await decrypt(business.folder_name)
     : null,
-  xibo_dataset_id: business.xibo_dataset_id,
-  created_at: await decrypt(business.created_at),
 });
