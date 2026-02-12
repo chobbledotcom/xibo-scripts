@@ -2,19 +2,20 @@
  * Screens table operations
  */
 
-import { decrypt } from "#lib/crypto.ts";
-import { getDb, queryOne } from "#lib/db/client.ts";
-import { insertAndGetId, prepareEncryptedFields } from "#lib/db/entity-helpers.ts";
+import { executeByField, getDb, queryAll, queryOne } from "#lib/db/client.ts";
+import {
+  decryptEntity,
+  insertAndGetId,
+  prepareEncryptedFields,
+} from "#lib/db/entity-helpers.ts";
 import type { Screen } from "#lib/types.ts";
 
-/** Decrypted screen for display */
-export interface DisplayScreen {
-  id: number;
-  name: string;
-  business_id: number;
-  xibo_display_id: number | null;
-  created_at: string;
-}
+/**
+ * Decrypted screen for display.
+ * Structurally identical to Screen — the alias documents that
+ * `name` and `created_at` have been decrypted for safe rendering.
+ */
+export type DisplayScreen = Screen;
 
 /**
  * Create a new screen with encrypted fields
@@ -51,29 +52,20 @@ export const getScreenById = (id: number): Promise<Screen | null> =>
 /**
  * Get all screens for a business
  */
-export const getScreensForBusiness = async (
+export const getScreensForBusiness = (
   businessId: number,
-): Promise<Screen[]> => {
-  const result = await getDb().execute({
-    sql: "SELECT id, name, business_id, xibo_display_id, created_at FROM screens WHERE business_id = ? ORDER BY id ASC",
-    args: [businessId],
-  });
-  return result.rows as unknown as Screen[];
-};
+): Promise<Screen[]> =>
+  queryAll<Screen>(
+    "SELECT id, name, business_id, xibo_display_id, created_at FROM screens WHERE business_id = ? ORDER BY id ASC",
+    [businessId],
+  );
 
 /**
  * Delete a screen and cascade delete its menu_screens
  */
 export const deleteScreen = async (id: number): Promise<void> => {
-  const db = getDb();
-  await db.execute({
-    sql: "DELETE FROM menu_screens WHERE screen_id = ?",
-    args: [id],
-  });
-  await db.execute({
-    sql: "DELETE FROM screens WHERE id = ?",
-    args: [id],
-  });
+  await executeByField("menu_screens", "screen_id", id);
+  await executeByField("screens", "id", id);
 };
 
 /**
@@ -89,12 +81,6 @@ export const getAssignedDisplayIds = async (): Promise<number[]> => {
 /**
  * Decrypt a screen for display
  */
-export const toDisplayScreen = async (
+export const toDisplayScreen = (
   screen: Screen,
-): Promise<DisplayScreen> => ({
-  id: screen.id,
-  name: await decrypt(screen.name),
-  business_id: screen.business_id,
-  xibo_display_id: screen.xibo_display_id,
-  created_at: await decrypt(screen.created_at),
-});
+): Promise<DisplayScreen> => decryptEntity(screen);

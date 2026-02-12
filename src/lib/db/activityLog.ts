@@ -2,7 +2,7 @@
  * Activity log table operations
  */
 
-import { getDb } from "#lib/db/client.ts";
+import { getDb, queryAll } from "#lib/db/client.ts";
 import { nowIso } from "#lib/now.ts";
 
 interface ActivityLogEntry {
@@ -24,13 +24,10 @@ export const logActivity = async (message: string): Promise<void> => {
 /**
  * Get all activity log entries (most recent first)
  */
-export const getAllActivityLog = async (
+export const getAllActivityLog = (
   limit = 100,
-): Promise<ActivityLogEntry[]> => {
-  const result = await getDb().execute({
-    sql:
-      "SELECT id, created, message FROM activity_log ORDER BY id DESC LIMIT ?",
-    args: [limit],
-  });
-  return result.rows as unknown as ActivityLogEntry[];
-};
+): Promise<ActivityLogEntry[]> =>
+  queryAll<ActivityLogEntry>(
+    "SELECT id, created, message FROM activity_log ORDER BY id DESC LIMIT ?",
+    [limit],
+  );

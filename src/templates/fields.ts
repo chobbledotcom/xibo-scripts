@@ -323,6 +323,38 @@ export const productFields: Field[] = [
   mediaIdField,
 ];
 
+/** Typed values from menu screen form */
+export type MenuScreenFormValues = {
+  name: string;
+  template_id: string;
+  display_time: number;
+  sort_order: number;
+};
+
+/**
+ * Menu screen form field definitions (name and display_time only;
+ * template_id and sort_order are handled separately in the template)
+ */
+export const menuScreenFields: Field[] = [
+  nameField,
+  {
+    name: "display_time",
+    label: "Display Time (seconds)",
+    type: "number",
+    required: true,
+    min: 1,
+    hint: "How long this screen shows before rotating",
+  },
+  {
+    name: "sort_order",
+    label: "Display Order",
+    type: "number",
+    required: true,
+    min: 0,
+    hint: "Lower numbers display first",
+  },
+];
+
 /** Typed values from dataset product form (user-facing) */
 export type DatasetProductFormValues = {
   name: string;

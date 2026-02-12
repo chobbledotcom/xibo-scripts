@@ -145,6 +145,25 @@ export type XiboDisplay = {
   defaultLayoutId: number;
 };
 
+/** Campaign (layout rotation) */
+export type XiboCampaign = {
+  campaignId: number;
+  campaign: string;
+  isLayoutSpecific: number;
+  totalDuration: number;
+};
+
+/** Schedule event */
+export type XiboSchedule = {
+  eventId: number;
+  eventTypeId: number;
+  campaignId: number;
+  displayGroupIds: number[];
+  fromDt: string | null;
+  toDt: string | null;
+  isPriority: number;
+};
+
 /** Xibo API client configuration */
 export type XiboConfig = {
   apiUrl: string;

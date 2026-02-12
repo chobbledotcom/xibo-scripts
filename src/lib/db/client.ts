@@ -43,17 +43,27 @@ export const queryOne = async <T>(
   return result.rows.length === 0 ? null : (result.rows[0] as unknown as T);
 };
 
+/** Execute a parameterized statement (no return value) */
+const execStatement = async (sql: string, args: InValue[]): Promise<void> => {
+  await getDb().execute({ sql, args });
+};
+
 /** Execute delete by field */
-export const executeByField = async (
+export const executeByField = (
   table: string,
   field: string,
   value: InValue,
-): Promise<void> => {
-  await getDb().execute({
-    sql: `DELETE FROM ${table} WHERE ${field} = ?`,
-    args: [value],
-  });
-};
+): Promise<void> =>
+  execStatement(`DELETE FROM ${table} WHERE ${field} = ?`, [value]);
+
+/** Update a single field by row ID */
+export const updateField = (
+  table: string,
+  id: number,
+  field: string,
+  value: InValue,
+): Promise<void> =>
+  execStatement(`UPDATE ${table} SET ${field} = ? WHERE id = ?`, [value, id]);
 
 /**
  * Execute multiple queries in a single round-trip using Turso batch API.
@@ -62,6 +72,15 @@ export const executeByField = async (
 export const queryBatch = (
   statements: Array<{ sql: string; args: InValue[] }>,
 ): Promise<ResultSet[]> => getDb().batch(statements, "read");
+
+/** Query multiple rows, casting to the target type */
+export const queryAll = async <T>(
+  sql: string,
+  args: InValue[] = [],
+): Promise<T[]> => {
+  const result = await getDb().execute({ sql, args });
+  return result.rows as unknown as T[];
+};
 
 /** Build SQL placeholders for an IN clause, e.g. "?, ?, ?" */
 export const inPlaceholders = (values: readonly unknown[]): string =>
