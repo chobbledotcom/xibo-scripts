@@ -363,56 +363,6 @@ describe("settings", () => {
       expect(loc).toContain("Password");
     });
 
-    it("returns 500 when updateUserPassword returns false", async () => {
-      const { settingsApi } = await import("#lib/db/settings.ts");
-      const original = settingsApi.updateUserPassword;
-      settingsApi.updateUserPassword = () => Promise.resolve(false);
-      try {
-        const res = await handle(
-          mockFormRequest(
-            "/admin/settings/password",
-            {
-              csrf_token: csrfToken,
-              current_password: TEST_ADMIN_PASSWORD,
-              new_password: "newpassword1",
-              new_password_confirm: "newpassword1",
-            },
-            cookie,
-          ),
-        );
-        expect(res.status).toBe(500);
-        const body = await res.text();
-        expect(body).toContain("Failed to change password");
-      } finally {
-        settingsApi.updateUserPassword = original;
-      }
-    });
-
-    it("returns 500 when wrapped_data_key is corrupted", async () => {
-      const { getDb } = await import("#lib/db/client.ts");
-      const { getUserByUsername } = await import("#lib/db/users.ts");
-      const user = await getUserByUsername(TEST_ADMIN_USERNAME);
-      await getDb().execute({
-        sql: "UPDATE users SET wrapped_data_key = ? WHERE id = ?",
-        args: ["corrupted-key", user!.id],
-      });
-      const res = await handle(
-        mockFormRequest(
-          "/admin/settings/password",
-          {
-            csrf_token: csrfToken,
-            current_password: TEST_ADMIN_PASSWORD,
-            new_password: "newpassword1",
-            new_password_confirm: "newpassword1",
-          },
-          cookie,
-        ),
-      );
-      expect(res.status).toBe(500);
-      const body = await res.text();
-      expect(body).toContain("Failed to change password");
-    });
-
     it("can log in with new password after change", async () => {
       // Change password
       await handle(

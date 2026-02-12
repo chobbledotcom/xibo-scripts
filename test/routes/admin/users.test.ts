@@ -49,7 +49,6 @@ describe("admin users management", () => {
       const user = await getUserByUsername(TEST_ADMIN_USERNAME);
       expect(user).not.toBeNull();
       expect(user!.id).toBe(1);
-      expect(user!.wrapped_data_key).not.toBeNull();
 
       const level = await decryptAdminLevel(user!);
       expect(level).toBe("owner");
@@ -92,7 +91,6 @@ describe("admin users management", () => {
 
       expect(user.id).toBe(2);
       expect(user.password_hash).toBe("");
-      expect(user.wrapped_data_key).toBeNull();
 
       const level = await decryptAdminLevel(user);
       expect(level).toBe("manager");
@@ -136,19 +134,18 @@ describe("admin users management", () => {
       const hash = await hashPassword("managerpass");
       const encHash = await encrypt(hash);
       await getDb().execute({
-        sql: `INSERT INTO users (username_hash, username_index, password_hash, wrapped_data_key, admin_level)
-              VALUES (?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO users (username_hash, username_index, password_hash, admin_level)
+              VALUES (?, ?, ?, ?)`,
         args: [
           await encrypt("manager"),
           "manager-idx-unique",
           encHash,
-          (await getUserByUsername(TEST_ADMIN_USERNAME))!.wrapped_data_key,
           await encrypt("manager"),
         ],
       });
 
       const managerUserId = 2;
-      await createSession("manager-token", "manager-csrf", Date.now() + 3600000, null, managerUserId);
+      await createSession("manager-token", "manager-csrf", Date.now() + 3600000, managerUserId);
 
       const usersResponse = await awaitTestRequest("/admin/users", {
         cookie: "__Host-session=manager-token",
@@ -162,19 +159,18 @@ describe("admin users management", () => {
       const hash = await hashPassword("userpass");
       const encHash = await encrypt(hash);
       await getDb().execute({
-        sql: `INSERT INTO users (username_hash, username_index, password_hash, wrapped_data_key, admin_level)
-              VALUES (?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO users (username_hash, username_index, password_hash, admin_level)
+              VALUES (?, ?, ?, ?)`,
         args: [
           await encrypt("basicuser"),
           "user-idx-unique",
           encHash,
-          (await getUserByUsername(TEST_ADMIN_USERNAME))!.wrapped_data_key,
           await encrypt("user"),
         ],
       });
 
       const userId = 2;
-      await createSession("user-token", "user-csrf", Date.now() + 3600000, null, userId);
+      await createSession("user-token", "user-csrf", Date.now() + 3600000, userId);
 
       const usersResponse = await awaitTestRequest("/admin/users", {
         cookie: "__Host-session=user-token",
@@ -351,7 +347,7 @@ describe("admin users management", () => {
   });
 
   describe("POST /admin/users/:id/activate", () => {
-    it("activates user who has set password", async () => {
+    it("returns already activated for user who has set password", async () => {
       // Create an invite
       await handle(
         mockFormRequest(
@@ -364,7 +360,7 @@ describe("admin users management", () => {
       // Set password directly via DB layer (join flow not implemented yet)
       await setUserPassword(2, "newpassword123");
 
-      // Now activate user id 2
+      // Users are active once they have a password — activation is a no-op
       const activateResponse = await handle(
         mockFormRequest(
           "/admin/users/2/activate",
@@ -372,9 +368,9 @@ describe("admin users management", () => {
           cookie,
         ),
       );
-      expect(activateResponse.status).toBe(302);
-      const location = activateResponse.headers.get("location")!;
-      expect(decodeURIComponent(location)).toContain("activated successfully");
+      expect(activateResponse.status).toBe(400);
+      const html = await activateResponse.text();
+      expect(html).toContain("already activated");
     });
 
     it("returns 404 for nonexistent user", async () => {
@@ -425,33 +421,6 @@ describe("admin users management", () => {
       const html = await response.text();
       expect(html).toContain("already activated");
     });
-
-    it("returns 500 when session lacks data key", async () => {
-      // Create a session without wrapped_data_key for the owner
-      await createSession("no-dk-session", "no-dk-csrf", Date.now() + 3600000, null, 1);
-
-      // Create an invited user with password set directly via DB
-      await handle(
-        mockFormRequest(
-          "/admin/users",
-          { username: "needsactivation", admin_level: "manager", csrf_token: csrfToken },
-          cookie,
-        ),
-      );
-      await setUserPassword(2, "newpassword123");
-
-      // Try to activate using session without data key
-      const response = await handle(
-        mockFormRequest(
-          "/admin/users/2/activate",
-          { csrf_token: "no-dk-csrf" },
-          "__Host-session=no-dk-session",
-        ),
-      );
-      expect(response.status).toBe(500);
-      const html = await response.text();
-      expect(html).toContain("session lacks data key");
-    });
   });
 
   describe("users template rendering", () => {
@@ -470,7 +439,7 @@ describe("admin users management", () => {
       expect(html).toContain("Invited");
     });
 
-    it("shows Pending Activation status and Activate button for user with password but no data key", async () => {
+    it("shows Active status for user with password", async () => {
       // Create invite and set password directly via DB
       await handle(
         mockFormRequest(
@@ -481,11 +450,10 @@ describe("admin users management", () => {
       );
       await setUserPassword(2, "newpassword123");
 
-      // Users page should show "Pending Activation" and "Activate" button
+      // Users page should show "Active" for user with password
       const usersResponse = await awaitTestRequest("/admin/users", { cookie });
       const html = await usersResponse.text();
-      expect(html).toContain("Pending Activation");
-      expect(html).toContain("Activate");
+      expect(html).toContain("Active");
     });
   });
 
@@ -528,13 +496,12 @@ describe("admin users management", () => {
       const { hmacHash } = await import("#lib/crypto.ts");
       const usernameIdx = await hmacHash("no-expiry-user");
       await getDb().execute({
-        sql: `INSERT INTO users (username_hash, username_index, password_hash, wrapped_data_key, admin_level, invite_code_hash, invite_expiry)
-              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO users (username_hash, username_index, password_hash, admin_level, invite_code_hash, invite_expiry)
+              VALUES (?, ?, ?, ?, ?, ?)`,
         args: [
           await encrypt("no-expiry-user"),
           usernameIdx,
           "",
-          null,
           await encrypt("manager"),
           await encrypt("somehash"),
           null,
@@ -550,13 +517,12 @@ describe("admin users management", () => {
       const { hmacHash } = await import("#lib/crypto.ts");
       const usernameIdx = await hmacHash("empty-expiry-user");
       await getDb().execute({
-        sql: `INSERT INTO users (username_hash, username_index, password_hash, wrapped_data_key, admin_level, invite_code_hash, invite_expiry)
-              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO users (username_hash, username_index, password_hash, admin_level, invite_code_hash, invite_expiry)
+              VALUES (?, ?, ?, ?, ?, ?)`,
         args: [
           await encrypt("empty-expiry-user"),
           usernameIdx,
           "",
-          null,
           await encrypt("manager"),
           await encrypt("somehash"),
           await encrypt(""),
@@ -658,35 +624,11 @@ describe("admin users management", () => {
       expect(inviteLog!.detail).toContain("audituser");
     });
 
-    it("logs activity when user is activated", async () => {
-      await handle(
-        mockFormRequest(
-          "/admin/users",
-          { username: "activateaudit", admin_level: "manager", csrf_token: csrfToken },
-          cookie,
-        ),
-      );
-      await setUserPassword(2, "newpassword123");
-
-      await handle(
-        mockFormRequest(
-          "/admin/users/2/activate",
-          { csrf_token: csrfToken },
-          cookie,
-        ),
-      );
-
-      const events = await getAuditEvents();
-      const activateLog = events.find((e) => e.detail.includes("Activated"));
-      expect(activateLog).not.toBeNull();
-      expect(activateLog!.detail).toContain("Activated user 2");
-    });
-
     it("logs activity when user is deleted", async () => {
       await handle(
         mockFormRequest(
           "/admin/users",
-          { username: "deleteaudit", admin_level: "manager", csrf_token: csrfToken },
+          { username: "deleteaudit2", admin_level: "manager", csrf_token: csrfToken },
           cookie,
         ),
       );

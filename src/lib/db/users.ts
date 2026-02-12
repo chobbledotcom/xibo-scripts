@@ -4,13 +4,11 @@
 
 import {
   decrypt,
-  deriveKEK,
   encrypt,
   hashPassword,
   hashSessionToken,
   hmacHash,
   verifyPassword,
-  wrapKey,
 } from "#lib/crypto.ts";
 import { getDb, queryAll, queryOne } from "#lib/db/client.ts";
 import { resetSessionCache } from "#lib/db/sessions.ts";
@@ -22,7 +20,6 @@ const insertUser = async (opts: {
   username: string;
   adminLevel: AdminLevel;
   passwordHash: string;
-  wrappedDataKey: string | null;
   inviteCodeHash: string | null;
   inviteExpiry: string | null;
 }): Promise<User> => {
@@ -41,13 +38,12 @@ const insertUser = async (opts: {
 
   const result = await getDb().execute({
     sql:
-      `INSERT INTO users (username_hash, username_index, password_hash, wrapped_data_key, admin_level, invite_code_hash, invite_expiry)
-          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO users (username_hash, username_index, password_hash, admin_level, invite_code_hash, invite_expiry)
+          VALUES (?, ?, ?, ?, ?, ?)`,
     args: [
       encryptedUsername,
       usernameIndex,
       encryptedPasswordHash,
-      opts.wrappedDataKey,
       encryptedAdminLevel,
       encryptedInviteCode,
       encryptedInviteExpiry,
@@ -60,7 +56,6 @@ const insertUser = async (opts: {
     username_hash: encryptedUsername,
     username_index: usernameIndex,
     password_hash: encryptedPasswordHash,
-    wrapped_data_key: opts.wrappedDataKey,
     admin_level: encryptedAdminLevel,
     invite_code_hash: encryptedInviteCode,
     invite_expiry: encryptedInviteExpiry,
@@ -73,14 +68,12 @@ const insertUser = async (opts: {
 export const createUser = (
   username: string,
   passwordHash: string,
-  wrappedDataKey: string | null,
   adminLevel: AdminLevel,
 ): Promise<User> =>
   insertUser({
     username,
     adminLevel,
     passwordHash,
-    wrappedDataKey,
     inviteCodeHash: null,
     inviteExpiry: null,
   });
@@ -98,7 +91,6 @@ export const createInvitedUser = (
     username,
     adminLevel,
     passwordHash: "",
-    wrappedDataKey: null,
     inviteCodeHash,
     inviteExpiry,
   });
@@ -111,7 +103,7 @@ export const getUserByUsername = async (
 ): Promise<User | null> => {
   const usernameIndex = await hmacHash(username.toLowerCase());
   return queryOne<User>(
-    "SELECT id, username_hash, username_index, password_hash, wrapped_data_key, admin_level, invite_code_hash, invite_expiry FROM users WHERE username_index = ?",
+    "SELECT id, username_hash, username_index, password_hash, admin_level, invite_code_hash, invite_expiry FROM users WHERE username_index = ?",
     [usernameIndex],
   );
 };
@@ -121,7 +113,7 @@ export const getUserByUsername = async (
  */
 export const getUserById = (id: number): Promise<User | null> =>
   queryOne<User>(
-    "SELECT id, username_hash, username_index, password_hash, wrapped_data_key, admin_level, invite_code_hash, invite_expiry FROM users WHERE id = ?",
+    "SELECT id, username_hash, username_index, password_hash, admin_level, invite_code_hash, invite_expiry FROM users WHERE id = ?",
     [id],
   );
 
@@ -138,12 +130,12 @@ export const isUsernameTaken = async (username: string): Promise<boolean> => {
  */
 export const getAllUsers = (): Promise<User[]> =>
   queryAll<User>(
-    "SELECT id, username_hash, username_index, password_hash, wrapped_data_key, admin_level, invite_code_hash, invite_expiry FROM users ORDER BY id ASC",
+    "SELECT id, username_hash, username_index, password_hash, admin_level, invite_code_hash, invite_expiry FROM users ORDER BY id ASC",
   );
 
 /**
  * Verify a user's password (decrypt stored hash, then verify)
- * Returns the decrypted password hash if valid (needed for KEK derivation)
+ * Returns the decrypted password hash if valid
  */
 export const verifyUserPassword = async (
   user: User,
@@ -185,23 +177,6 @@ export const setUserPassword = async (
   });
 
   return passwordHash;
-};
-
-/**
- * Activate a user by wrapping the data key with their KEK
- */
-export const activateUser = async (
-  userId: number,
-  dataKey: CryptoKey,
-  decryptedPasswordHash: string,
-): Promise<void> => {
-  const kek = await deriveKEK(decryptedPasswordHash);
-  const wrappedDataKey = await wrapKey(dataKey, kek);
-
-  await getDb().execute({
-    sql: "UPDATE users SET wrapped_data_key = ? WHERE id = ?",
-    args: [wrappedDataKey, userId],
-  });
 };
 
 /**
@@ -284,7 +259,6 @@ export const usersApi = {
   decryptAdminLevel,
   decryptUsername,
   setUserPassword,
-  activateUser,
   deleteUser,
   getUserByInviteCode,
   hashInviteCode,

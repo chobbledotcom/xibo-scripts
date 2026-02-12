@@ -7,7 +7,7 @@ import { getDb } from "#lib/db/client.ts";
 /**
  * The latest database update identifier - update this when changing schema
  */
-export const LATEST_UPDATE = "encrypt audit event detail and resource_id";
+export const LATEST_UPDATE = "remove unused key columns";
 
 /**
  * Run a migration that may fail if already applied (e.g., adding a column that exists)
@@ -58,7 +58,6 @@ export const initDb = async (): Promise<void> => {
       token TEXT PRIMARY KEY,
       csrf_token TEXT NOT NULL,
       expires INTEGER NOT NULL,
-      wrapped_data_key TEXT,
       user_id INTEGER
     )
   `);
@@ -79,7 +78,6 @@ export const initDb = async (): Promise<void> => {
       username_hash TEXT NOT NULL,
       username_index TEXT NOT NULL,
       password_hash TEXT NOT NULL DEFAULT '',
-      wrapped_data_key TEXT,
       admin_level TEXT NOT NULL,
       invite_code_hash TEXT,
       invite_expiry TEXT
@@ -232,6 +230,15 @@ export const initDb = async (): Promise<void> => {
   );
   await runMigration(
     `CREATE INDEX IF NOT EXISTS idx_publish_attempts_screen ON publish_attempts(screen_id)`,
+  );
+
+  // Drop unused key columns from existing databases
+  await runMigration(`ALTER TABLE sessions DROP COLUMN wrapped_data_key`);
+  await runMigration(`ALTER TABLE users DROP COLUMN wrapped_data_key`);
+
+  // Remove orphaned key settings
+  await runMigration(
+    `DELETE FROM settings WHERE key IN ('wrapped_private_key', 'public_key')`,
   );
 
   // Update the version marker

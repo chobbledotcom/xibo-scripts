@@ -3,10 +3,8 @@
  */
 
 import { filter, identity } from "#fp";
-import { unwrapKeyWithToken } from "#lib/crypto.ts";
 import { logAuditEvent } from "#lib/db/audit-events.ts";
 import {
-  activateUser,
   createInvitedUser,
   decryptAdminLevel,
   decryptUsername,
@@ -59,7 +57,6 @@ const toDisplayUser = async (
   username: await decryptUsername(user),
   adminLevel: await decryptAdminLevel(user),
   hasPassword: await hasPassword(user),
-  hasDataKey: user.wrapped_data_key !== null,
 });
 
 /** Managers see only user-role users; owners see everyone */
@@ -204,13 +201,13 @@ const withOwnerUser = (
 
 /**
  * Handle POST /admin/users/:id/activate
+ * Users are now active as soon as they set their password.
  */
 const handleUserActivate = (
   request: Request,
   params: RouteParams,
 ): Promise<Response> =>
-  withOwnerUser(request, params, async (session, user, userId) => {
-    // User must have a password set
+  withOwnerUser(request, params, async (session, user) => {
     const userHasPassword = await hasPassword(user);
     if (!userHasPassword) {
       return htmlResponse(
@@ -223,50 +220,15 @@ const handleUserActivate = (
       );
     }
 
-    // User must not already have a data key
-    if (user.wrapped_data_key) {
-      return htmlResponse(
-        await renderUsersPage(
-          session,
-          undefined,
-          "User is already activated",
-        ),
-        400,
-      );
-    }
-
-    // Get the data key from the current session
-    if (!session.wrappedDataKey) {
-      return htmlResponse(
-        await renderUsersPage(
-          session,
-          undefined,
-          "Cannot activate: session lacks data key",
-        ),
-        500,
-      );
-    }
-
-    const dataKey = await unwrapKeyWithToken(
-      session.wrappedDataKey,
-      session.token,
+    // Users are active once they have a password — nothing else needed
+    return htmlResponse(
+      await renderUsersPage(
+        session,
+        undefined,
+        "User is already activated",
+      ),
+      400,
     );
-
-    // Decrypt user's password hash to derive their KEK
-    const { decrypt } = await import("#lib/crypto.ts");
-    const decryptedPasswordHash = await decrypt(user.password_hash);
-
-    await activateUser(userId, dataKey, decryptedPasswordHash);
-
-    await logAuditEvent({
-      actorUserId: session.userId,
-      action: "UPDATE",
-      resourceType: "user",
-      resourceId: userId,
-      detail: `Activated user ${userId}`,
-    });
-
-    return redirectWithSuccess("/admin/users", "User activated successfully");
   });
 
 /**

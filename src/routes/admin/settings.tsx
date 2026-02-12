@@ -178,20 +178,14 @@ const handlePasswordChange = (request: Request): Promise<Response> =>
     );
     const user = (await getUserById(session.userId))!;
     const passwordHash = await verifyUserPassword(user, current_password);
-    if (!passwordHash || !session.wrappedDataKey) {
+    if (!passwordHash) {
       return htmlResponse("Invalid current password", 400);
     }
 
-    const success = await settingsApi.updateUserPassword(
+    await settingsApi.updateUserPassword(
       session.userId,
-      passwordHash,
-      user.wrapped_data_key!,
       new_password,
     );
-
-    if (!success) {
-      return htmlResponse("Failed to change password", 500);
-    }
 
     return redirectWithSuccess(
       "/admin/settings",

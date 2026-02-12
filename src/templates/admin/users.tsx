@@ -15,19 +15,14 @@ export interface DisplayUser {
   username: string;
   adminLevel: AdminLevel;
   hasPassword: boolean;
-  hasDataKey: boolean;
 }
 
 /** Status label for a user */
-const userStatus = (user: DisplayUser): string => {
-  if (user.hasDataKey && user.hasPassword) return "Active";
-  if (user.hasPassword && !user.hasDataKey) return "Pending Activation";
-  return "Invited";
-};
+const userStatus = (user: DisplayUser): string =>
+  user.hasPassword ? "Active" : "Invited";
 
 /** Check if a user can be impersonated by the current session */
 const canImpersonate = (user: DisplayUser, session: AdminSession): boolean =>
-  user.hasDataKey &&
   user.hasPassword &&
   user.adminLevel !== "owner" &&
   (session.adminLevel === "owner" ||
@@ -73,7 +68,6 @@ export const adminUsersPage = (
               <th>Username</th>
               <th>Role</th>
               <th>Status</th>
-              <th>Actions</th>
               <th></th>
               <th></th>
             </tr>
@@ -84,14 +78,6 @@ export const adminUsersPage = (
                 <td>{user.username}</td>
                 <td>{user.adminLevel}</td>
                 <td>{userStatus(user)}</td>
-                <td>
-                  {user.hasPassword && !user.hasDataKey && (
-                    <form class="inline" method="POST" action={`/admin/users/${user.id}/activate`}>
-                      <input type="hidden" name="csrf_token" value={session.csrfToken} />
-                      <button type="submit">Activate</button>
-                    </form>
-                  )}
-                </td>
                 <td>
                   {canImpersonate(user, session) && (
                     <form class="inline" method="POST" action={`/admin/users/${user.id}/impersonate`}>
@@ -113,5 +99,5 @@ export const adminUsersPage = (
           </tbody>
         </table>
       </div>
-    </Layout>
+    </Layout>,
   );

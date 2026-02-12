@@ -2,7 +2,6 @@
  * Admin impersonation routes - manager or above
  */
 
-import { unwrapKeyWithToken } from "#lib/crypto.ts";
 import { logAuditEvent } from "#lib/db/audit-events.ts";
 import { deleteSession } from "#lib/db/sessions.ts";
 import {
@@ -16,7 +15,7 @@ import type { RouteParams } from "#routes/router.ts";
 import {
   buildCookie,
   clearCookie,
-  createSessionWithKey,
+  createNewSession,
   getAuthenticatedSession,
   htmlResponse,
   parseCookies,
@@ -74,17 +73,7 @@ const handleImpersonate = (
       return htmlResponse("Cannot impersonate an owner", 403);
     }
 
-    // Need wrapped data key to transfer to impersonation session
-    if (!session.wrappedDataKey) {
-      return htmlResponse("Cannot impersonate: session lacks data key", 500);
-    }
-
-    // Unwrap data key using admin's session token, create impersonation session
-    const dataKey = await unwrapKeyWithToken(
-      session.wrappedDataKey,
-      session.token,
-    );
-    const newToken = await createSessionWithKey(dataKey, targetUserId);
+    const newToken = await createNewSession(targetUserId);
 
     const targetUsername = await decryptUsername(targetUser);
     await logAuditEvent({
