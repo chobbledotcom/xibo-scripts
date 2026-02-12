@@ -117,6 +117,17 @@ export type XiboDataset = {
 /** Dataset row data — keyed by column heading */
 export type XiboDatasetRow = Record<string, string | number | null>;
 
+/** A product stored as a row in a business Xibo dataset */
+export type DatasetProduct = {
+  /** Row ID within the dataset */
+  id: number;
+  name: string;
+  price: string;
+  media_id: number | null;
+  available: number;
+  sort_order: number;
+};
+
 /** Display resolution */
 export type XiboResolution = {
   resolutionId: number;

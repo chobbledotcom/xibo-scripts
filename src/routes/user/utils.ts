@@ -5,7 +5,12 @@
  * Xibo config loading, and business context resolution.
  */
 
-import { getBusinessesForUser, toDisplayBusiness } from "#lib/db/businesses.ts";
+import {
+  getBusinessById,
+  getBusinessesForUser,
+  getBusinessUserIds,
+  toDisplayBusiness,
+} from "#lib/db/businesses.ts";
 import type { DisplayBusiness } from "#lib/db/businesses.ts";
 import type { XiboConfig } from "#xibo/types.ts";
 import type { AuthSession } from "#routes/utils.ts";
@@ -103,4 +108,26 @@ export const userBusinessDetailRoute = (
     withBusinessContext(request, session, (ctx) =>
       handler(session, config, ctx, params, request)));
 
+/**
+ * Verify a user has access to a specific business by ID.
+ * Returns the decrypted DisplayBusiness on success, or a 403/404 Response on failure.
+ */
+export const withUserBusiness = async (
+  userId: number,
+  businessId: number,
+): Promise<DisplayBusiness | Response> => {
+  const business = await getBusinessById(businessId);
+  if (!business) {
+    return htmlResponse("<h1>Business not found</h1>", 404);
+  }
 
+  const userIds = await getBusinessUserIds(businessId);
+  if (!userIds.includes(userId)) {
+    return htmlResponse(
+      "<h1>Access Denied</h1><p>You do not have access to this business.</p>",
+      403,
+    );
+  }
+
+  return toDisplayBusiness(business);
+};
